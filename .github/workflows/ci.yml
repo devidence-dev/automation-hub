@@ -1,0 +1,162 @@
+name: 🚀 CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  # 🔍 Code Quality & Security Analysis
+  code-quality:
+    name: 🔍 Code Quality & Security
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for better analysis
+
+      - name: 🔧 Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.24.5"
+          cache: true
+
+      - name: 📦 Download dependencies
+        run: go mod download
+
+      - name: 🔍 Run go vet
+        run: go vet ./...
+
+      - name: 🧪 Run tests with coverage
+        run: |
+          go test -v -race -coverprofile=coverage.out ./...
+          go tool cover -html=coverage.out -o coverage.html
+
+      - name: 📊 Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella
+
+      - name: 🔐 Run Gosec Security Scanner
+        uses: securecodewarrior/github-action-gosec@master
+        with:
+          args: "-fmt sarif -out gosec.sarif ./..."
+
+      - name: 📋 Upload Gosec results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: gosec.sarif
+
+  # 🕵️ Secret Detection
+  secret-detection:
+    name: 🕵️ Secret Detection
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  # 🧹 Code Linting
+  lint:
+    name: 🧹 Lint Code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.24.5"
+
+      - name: 🧹 golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          args: --timeout=5m
+
+  # 🐳 Docker Build & Security Scan
+  docker-security:
+    name: 🐳 Docker Security
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🏗️ Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./deployments/docker/Dockerfile
+          push: false
+          tags: automation-hub:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 🔍 Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "automation-hub:test"
+          format: "sarif"
+          output: "trivy-results.sarif"
+
+      - name: 📋 Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"
+
+  # ✅ Build Verification
+  build:
+    name: ✅ Build Verification
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux]
+        goarch: [amd64, arm64]
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.24.5"
+
+      - name: 📦 Download dependencies
+        run: go mod download
+
+      - name: 🏗️ Build for ${{ matrix.goos }}/${{ matrix.goarch }}
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          go build -v -o automation-hub-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/automation-hub
+
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: automation-hub-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: automation-hub-${{ matrix.goos }}-${{ matrix.goarch }}

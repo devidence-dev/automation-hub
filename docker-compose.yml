@@ -1,0 +1,40 @@
+services:
+  automation-hub:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile
+      platforms:
+        - linux/arm64
+    container_name: automation-hub-prod
+    restart: always
+    expose:
+      - "8080"
+    volumes:
+      - ./configs/config.yaml:/root/configs/config.yaml:ro
+      - /var/log/automation-hub:/var/log/automation-hub
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=America/Guayaquil
+      - GO_ENV=production
+    networks:
+      - automation-hub-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
+    user: "1000:1000"
+
+networks:
+  automation-hub-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1500

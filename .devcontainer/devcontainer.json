@@ -1,0 +1,39 @@
+{
+  "name": "Automation Hub Dev Container",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {
+      "ppa": true,
+      "version": "latest"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "ms-vscode.vscode-json",
+        "ms-vscode.yaml",
+        "redhat.vscode-yaml",
+        "streetsidesoftware.code-spell-checker",
+        "ms-vscode.docker",
+        "github.copilot"
+      ],
+      "settings": {
+        "go.toolsManagement.checkForUpdates": "local",
+        "go.useLanguageServer": true,
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.organizeImports": "explicit"
+        }
+      }
+    }
+  },
+  "forwardPorts": [
+    8080
+  ],
+  "postCreateCommand": "go mod download && go mod tidy",
+  "remoteUser": "vscode"
+}

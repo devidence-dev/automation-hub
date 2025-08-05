@@ -1,0 +1,43 @@
+# 🤖 Dependabot configuration
+# Keep dependencies up to date automatically
+
+version: 2
+updates:
+  # 🐹 Go modules
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "devidence-dev"
+    commit-message:
+      prefix: "🔄"
+      include: "scope"
+
+  # 🐳 Docker
+  - package-ecosystem: "docker"
+    directory: "/deployments/docker"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "devidence-dev"
+    commit-message:
+      prefix: "🐳"
+
+  # 🚀 GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "devidence-dev"
+    commit-message:
+      prefix: "🚀"
+      include: "scope"
