@@ -156,7 +156,7 @@ jobs:
           go build -v -o automation-hub-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/automation-hub
 
       - name: 📤 Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: automation-hub-${{ matrix.goos }}-${{ matrix.goarch }}
           path: automation-hub-${{ matrix.goos }}-${{ matrix.goarch }}
