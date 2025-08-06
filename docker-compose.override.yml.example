@@ -1,0 +1,9 @@
+  services:
+  automation-hub:
+    networks:
+      - automation-hub-network
+      - net
+
+networks:
+  net:
+    external: true

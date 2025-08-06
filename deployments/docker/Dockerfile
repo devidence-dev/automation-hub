@@ -16,13 +16,16 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o automation-hub cmd/automation-hub/main.
 # Final stage
 FROM alpine:latest
 
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates && \
+    adduser -D -u 1000 appuser
 
-WORKDIR /root/
+WORKDIR /app
 
-# Copy binary
-COPY --from=builder /app/automation-hub .
-COPY --from=builder /app/configs ./configs
+# Copy binary and configs with correct ownership
+COPY --from=builder --chown=appuser:appuser /app/automation-hub .
+COPY --from=builder --chown=appuser:appuser /app/configs ./configs
+
+USER appuser
 
 EXPOSE 8080
 
