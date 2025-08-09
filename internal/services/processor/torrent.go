@@ -5,6 +5,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"automation-hub/internal/config"
 	"automation-hub/internal/models"
 	"automation-hub/internal/services/telegram"
 )
@@ -12,25 +13,46 @@ import (
 type TorrentProcessor struct {
 	telegram *telegram.Client
 	logger   *zap.Logger
-	chatID   string
+	config   *config.WebhookProcessorConfig
 }
 
-func NewTorrentProcessor(telegram *telegram.Client, chatID string, logger *zap.Logger) *TorrentProcessor {
+func NewTorrentProcessor(telegram *telegram.Client, webhookConfig *config.WebhookProcessorConfig, logger *zap.Logger) *TorrentProcessor {
 	return &TorrentProcessor{
 		telegram: telegram,
 		logger:   logger,
-		chatID:   chatID,
+		config:   webhookConfig,
 	}
 }
 
-func (p *TorrentProcessor) Process(notification models.TorrentNotification) error {
-	message := fmt.Sprintf(`📥 **¡Descarga completada exitosamente!** 🎬
+// NewTorrentProcessorLegacy mantiene compatibilidad con el código existente
+func NewTorrentProcessorLegacy(telegram *telegram.Client, chatID string, logger *zap.Logger) *TorrentProcessor {
+	return &TorrentProcessor{
+		telegram: telegram,
+		logger:   logger,
+		config: &config.WebhookProcessorConfig{
+			TelegramChatID: chatID,
+			TelegramMessage: `📥 **¡Descarga completada exitosamente!** 🎬
 
 🔍 **Nombre:**  
 %s
 
 📍 **Ruta:**  
-%s`, notification.TorrentName, notification.SavePath)
+%s`,
+		},
+	}
+}
 
-	return p.telegram.SendMessage(p.chatID, message)
+func (p *TorrentProcessor) Process(notification models.TorrentNotification) error {
+	message := fmt.Sprintf(p.config.TelegramMessage, notification.TorrentName, notification.SavePath)
+	return p.telegram.SendMessage(p.config.TelegramChatID, message)
+}
+
+// GetWebhookConfig busca la configuración de un webhook específico por nombre
+func GetWebhookConfig(cfg *config.Config, webhookName string) *config.WebhookProcessorConfig {
+	for _, hook := range cfg.Hook {
+		if hook.Name == webhookName {
+			return &hook.Config
+		}
+	}
+	return nil
 }

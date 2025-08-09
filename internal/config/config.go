@@ -5,9 +5,10 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Email    EmailConfig    `mapstructure:"email"`
-	Telegram TelegramConfig `mapstructure:"telegram"`
+	Server   ServerConfig     `mapstructure:"server"`
+	Email    EmailConfig      `mapstructure:"email"`
+	Telegram TelegramConfig   `mapstructure:"telegram"`
+	Hook     []WebhookConfig  `mapstructure:"hook"`
 }
 
 type ServerConfig struct {
@@ -39,6 +40,17 @@ type ServiceProcessorConfig struct {
 type TelegramConfig struct {
 	BotToken string            `mapstructure:"bot_token"`
 	ChatIDs  map[string]string `mapstructure:"chat_ids"`
+}
+
+type WebhookConfig struct {
+	Name   string                 `mapstructure:"name"`
+	Path   string                 `mapstructure:"path"`
+	Config WebhookProcessorConfig `mapstructure:"config"`
+}
+
+type WebhookProcessorConfig struct {
+	TelegramChatID  string `mapstructure:"telegram_chat_id"`
+	TelegramMessage string `mapstructure:"telegram_message"`
 }
 
 func Load() (*Config, error) {

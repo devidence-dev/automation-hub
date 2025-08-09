@@ -1,5 +1,9 @@
   services:
   automation-hub:
+    volumes:
+      - ./configs:/app/configs:ro
+      - /media/ssd/docker-volumes/automation-hub:/var/log/automation-hub
+      - /etc/localtime:/etc/localtime:ro
     networks:
       - automation-hub-network
       - net

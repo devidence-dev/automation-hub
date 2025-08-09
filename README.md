@@ -31,7 +31,7 @@ This project implements comprehensive **security and code quality** measures:
 - 📧 **Real-time email monitoring** - IMAP-based email processing with configurable polling
 - 🔧 **Dynamic service configuration** - Add new email processors without code changes
 - 🤖 **Telegram notifications** - Organized notifications with custom formatting per service
-- 🔗 **Webhook support** - Handles qBittorrent and other webhook integrations
+- 🔗 **Configurable webhook support** - Handles qBittorrent and other webhook integrations with custom messages
 - 🏗️ **Modular architecture** - Clean, extensible, and maintainable codebase
 - 🚀 **Docker ready** - Optimized for Raspberry Pi 5 and cloud deployment
 
@@ -93,6 +93,18 @@ email:
         telegram_message: "🔮 Perplexity Code: ```%s```"
         
     # ➕ Add more services here without touching code!
+
+# 🔗 Webhook Configuration
+hook:
+  - name: "qbittorrent"
+    config:
+      telegram_chat_id: "YOUR_QBITTORRENT_CHAT_ID"
+  telegram_message: "📥 **Download completed successfully!** 🎬 \n🔍 **Name:**  \n%s\n📍 **Path:**  \n%s"
+  # Add more webhooks here:
+  # - name: "sonarr"
+  #   config:
+  #     telegram_chat_id: "YOUR_SONARR_CHAT_ID"
+  #     telegram_message: "📺 Serie descargada: %s"
 
 telegram:
   bot_token: "YOUR_BOT_TOKEN"
@@ -170,15 +182,56 @@ go test ./...
 
 ### 📦 qBittorrent Integration
 
-Configure qBittorrent to send webhooks on completion:
+Configure qBittorrent to send webhooks on completion. The webhook now supports **custom messages** configured in your `config.yaml`:
 
 **Tools** → **Options** → **Downloads** → **Run external program on torrent completion:**
 
 ```bash
 curl -X POST http://your-server:8080/webhook/qbitorrent \
   -H "Content-Type: application/json" \
-  -d '{"name":"%N","hash":"%I","size":%Z,"category":"%L"}'
+  -d '{"torrent_name":"%N","save_path":"%F"}'
 ```
+
+**📝 Custom Message Configuration:**
+
+You can customize the notification message in your `config.yaml`:
+
+```yaml
+hook:
+  - name: "qbittorrent"
+    config:
+      telegram_chat_id: "YOUR_CHAT_ID"
+  telegram_message: "🎬 Your custom message! \n📁 File: %s\n📂 Location: %s"
+```
+
+The `%s` placeholders will be replaced with:
+1. First `%s` → Torrent name
+2. Second `%s` → Save path
+
+### 🆕 Adding New Webhooks
+
+The system now supports **configurable webhooks**! Add new webhook handlers without coding:
+
+```yaml
+hook:
+  - name: "qbittorrent"
+    config:
+      telegram_chat_id: "TORRENT_CHAT_ID"
+  telegram_message: "📥 Download complete: %s in %s"
+  - name: "sonarr"
+    config:
+      telegram_chat_id: "SONARR_CHAT_ID" 
+  telegram_message: "📺 New series: %s"
+  - name: "radarr"
+    config:
+      telegram_chat_id: "RADARR_CHAT_ID"
+  telegram_message: "🎬 New movie: %s"
+```
+
+Each webhook can have:
+- ✅ **Custom chat destination**
+- ✅ **Personalized message format**
+- ✅ **Multiple parameter placeholders**
 
 ### 🔄 Adding New Email Services
 
@@ -222,8 +275,14 @@ email:
    ```bash
    curl -X POST http://localhost:8080/webhook/qbitorrent \
      -H "Content-Type: application/json" \
-     -d '{"name":"%N","hash":"%I","size":%Z,"category":"%L"}'
+     -d '{"torrent_name":"%N","save_path":"%F"}'
    ```
+
+**📝 Message Customization:**
+- Edit `telegram_message` in your `config.yaml` 
+- Use `%s` placeholders for torrent name and save path
+- Supports Markdown formatting for rich notifications
+- All example messages have been translated to English; customize freely.
 
 ---
 
@@ -294,9 +353,33 @@ curl https://api.telegram.org/bot<BOT_TOKEN>/getUpdates
 
 **Debugging steps:**
 - ✅ Check if port 8080 is accessible
-- ✅ Verify JSON payload format
+- ✅ Verify JSON payload format matches expected: `{"torrent_name":"...", "save_path":"..."}`
+- ✅ Verify webhook configuration exists in `config.yaml`
 - ✅ Check application logs for errors
-- ✅ Test with curl manually
+- ✅ Test with curl manually:
+  ```bash
+  curl -X POST http://localhost:8080/webhook/qbitorrent \
+    -H "Content-Type: application/json" \
+    -d '{"torrent_name":"Test Movie","save_path":"/downloads/movies/"}'
+  ```
+</details>
+
+<details>
+<summary><strong>🎨 Webhook Message Not Formatting</strong></summary>
+
+**Check your config:**
+```yaml
+hook:
+  - name: "qbittorrent"
+    config:
+      telegram_chat_id: "123456789"  # Correct chat ID
+      telegram_message: "Download: %s in %s"  # Two %s placeholders
+```
+
+**Common issues:**
+- ✅ Ensure you have exactly 2 `%s` placeholders for qBittorrent
+- ✅ Check that the webhook name matches exactly (`"qbittorrent"`)
+- ✅ Verify chat ID is correct (including negative sign for groups)
 </details>
 
 

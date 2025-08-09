@@ -40,9 +40,6 @@ func main() {
 	// Initialize processor manager with dynamic configuration
 	processorManager := processor.NewProcessorManager(cfg.Email, telegramClient, logger)
 
-	// Initialize torrent processor (still using the old way for webhooks)
-	torrentProc := processor.NewTorrentProcessor(telegramClient, cfg.Telegram.ChatIDs["torrent"], logger)
-
 	// Start email monitoring with dynamic processors
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -51,8 +48,20 @@ func main() {
 
 	// Setup HTTP server for webhooks
 	router := mux.NewRouter()
-	webhookHandler := handlers.NewWebhookHandler(torrentProc, logger)
-	router.HandleFunc("/webhook/qbitorrent", webhookHandler.HandleTorrentComplete).Methods("POST")
+	webhookHandler := handlers.NewWebhookHandler(telegramClient, cfg, logger)
+	
+	// Register webhook routes dynamically from configuration
+	for _, hook := range cfg.Hook {
+		switch hook.Name {
+		case "qbittorrent":
+			router.HandleFunc(hook.Path, webhookHandler.HandleTorrentComplete).Methods("POST")
+			logger.Info("Registered webhook route", 
+				zap.String("name", hook.Name), 
+				zap.String("path", hook.Path))
+		default:
+			logger.Warn("Unknown webhook type", zap.String("name", hook.Name))
+		}
+	}
 
 	srv := &http.Server{
 		Addr:         cfg.Server.Address,

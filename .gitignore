@@ -230,3 +230,4 @@ log/
 .github/workflows/tmp/
 
 automation-hub
+docker-compose.override.yml
