@@ -8,6 +8,12 @@
     "ghcr.io/devcontainers/features/git:1": {
       "ppa": true,
       "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": "true",
+      "configureZshAsDefaultShell": "true",
+      "installOhMyZsh": "true",
+      "upgradePackages": "true"
     }
   },
   "customizations": {
@@ -34,6 +40,9 @@
   "forwardPorts": [
     8080
   ],
-  "postCreateCommand": "go mod download && go mod tidy",
-  "remoteUser": "vscode"
+  "postCreateCommand": "go mod download && go mod tidy && git config --global core.pager 'less -R'",
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached"
+  ]
 }

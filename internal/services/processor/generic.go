@@ -2,6 +2,8 @@ package processor
 
 import (
 	"fmt"
+	"io"
+	"mime/quotedprintable"
 	"regexp"
 	"strings"
 
@@ -29,7 +31,7 @@ func NewGenericEmailProcessor(name string, serviceConfig config.ServiceProcessor
 		logger:   logger,
 		defaultPatterns: map[string]*regexp.Regexp{
 			"cloudflare": regexp.MustCompile(`\b\d{6}\b`),
-			"perplexity": regexp.MustCompile(`\b[a-zA-Z0-9]{5}-[a-zA-Z0-9]{5}\b`),
+			"perplexity": regexp.MustCompile(`\b\d{6}\b`),
 			"default":    regexp.MustCompile(`\b[a-zA-Z0-9]{4,8}\b`), // patrón genérico
 		},
 	}
@@ -75,8 +77,11 @@ func (p *GenericEmailProcessor) ShouldProcess(email models.Email) bool {
 }
 
 func (p *GenericEmailProcessor) Process(email models.Email) error {
+	// Decodificar contenido quoted-printable si es necesario
+	decodedText := p.decodeQuotedPrintable(email.TextPlain)
+	
 	// Extraer el código usando el patrón configurado
-	code := p.extractCode(email.TextPlain)
+	code := p.extractCode(decodedText)
 
 	// Formatear el mensaje
 	message := fmt.Sprintf(p.config.TelegramMessage, code)
@@ -91,6 +96,19 @@ func (p *GenericEmailProcessor) extractCode(text string) string {
 		return matches[0]
 	}
 	return "No encontrado"
+}
+
+func (p *GenericEmailProcessor) decodeQuotedPrintable(text string) string {
+	// Si el texto contiene caracteres quoted-printable, intentar decodificar
+	if strings.Contains(text, "=") {
+		reader := quotedprintable.NewReader(strings.NewReader(text))
+		if decoded, err := io.ReadAll(reader); err == nil {
+			return string(decoded)
+		} else {
+			p.logger.Warn("Failed to decode quoted-printable", zap.Error(err))
+		}
+	}
+	return text
 }
 
 func (p *GenericEmailProcessor) GetName() string {
