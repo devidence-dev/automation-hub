@@ -9,7 +9,7 @@ email:
   port: 993
   username: "your-email@gmail.com"
   password: "your-app-password"
-  polling_interval: 30  # Intervalo de polling en segundos
+  polling_interval: 30  # Polling interval in seconds
   services:
     - name: "cloudflare"
       config:
@@ -17,16 +17,16 @@ email:
         email_subject:
           - "devidence.dev"
         telegram_chat_id: "YOUR_CLOUDFLARE_CHAT_ID"
-        telegram_message: "🛡️ Código Cloudflare App: \n```%s```"
-        # code_pattern: "\\b\\d{6}\\b"  # Opcional: patrón regex personalizado
+        telegram_message: "🛡️ Cloudflare App Code: \n```%s```"
+        # code_pattern: "\\b\\d{6}\\b"  # Optional: custom regex pattern
     - name: "perplexity"
       config:
         email_from: "team@mail.perplexity.ai"
         email_subject:
           - "Sign in to Perplexity"
-          - "Inicia sesión en Perplexity"
+          - "Sign in to Perplexity"
         telegram_chat_id: "YOUR_PERPLEXITY_CHAT_ID"
-        telegram_message: "🔮 Código Perplexity: ```%s```"
+        telegram_message: "🔮 Perplexity Code: ```%s```"
         # code_pattern: "\\b[a-zA-Z0-9]{5}-[a-zA-Z0-9]{5}\\b"  # Opcional
 
 hook:
@@ -34,12 +34,12 @@ hook:
     path: "/webhook/qbittorrent"
     config:
       telegram_chat_id: "YOUR_QBITTORRENT_CHAT_ID"
-      telegram_message: "📥 **¡Descarga completada exitosamente!** 🎬 \n🔍 **Nombre:**  \n%s\n📍 **Ruta:**  \n%s"
-  # - name: "otro-webhook"
-  #   path: "/webhook/otro-webhook"
+      telegram_message: "📥 **Download completed successfully!** 🎬 \n🔍 **Name:**  \n%s\n📍 **Path:**  \n%s"
+  # - name: "other-webhook"
+  #   path: "/webhook/other-webhook"
   #   config:
   #     telegram_chat_id: "YOUR_OTHER_WEBHOOK_CHAT_ID"
-  #     telegram_message: "Mensaje personalizado: %s"
+  #     telegram_message: "Custom message: %s"
 
 telegram:
   bot_token: "YOUR_TELEGRAM_TOKEN"

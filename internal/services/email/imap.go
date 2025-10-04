@@ -28,7 +28,7 @@ func NewIMAPClient(config config.EmailConfig, logger *zap.Logger) *IMAPClient {
 }
 
 func (c *IMAPClient) StartMonitoring(ctx context.Context, processors ...models.EmailProcessor) {
-	// Usar el intervalo de polling de la configuración, por defecto 60 segundos si no está configurado
+	// Use the polling interval from the configuration, default 60 seconds if not configured
 	pollingInterval := time.Duration(c.config.PollingInterval) * time.Second
 	if c.config.PollingInterval == 0 {
 		pollingInterval = 60 * time.Second

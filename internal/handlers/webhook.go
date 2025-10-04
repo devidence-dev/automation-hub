@@ -35,7 +35,7 @@ func (h *WebhookHandler) HandleTorrentComplete(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// Buscar configuración del webhook qbittorrent
+	// Find qbittorrent webhook configuration
 	webhookConfig := processor.GetWebhookConfig(h.config, "qbittorrent")
 	if webhookConfig == nil {
 		h.logger.Error("qbittorrent webhook configuration not found")
@@ -43,7 +43,7 @@ func (h *WebhookHandler) HandleTorrentComplete(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// Crear procesador dinámicamente
+	// Create processor dynamically
 	torrentProc := processor.NewTorrentProcessor(h.telegramClient, webhookConfig, h.logger)
 
 	if err := torrentProc.Process(notification); err != nil {

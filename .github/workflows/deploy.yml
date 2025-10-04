@@ -1,0 +1,60 @@
+name: Deploy to Raspberry Pi
+
+on:
+  workflow_dispatch: # Only manual execution
+  workflow_run:
+    workflows: ["🚀 CI/CD Pipeline"]
+    types:
+      - completed
+    branches:
+      - master
+      - main
+
+env:
+  # Public variables (visible in the code)
+  BRANCH_NAME: ${{ github.ref_name }} # Updated to use the actual branch name dynamically
+  # Organization variables
+  DEPLOY_PATH: ${{ vars.DEPLOY_BASE_PATH }}/${{ github.event.repository.name }}
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: self-hosted # Only one self-hosted runner available
+    # environment: production # Temporarily disabled to test
+    # if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+
+    steps:
+      - name: Fetch latest changes
+        run: |
+          cd ${{ env.DEPLOY_PATH }}
+          git fetch origin
+
+      - name: Reset to latest branch
+        run: |
+          cd ${{ env.DEPLOY_PATH }}
+          git reset --hard origin/${{ env.BRANCH_NAME }}
+
+      - name: Stop running containers
+        run: |
+          cd ${{ env.DEPLOY_PATH }}
+          docker compose down
+        continue-on-error: true # Continue even if it fails (in case there are no running containers)
+
+      - name: Build Docker image
+        run: |
+          cd ${{ env.DEPLOY_PATH }}
+          docker compose build --no-cache
+
+      - name: Start containers
+        run: |
+          cd ${{ env.DEPLOY_PATH }}
+          docker compose up -d
+
+      - name: Clean up old Docker images
+        run: docker image prune -f
+        continue-on-error: true
+
+      - name: Show container status
+        run: |
+          cd ${{ env.DEPLOY_PATH }}
+          docker compose ps

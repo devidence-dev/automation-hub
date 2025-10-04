@@ -24,19 +24,19 @@ func NewTorrentProcessor(telegram *telegram.Client, webhookConfig *config.Webhoo
 	}
 }
 
-// NewTorrentProcessorLegacy mantiene compatibilidad con el código existente
+// NewTorrentProcessorLegacy maintains compatibility with the existing code
 func NewTorrentProcessorLegacy(telegram *telegram.Client, chatID string, logger *zap.Logger) *TorrentProcessor {
 	return &TorrentProcessor{
 		telegram: telegram,
 		logger:   logger,
 		config: &config.WebhookProcessorConfig{
 			TelegramChatID: chatID,
-			TelegramMessage: `📥 **¡Descarga completada exitosamente!** 🎬
+			TelegramMessage: `📥 **Download completed successfully!** 🎬
 
-🔍 **Nombre:**  
+🔍 **Name:**  
 %s
 
-📍 **Ruta:**  
+📍 **Path:**  
 %s`,
 		},
 	}
@@ -47,7 +47,7 @@ func (p *TorrentProcessor) Process(notification models.TorrentNotification) erro
 	return p.telegram.SendMessage(p.config.TelegramChatID, message)
 }
 
-// GetWebhookConfig busca la configuración de un webhook específico por nombre
+// GetWebhookConfig searches for the configuration of a specific webhook by name
 func GetWebhookConfig(cfg *config.Config, webhookName string) *config.WebhookProcessorConfig {
 	for _, hook := range cfg.Hook {
 		if hook.Name == webhookName {

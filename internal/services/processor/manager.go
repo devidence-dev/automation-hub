@@ -24,7 +24,7 @@ func NewProcessorManager(emailConfig config.EmailConfig, telegram *telegram.Clie
 		logger:   logger,
 	}
 
-	// Crear procesadores dinámicamente desde la configuración
+	// Create processors dynamically from the configuration
 	for _, serviceConfig := range emailConfig.Services {
 		processor := NewGenericEmailProcessor(
 			serviceConfig.Name,
@@ -53,27 +53,27 @@ func (pm *Manager) ProcessEmailsConcurrently(ctx context.Context, emails []model
 
 	pm.logger.Info("Processing emails concurrently", zap.Int("email_count", len(emails)))
 
-	// Procesar cada email en su propia goroutine
+	// Process each email in its own goroutine
 	for _, email := range emails {
 		pm.wg.Add(1)
 		go pm.processEmailAsync(ctx, email)
 	}
 
-	// Esperar a que terminen todas las goroutines
+	// Wait for all goroutines to finish
 	pm.wg.Wait()
 }
 
 func (pm *Manager) processEmailAsync(ctx context.Context, email models.Email) {
 	defer pm.wg.Done()
 
-	// Verificar si el contexto fue cancelado
+	// Check if the context was canceled
 	select {
 	case <-ctx.Done():
 		return
 	default:
 	}
 
-	// Buscar un procesador que pueda manejar este email
+	// Find a processor that can handle this email
 	for _, processor := range pm.processors {
 		if processor.ShouldProcess(email) {
 			pm.logger.Info("Processing email",
@@ -88,7 +88,7 @@ func (pm *Manager) processEmailAsync(ctx context.Context, email models.Email) {
 				pm.logger.Info("Email processed successfully",
 					zap.String("subject", email.Subject))
 			}
-			return // Solo el primer procesador que coincida debe procesar el email
+			return // Only the first matching processor should process the email
 		}
 	}
 

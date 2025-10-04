@@ -32,11 +32,11 @@ func NewGenericEmailProcessor(name string, serviceConfig config.ServiceProcessor
 		defaultPatterns: map[string]*regexp.Regexp{
 			"cloudflare": regexp.MustCompile(`\b\d{6}\b`),
 			"perplexity": regexp.MustCompile(`\b\d{6}\b`),
-			"default":    regexp.MustCompile(`\b[a-zA-Z0-9]{4,8}\b`), // patrón genérico
+			"default":    regexp.MustCompile(`\b[a-zA-Z0-9]{4,8}\b`), // generic pattern
 		},
 	}
 
-	// Si hay un patrón personalizado, usarlo
+	// If there is a custom pattern, use it
 	if serviceConfig.CodePattern != "" {
 		if pattern, err := regexp.Compile(serviceConfig.CodePattern); err == nil {
 			processor.codePattern = pattern
@@ -48,7 +48,7 @@ func NewGenericEmailProcessor(name string, serviceConfig config.ServiceProcessor
 		}
 	}
 
-	// Si no hay patrón personalizado, usar el patrón por defecto del servicio
+	// If there is no custom pattern, use the default pattern of the service
 	if processor.codePattern == nil {
 		if pattern, exists := processor.defaultPatterns[strings.ToLower(name)]; exists {
 			processor.codePattern = pattern
@@ -61,12 +61,12 @@ func NewGenericEmailProcessor(name string, serviceConfig config.ServiceProcessor
 }
 
 func (p *GenericEmailProcessor) ShouldProcess(email models.Email) bool {
-	// Verificar el remitente
+	// Check the sender
 	if !strings.Contains(email.From, p.config.EmailFrom) {
 		return false
 	}
 
-	// Verificar al menos uno de los subjects
+	// Check at least one of the subjects
 	for _, subject := range p.config.EmailSubject {
 		if strings.Contains(email.Subject, subject) {
 			return true
@@ -77,25 +77,46 @@ func (p *GenericEmailProcessor) ShouldProcess(email models.Email) bool {
 }
 
 func (p *GenericEmailProcessor) Process(email models.Email) error {
-	// Decodificar contenido quoted-printable si es necesario
+	// Decode quoted-printable content if necessary
 	decodedText := p.decodeQuotedPrintable(email.TextPlain)
-	
-	// Extraer el código usando el patrón configurado
+
+	// Log the decoded content for debugging
+	p.logger.Debug("Processing email content",
+		zap.String("service", p.name),
+		zap.String("from", email.From),
+		zap.String("subject", email.Subject),
+		zap.String("decoded_text", decodedText))
+
+	// Extract the code using the configured pattern
 	code := p.extractCode(decodedText)
 
-	// Formatear el mensaje
+	// Format the message
 	message := fmt.Sprintf(p.config.TelegramMessage, code)
 
-	// Enviar mensaje a Telegram
+	// Send message to Telegram
 	return p.telegram.SendMessage(p.config.TelegramChatID, message)
 }
 
 func (p *GenericEmailProcessor) extractCode(text string) string {
 	matches := p.codePattern.FindStringSubmatch(text)
 	if len(matches) > 0 {
+		p.logger.Info("Code extracted successfully",
+			zap.String("service", p.name),
+			zap.String("code", matches[0]))
 		return matches[0]
 	}
-	return "No encontrado"
+	p.logger.Warn("Code not found in email",
+		zap.String("service", p.name),
+		zap.String("pattern", p.codePattern.String()),
+		zap.String("text_preview", truncateString(text, 200)))
+	return "Not found"
+}
+
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
 
 func (p *GenericEmailProcessor) decodeQuotedPrintable(text string) string {
