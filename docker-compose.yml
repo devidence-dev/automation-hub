@@ -10,7 +10,7 @@ services:
     expose:
       - "8080"
     volumes:
-      - ./configs:/app/configs:ro
+      - ${PWD}/configs:/app/configs:ro
       - /var/log/automation-hub:/var/log/automation-hub
       - /etc/localtime:/etc/localtime:ro
     environment:
