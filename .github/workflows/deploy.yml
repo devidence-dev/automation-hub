@@ -38,6 +38,17 @@ jobs:
           cd ${{ env.DEPLOY_PATH }}
           git reset --hard origin/${{ env.BRANCH_NAME }}
 
+      - name: Verify configuration file exists
+        run: |
+          cd ${{ env.DEPLOY_PATH }}
+          if [ ! -f configs/config.yaml ]; then
+            echo "⚠️  Warning: config.yaml not found. Creating from example..."
+            echo "⚠️  Remember to update it with your actual values!"
+            cp configs/config.yaml.example configs/config.yaml
+          else
+            echo "✅ config.yaml found"
+          fi
+
       - name: Stop running containers
         run: |
           cd ${{ env.DEPLOY_PATH }}

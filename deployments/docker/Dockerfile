@@ -21,9 +21,9 @@ RUN apk --no-cache add ca-certificates && \
 
 WORKDIR /app
 
-# Copy binary and configs with correct ownership
+# Copy binary with correct ownership
 COPY --from=builder --chown=appuser:appuser /app/automation-hub .
-COPY --from=builder --chown=appuser:appuser /app/configs ./configs
+# Note: configs folder will be mounted as a volume from docker-compose.yml
 
 USER appuser
 
