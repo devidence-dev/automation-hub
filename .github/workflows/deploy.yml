@@ -27,7 +27,11 @@ jobs:
       - name: Fetch latest changes
         run: |
           cd ${{ env.DEPLOY_PATH }}
+          # Temporarily use HTTPS for fetch
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
           git fetch origin
+          # Restore SSH remote
+          git remote set-url origin git@github.com:${{ github.repository }}.git
 
       - name: Reset to latest branch
         run: |
@@ -37,24 +41,24 @@ jobs:
       - name: Stop running containers
         run: |
           cd ${{ env.DEPLOY_PATH }}
-          docker compose down
+          sudo docker compose down
         continue-on-error: true # Continue even if it fails (in case there are no running containers)
 
       - name: Build Docker image
         run: |
           cd ${{ env.DEPLOY_PATH }}
-          docker compose build --no-cache
+          sudo docker compose build --no-cache
 
       - name: Start containers
         run: |
           cd ${{ env.DEPLOY_PATH }}
-          docker compose up -d
+          sudo docker compose up -d
 
       - name: Clean up old Docker images
-        run: docker image prune -f
+        run: sudo docker image prune -f
         continue-on-error: true
 
       - name: Show container status
         run: |
           cd ${{ env.DEPLOY_PATH }}
-          docker compose ps
+          sudo docker compose ps

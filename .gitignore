@@ -231,3 +231,4 @@ log/
 
 automation-hub
 docker-compose.override.yml
+.DS_Store
