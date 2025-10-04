@@ -74,21 +74,6 @@ jobs:
           fi
           echo "✅ Config validation passed"
 
-      - name: Verify configuration file exists
-        run: |
-          cd ${{ env.DEPLOY_PATH }}
-          echo "✅ config.yaml generated from secrets"
-          echo "📋 Config directory contents:"
-          ls -la configs/
-
-          # Update docker-compose files to use absolute paths (no variables)
-          echo "📝 Updating compose files with absolute paths..."
-          sed -i 's|\${PWD}/configs|${{ env.DEPLOY_PATH }}/configs|g' docker-compose.yml
-          if [ -f docker-compose.override.yml ]; then
-            sed -i 's|\${PWD}/configs|${{ env.DEPLOY_PATH }}/configs|g' docker-compose.override.yml
-          fi
-          echo "✅ Compose files updated"
-
       - name: Stop running containers
         run: |
           cd ${{ env.DEPLOY_PATH }}

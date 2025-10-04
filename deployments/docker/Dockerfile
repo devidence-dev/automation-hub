@@ -23,7 +23,8 @@ WORKDIR /app
 
 # Copy binary with correct ownership
 COPY --from=builder --chown=appuser:appuser /app/automation-hub .
-# Note: configs folder will be mounted as a volume from docker-compose.yml
+# Copy config file
+COPY --chown=appuser:appuser configs/config.yaml .
 
 USER appuser
 
