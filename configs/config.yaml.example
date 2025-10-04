@@ -6,7 +6,7 @@ telegram:
 
 email:
   host: "{{EMAIL_HOST}}"
-  port: { { EMAIL_PORT } }
+  port: {{EMAIL_PORT}}
   username: "{{EMAIL_USERNAME}}"
   password: "{{EMAIL_PASSWORD}}"
   polling_interval: 20 # Polling interval in seconds

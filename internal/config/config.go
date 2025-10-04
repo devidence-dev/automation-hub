@@ -5,10 +5,10 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig     `mapstructure:"server"`
-	Email    EmailConfig      `mapstructure:"email"`
-	Telegram TelegramConfig   `mapstructure:"telegram"`
-	Hook     []WebhookConfig  `mapstructure:"hook"`
+	Server   ServerConfig    `mapstructure:"server"`
+	Email    EmailConfig     `mapstructure:"email"`
+	Telegram TelegramConfig  `mapstructure:"telegram"`
+	Hook     []WebhookConfig `mapstructure:"hook"`
 }
 
 type ServerConfig struct {
@@ -56,9 +56,9 @@ type WebhookProcessorConfig struct {
 func Load() (*Config, error) {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("/app/configs")
-	viper.AddConfigPath("./configs")
 	viper.AddConfigPath("/app")
+	viper.AddConfigPath("./configs")
+	viper.AddConfigPath("/app/configs")
 	viper.AddConfigPath(".")
 
 	// Environment variables override

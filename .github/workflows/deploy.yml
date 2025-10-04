@@ -63,6 +63,17 @@ jobs:
           sudo chmod 644 configs/config.yaml
           echo "✅ config.yaml generated successfully"
 
+      - name: Validate configuration file
+        run: |
+          cd ${{ env.DEPLOY_PATH }}
+          echo "🔍 Validating config.yaml..."
+          if awk '!/^[[:space:]]*#/' configs/config.yaml | grep -q '{{'; then
+            echo "❌ Error: Placeholders not replaced in config.yaml"
+            cat configs/config.yaml
+            exit 1
+          fi
+          echo "✅ Config validation passed"
+
       - name: Verify configuration file exists
         run: |
           cd ${{ env.DEPLOY_PATH }}
@@ -107,9 +118,11 @@ jobs:
       - name: Debug - Check config inside container
         run: |
           echo "📋 Checking config file inside container..."
-          sudo docker exec automation-hub-prod ls -la /app/configs/ || true
+          sudo docker exec automation-hub-prod ls -la /app/ || true
           echo "📄 Checking if config.yaml is readable..."
-          sudo docker exec automation-hub-prod head -5 /app/configs/config.yaml || true
+          sudo docker exec automation-hub-prod head -10 /app/config.yaml || true
           echo "📊 Container logs:"
-          sudo docker logs --tail 20 automation-hub-prod || true
+          sudo docker logs --tail 50 automation-hub-prod || true
+          echo "📈 Container status:"
+          sudo docker ps -a --filter name=automation-hub-prod --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
         continue-on-error: true
