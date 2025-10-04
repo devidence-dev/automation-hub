@@ -38,49 +38,61 @@ jobs:
           cd ${{ env.DEPLOY_PATH }}
           git reset --hard origin/${{ env.BRANCH_NAME }}
 
+      - name: Generate config.yaml from secrets
+        run: |
+          cd ${{ env.DEPLOY_PATH }}
+          echo "📝 Generating config.yaml from template..."
+
+          # Copy template
+          cp configs/config.yaml.example configs/config.yaml
+
+          # Replace placeholders with variables (non-sensitive)
+          sed -i 's|{{EMAIL_HOST}}|${{ vars.EMAIL_HOST }}|g' configs/config.yaml
+          sed -i 's|{{EMAIL_PORT}}|${{ vars.EMAIL_PORT }}|g' configs/config.yaml
+          sed -i 's|{{EMAIL_USERNAME}}|${{ vars.EMAIL_USERNAME }}|g' configs/config.yaml
+
+          # Replace placeholders with secrets (sensitive)
+          sed -i 's|{{TELEGRAM_BOT_TOKEN}}|${{ secrets.TELEGRAM_BOT_TOKEN }}|g' configs/config.yaml
+          sed -i 's|{{EMAIL_PASSWORD}}|${{ secrets.EMAIL_PASSWORD }}|g' configs/config.yaml
+          sed -i 's|{{TELEGRAM_CLOUDFLARE_CHAT_ID}}|${{ secrets.TELEGRAM_CLOUDFLARE_CHAT_ID }}|g' configs/config.yaml
+          sed -i 's|{{TELEGRAM_PERPLEXITY_CHAT_ID}}|${{ secrets.TELEGRAM_PERPLEXITY_CHAT_ID }}|g' configs/config.yaml
+          sed -i 's|{{TELEGRAM_QBITTORRENT_CHAT_ID}}|${{ secrets.TELEGRAM_QBITTORRENT_CHAT_ID }}|g' configs/config.yaml
+
+          # Set proper permissions
+          sudo chown 1000:1000 configs/config.yaml
+          sudo chmod 644 configs/config.yaml
+          echo "✅ config.yaml generated successfully"
+
       - name: Verify configuration file exists
         run: |
           cd ${{ env.DEPLOY_PATH }}
-          if [ ! -f configs/config.yaml ]; then
-            echo "⚠️  Warning: config.yaml not found. Creating from example..."
-            echo "⚠️  Remember to update it with your actual values!"
-            cp configs/config.yaml.example configs/config.yaml
-          else
-            echo "✅ config.yaml found"
-          fi
-          # Ensure proper permissions for container user (1000:1000)
-          sudo chown -R 1000:1000 configs/
-          sudo chmod 644 configs/config.yaml
+          echo "✅ config.yaml generated from secrets"
           echo "📋 Config directory contents:"
           ls -la configs/
 
-          # Create temporary .env file for docker-compose
-          echo "PWD=${{ env.DEPLOY_PATH }}" > .env.deploy
-          chmod 644 .env.deploy
-          echo "📄 Created .env.deploy file with content:"
-          cat .env.deploy
-          echo "📍 File location and permissions:"
-          ls -la .env.deploy
+          # Update docker-compose files to use absolute paths (no variables)
+          echo "📝 Updating compose files with absolute paths..."
+          sed -i 's|\${PWD}/configs|${{ env.DEPLOY_PATH }}/configs|g' docker-compose.yml
+          if [ -f docker-compose.override.yml ]; then
+            sed -i 's|\${PWD}/configs|${{ env.DEPLOY_PATH }}/configs|g' docker-compose.override.yml
+          fi
+          echo "✅ Compose files updated"
 
       - name: Stop running containers
         run: |
           cd ${{ env.DEPLOY_PATH }}
-          echo "🔍 Verifying .env.deploy exists:"
-          ls -la .env.deploy
-          sudo docker compose --env-file ${{ env.DEPLOY_PATH }}/.env.deploy -f ${{ env.DEPLOY_PATH }}/docker-compose.yml down
-        continue-on-error: true # Continue even if it fails (in case there are no running containers)
+          sudo docker compose -f ${{ env.DEPLOY_PATH }}/docker-compose.yml down
+        continue-on-error: true
 
       - name: Build Docker image
         run: |
           cd ${{ env.DEPLOY_PATH }}
-          sudo docker compose --env-file ${{ env.DEPLOY_PATH }}/.env.deploy -f ${{ env.DEPLOY_PATH }}/docker-compose.yml build --no-cache
+          sudo docker compose -f ${{ env.DEPLOY_PATH }}/docker-compose.yml build --no-cache
 
       - name: Start containers
         run: |
           cd ${{ env.DEPLOY_PATH }}
-          echo "📄 Using .env.deploy file with content:"
-          cat .env.deploy
-          sudo docker compose --env-file ${{ env.DEPLOY_PATH }}/.env.deploy -f ${{ env.DEPLOY_PATH }}/docker-compose.yml up -d
+          sudo docker compose -f ${{ env.DEPLOY_PATH }}/docker-compose.yml up -d
 
       - name: Clean up old Docker images
         run: sudo docker image prune -f
@@ -89,7 +101,7 @@ jobs:
       - name: Show container status
         run: |
           cd ${{ env.DEPLOY_PATH }}
-          sudo docker compose --env-file ${{ env.DEPLOY_PATH }}/.env.deploy -f ${{ env.DEPLOY_PATH }}/docker-compose.yml ps
+          sudo docker compose -f ${{ env.DEPLOY_PATH }}/docker-compose.yml ps
         continue-on-error: true
 
       - name: Debug - Check config inside container
@@ -100,17 +112,4 @@ jobs:
           sudo docker exec automation-hub-prod head -5 /app/configs/config.yaml || true
           echo "📊 Container logs:"
           sudo docker logs --tail 20 automation-hub-prod || true
-          echo "🔍 Checking docker-compose.yml volumes:"
-          grep -A 5 "volumes:" docker-compose.yml || true
-          if [ -f docker-compose.override.yml ]; then
-            echo "🔍 Checking docker-compose.override.yml volumes:"
-            grep -A 5 "volumes:" docker-compose.override.yml || true
-          fi
-        continue-on-error: true
-
-      - name: Clean up temporary env file
-        run: |
-          cd ${{ env.DEPLOY_PATH }}
-          rm -f .env.deploy
-          echo "✅ Cleaned up .env.deploy file"
         continue-on-error: true
