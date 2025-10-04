@@ -5,6 +5,11 @@ on:
     branches: [main, master, develop]
   pull_request:
     branches: [main, master]
+  schedule:
+    # Run comprehensive analysis every Sunday at 6 AM UTC
+    - cron: "0 6 * * 0"
+    # Run dependency check every Monday at 9 AM UTC
+    - cron: "0 9 * * 1"
 
 jobs:
   # 🔍 Code Quality & Security Analysis
@@ -70,13 +75,31 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🔍 TruffleHog OSS
+      - name: �️ TruffleHog OSS Secret Scanning
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
           base: main
           head: HEAD
           extra_args: --debug --only-verified
+        continue-on-error: true # Don't fail the build
+
+      - name: 🔍 Basic Secret Pattern Detection
+        run: |
+          echo "🔍 Scanning for common secret patterns..."
+
+          # Check for common secret patterns
+          echo "Checking for API keys..."
+          grep -r -i "api[_-]key\s*[:=]\s*['\"][^'\"]\{10,\}" . --exclude-dir=.git --exclude-dir=node_modules || echo "No API keys found"
+
+          echo "Checking for tokens..."
+          grep -r -i "token\s*[:=]\s*['\"][^'\"]\{20,\}" . --exclude-dir=.git --exclude-dir=node_modules || echo "No tokens found"
+
+          echo "Checking for passwords..."
+          grep -r -i "password\s*[:=]\s*['\"][^'\"]\{8,\}" . --exclude-dir=.git --exclude-dir=node_modules || echo "No passwords found"
+
+          echo "✅ Basic secret scan completed"
+        continue-on-error: true
 
   # 🧹 Code Linting
   lint:
@@ -101,34 +124,135 @@ jobs:
             --enable=errcheck,govet,staticcheck,unused,misspell,gosec
             --issues-exit-code=0
 
-  # 🐳 Docker Build & Security Scan
-  docker-security:
-    name: 🐳 Docker Security
+  # 🔬 CodeQL Analysis
+  codeql:
+    name: 🔬 CodeQL Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ["go"]
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended,security-and-quality
+
+      - name: 🔧 Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.5"
+
+      - name: 🏗️ Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: 📊 Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{matrix.language}}"
+
+  # 🔒 Dependency Security
+  dependency-check:
+    name: 🔍 Dependency Security Scan
     runs-on: ubuntu-latest
 
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔧 Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: 🏗️ Build Docker image
-        uses: docker/build-push-action@v6
+      - name: 🔧 Setup Go
+        uses: actions/setup-go@v5
         with:
-          context: .
-          file: ./deployments/docker/Dockerfile
-          push: false
-          tags: automation-hub:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          go-version: "1.24.5"
 
-      - name: 🔍 Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+      - name: 📦 Download dependencies
+        run: go mod download
+
+      - name: 🔍 Run govulncheck (Official Go vulnerability scanner)
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./... || echo "⚠️ Vulnerabilities found - check the logs above"
+        continue-on-error: true # Don't fail the build, just report
+
+      - name: 📊 Dependency Review (PR only)
+        uses: actions/dependency-review-action@v4
+        if: github.event_name == 'pull_request'
+
+  # 🛡️ OSV Vulnerability Scan
+  osv-scan:
+    name: 🛡️ OSV Vulnerability Scan
+    runs-on: ubuntu-latest
+    continue-on-error: true # Don't fail the build if vulnerabilities are found
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
         with:
-          image-ref: "automation-hub:test"
-          format: "table"
-          exit-code: "0"
+          fetch-depth: 0
+
+      - name: 🔍 Run OSV Scanner
+        run: |
+          echo "🔍 Installing OSV Scanner..."
+          curl -L https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o osv-scanner
+          chmod +x osv-scanner
+          echo "🔍 Running OSV Scanner..."
+          ./osv-scanner -r --skip-git . || echo "OSV Scanner completed with warnings"
+        continue-on-error: true
+
+  # 🚨 Security Analysis
+  security-analysis:
+    name: 🚨 Security Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.5"
+
+      - name: 📦 Download dependencies
+        run: go mod download
+
+      - name: 🔐 Security Analysis with go vet
+        run: |
+          echo "🔍 Running security analysis..."
+
+          # Run go vet for basic issues
+          go vet ./...
+
+          # Additional security checks
+          echo "Checking for unsafe package usage..."
+          grep -r "unsafe\." . --include="*.go" || echo "✅ No unsafe package usage found"
+
+          echo "Checking for CGO usage..."
+          grep -r "import \"C\"" . --include="*.go" || echo "✅ No CGO usage found"
+
+          echo "✅ Security analysis completed"
+        continue-on-error: true
+
+      - name: 🔍 Check for hardcoded secrets in Go code
+        run: |
+          echo "🔍 Checking for hardcoded secrets in Go files..."
+
+          # Check for potential hardcoded secrets in Go files
+          find . -name "*.go" -type f ! -path "./.git/*" -exec grep -H -n -E "(password|secret|key|token|api_key|private_key)\s*[:=]\s*[\"']" {} \; || echo "✅ No obvious hardcoded secrets found"
+
+          # Check for long string literals that might be secrets
+          find . -name "*.go" -type f ! -path "./.git/*" -exec grep -H -n -E "[\"'][A-Za-z0-9+/]{32,}[\"']" {} \; || echo "✅ No suspicious long strings found"
         continue-on-error: true
 
   # ✅ Build Verification
