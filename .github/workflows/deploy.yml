@@ -94,20 +94,16 @@ jobs:
         run: sudo docker image prune -f
         continue-on-error: true
 
-      - name: Show container status
+      - name: Validate deployment
         run: |
           cd ${{ env.DEPLOY_PATH }}
-          sudo docker compose -f ${{ env.DEPLOY_PATH }}/docker-compose.yml ps
-        continue-on-error: true
-
-      - name: Debug - Check config inside container
-        run: |
-          echo "📋 Checking config file inside container..."
-          sudo docker exec automation-hub-prod ls -la /app/ || true
-          echo "📄 Checking if config.yaml is readable..."
-          sudo docker exec automation-hub-prod head -10 /app/config.yaml || true
-          echo "📊 Container logs:"
-          sudo docker logs --tail 50 automation-hub-prod || true
-          echo "📈 Container status:"
-          sudo docker ps -a --filter name=automation-hub-prod --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
-        continue-on-error: true
+          echo "⏳ Waiting 30 seconds for container to stabilize..."
+          sleep 30
+          echo "� Checking container status..."
+          if sudo docker compose -f ${{ env.DEPLOY_PATH }}/docker-compose.yml ps | grep -q "Up"; then
+            echo "✅ Container is running successfully"
+          else
+            echo "❌ Container failed to start"
+            sudo docker compose -f ${{ env.DEPLOY_PATH }}/docker-compose.yml logs
+            exit 1
+          fi
