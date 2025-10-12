@@ -72,7 +72,7 @@ jobs:
   sonarqube:
     name: 📊 SonarQube Analysis
     runs-on: self-hosted
-    needs: code-quality # Reutiliza el coverage.out generado en code-quality
+    needs: code-quality
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     steps:
       - name: 📥 Checkout code
@@ -80,25 +80,66 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: � Download coverage artifact
+      - name: 📥 Download coverage artifact
         uses: actions/download-artifact@v4
         with:
           name: coverage-report
           path: .
 
-      - name: �🔍 Run SonarQube Scanner
+      - name: 🔍 Verify and fix coverage paths
+        run: |
+          if [ -f "coverage.out" ]; then
+            echo "✅ coverage.out found"
+            echo "📊 Original coverage paths:"
+            head -n 5 coverage.out
+            
+            # Remover prefijo del proyecto si existe
+            sed -i 's|automation-hub/||g' coverage.out 2>/dev/null || true
+            
+            echo "📊 Fixed coverage paths:"
+            head -n 5 coverage.out
+          else
+            echo "❌ coverage.out NOT found!"
+            ls -la
+            exit 1
+          fi
+
+      - name: 🔧 Prepare scanner workspace with proper permissions
+        run: |
+          # Limpiar workspace anterior
+          rm -rf .scannerwork 2>/dev/null || true
+
+          # Crear directorios con permisos amplios
+          mkdir -p .scannerwork
+          chmod -R 777 .scannerwork
+
+          # Configurar umask para que archivos creados tengan permisos de ejecución
+          umask 0000
+
+          echo "✅ Scanner workspace prepared"
+
+      - name: 🔍 Run SonarQube Scanner
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
+          # Configurar umask permisivo
+          umask 0000
+
+          echo "🔍 Running SonarQube Scanner with Quality Gate check..."
+
+          # Ejecutar scanner - fallará automáticamente si Quality Gate falla
           sonar-scanner \
             -Dsonar.projectKey=automation-hub \
             -Dsonar.sources=. \
+            -Dsonar.working.directory=/tmp/.scannerwork \
             -Dsonar.host.url=${SONAR_HOST_URL} \
-            -Dsonar.token=${SONAR_TOKEN}
+            -Dsonar.token=${SONAR_TOKEN} \
+            -Dsonar.qualitygate.wait=true \
+            -Dsonar.qualitygate.timeout=300
 
-      - name: ✅ SonarQube Analysis Complete
-        run: echo "🎉 SonarQube analysis completed successfully!"
+      - name: ✅ SonarQube Analysis & Quality Gate Passed
+        run: echo "🎉 SonarQube analysis and Quality Gate passed successfully!"
 
   # 🕵️ Secret Detection
   secret-detection:

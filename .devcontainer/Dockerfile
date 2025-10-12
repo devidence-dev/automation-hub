@@ -1,20 +1,24 @@
 # Development container for automation-hub
 FROM golang:1.24.5-bookworm
 
-# Install development tools and dependencies
-RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    wget \
-    bash \
-    ca-certificates \
-    build-essential \
-    sudo \
-    && rm -rf /var/lib/apt/lists/*
-
 # Create a non-root user for development
 RUN useradd -m -s /bin/bash vscode && \
     echo "vscode ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Install development tools and dependencies with non-interactive frontend
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    --no-install-recommends \
+    -o Dpkg::Options::="--force-confdef" \
+    -o Dpkg::Options::="--force-confold" \
+    bash \
+    build-essential \
+    ca-certificates \
+    curl \
+    git \
+    sudo \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Go tools for development
 RUN go install golang.org/x/tools/gopls@latest && \

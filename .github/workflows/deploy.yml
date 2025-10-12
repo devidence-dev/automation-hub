@@ -1,14 +1,11 @@
 name: Deploy to Raspberry Pi
 
 on:
-  workflow_dispatch: # Only manual execution
-  workflow_run:
-    workflows: ["🚀 CI/CD Pipeline"]
-    types:
-      - completed
-    branches:
-      - master
-      - main
+  workflow_dispatch:
+    inputs:
+      ci_commit_sha:
+        description: "SHA del commit del CI exitoso"
+        required: true
 
 env:
   # Public variables (visible in the code)
