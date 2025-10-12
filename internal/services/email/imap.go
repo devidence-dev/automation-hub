@@ -78,14 +78,18 @@ func (c *IMAPClient) connectAndLogin() (*client.Client, error) {
 
 	if err := imapClient.Login(c.config.Username, c.config.Password); err != nil {
 		c.logger.Error("Failed to login", zap.Error(err))
-		imapClient.Logout()
+		if logoutErr := imapClient.Logout(); logoutErr != nil {
+			c.logger.Error("Failed to logout after login failure", zap.Error(logoutErr))
+		}
 		return nil, err
 	}
 
 	_, err = imapClient.Select("INBOX", false)
 	if err != nil {
 		c.logger.Error("Failed to select INBOX", zap.Error(err))
-		imapClient.Logout()
+		if logoutErr := imapClient.Logout(); logoutErr != nil {
+			c.logger.Error("Failed to logout after select failure", zap.Error(logoutErr))
+		}
 		return nil, err
 	}
 

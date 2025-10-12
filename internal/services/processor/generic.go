@@ -14,6 +14,8 @@ import (
 	"automation-hub/internal/services/telegram"
 )
 
+const NotFoundCode = "Not found"
+
 type GenericEmailProcessor struct {
 	name            string
 	config          config.ServiceProcessorConfig
@@ -121,7 +123,7 @@ func (p *GenericEmailProcessor) extractCode(text string) string {
 		zap.String("service", p.name),
 		zap.String("pattern", p.codePattern.String()),
 		zap.String("text_preview", truncateString(body, 200)))
-	return "Not found"
+	return NotFoundCode
 }
 
 func (p *GenericEmailProcessor) extractPerplexityCode(text string) string {
@@ -130,7 +132,7 @@ func (p *GenericEmailProcessor) extractPerplexityCode(text string) string {
 	idx := strings.Index(strings.ToLower(text), marker)
 	if idx == -1 {
 		p.logger.Warn("Marker 'directamente:' not found in Perplexity email")
-		return "Not found"
+		return NotFoundCode
 	}
 	// Start searching from after the marker
 	searchText := text[idx+len(marker):]
@@ -142,7 +144,7 @@ func (p *GenericEmailProcessor) extractPerplexityCode(text string) string {
 		return matches[0]
 	}
 	p.logger.Warn("Code not found after marker in Perplexity email")
-	return "Not found"
+	return NotFoundCode
 }
 
 func (p *GenericEmailProcessor) stripMIMEHeaders(text string) string {

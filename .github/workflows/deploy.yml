@@ -96,7 +96,7 @@ jobs:
           cd ${{ env.DEPLOY_PATH }}
           echo "⏳ Waiting 30 seconds for container to stabilize..."
           sleep 30
-          echo "� Checking container status..."
+          echo "👀 Checking container status..."
           if sudo docker compose -f ${{ env.DEPLOY_PATH }}/docker-compose.yml -f ${{ env.DEPLOY_PATH }}/docker-compose.override.yml ps | grep -q "Up"; then
             echo "✅ Container is running successfully"
           else
