@@ -5,11 +5,6 @@ on:
     branches: [main, master, develop]
   pull_request:
     branches: [main, master]
-  schedule:
-    # Run comprehensive analysis every Sunday at 6 AM UTC
-    - cron: "0 6 * * 0"
-    # Run dependency check every Monday at 9 AM UTC
-    - cron: "0 9 * * 1"
 
 jobs:
   # 🔍 Code Quality & Security Analysis
@@ -40,6 +35,15 @@ jobs:
           go test -v -race -coverprofile=coverage.out ./...
           go tool cover -html=coverage.out -o coverage.html
 
+      - name: 📤 Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage.out
+            coverage.html
+          retention-days: 7
+
       - name: 📊 Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
@@ -63,6 +67,38 @@ jobs:
 
           echo "✅ Basic security checks completed"
         continue-on-error: true # Don't fail the build
+
+  # 📊 SonarQube Analysis
+  sonarqube:
+    name: 📊 SonarQube Analysis
+    runs-on: self-hosted
+    needs: code-quality # Reutiliza el coverage.out generado en code-quality
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: � Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          path: .
+
+      - name: �🔍 Run SonarQube Scanner
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=automation-hub \
+            -Dsonar.sources=. \
+            -Dsonar.host.url=${SONAR_HOST_URL} \
+            -Dsonar.token=${SONAR_TOKEN}
+
+      - name: ✅ SonarQube Analysis Complete
+        run: echo "🎉 SonarQube analysis completed successfully!"
 
   # 🕵️ Secret Detection
   secret-detection:
