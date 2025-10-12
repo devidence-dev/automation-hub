@@ -1,10 +1,6 @@
 services:
   automation-hub:
-    build:
-      context: .
-      dockerfile: deployments/docker/Dockerfile
-      platforms:
-        - linux/arm64
+    image: automation-hub:${IMAGE_VERSION:-1.0.0}
     container_name: automation-hub-prod
     restart: always
     expose:

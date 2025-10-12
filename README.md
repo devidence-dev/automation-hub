@@ -1,17 +1,12 @@
 # 🤖 Automation Hub
 
-![Go Version](https://img.shields.io/badge/Go-1.24.5-00ADD8?style=for-the-badge&logo=go)
-![Docker](https://img.shields.io/badge/Docker-20.10+-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Platform](https://img.shields.io/badge/Platform-ARM64%20%7C%20AMD64-green?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
-
-<!-- Quality & Security Badges -->
-[![CI/CD Pipeline](https://github.com/devidence-dev/automation-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/devidence-dev/automation-hub/actions/workflows/ci.yml)
-[![Security](https://github.com/devidence-dev/automation-hub/actions/workflows/security.yml/badge.svg)](https://github.com/devidence-dev/automation-hub/actions/workflows/security.yml)
-[![CodeQL](https://github.com/devidence-dev/automation-hub/actions/workflows/codeql.yml/badge.svg)](https://github.com/devidence-dev/automation-hub/actions/workflows/codeql.yml)
-[![Dependency Check](https://github.com/devidence-dev/automation-hub/actions/workflows/dependencies.yml/badge.svg)](https://github.com/devidence-dev/automation-hub/actions/workflows/dependencies.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/devidence-dev/automation-hub)](https://goreportcard.com/report/github.com/devidence-dev/automation-hub)
-[![codecov](https://codecov.io/gh/devidence-dev/automation-hub/branch/master/graph/badge.svg)](https://codecov.io/gh/devidence-dev/automation-hub)
+![Go Version](https://img.shields.io/badge/Go-1.24.5-00ADD8?logo=go)
+![Docker](https://img.shields.io/badge/Docker-20.10+-2496ED?logo=docker&logoColor=white)
+![Platform](https://img.shields.io/badge/Platform-ARM64%20%7C%20AMD64-green)
+[![Quality Gate Status](https://sonarqube.devidence.dev/api/project_badges/measure?project=automation-hub&metric=alert_status&token=sqb_7d178597a22d329b0e50efb39a6ae16d00f64db4)](https://sonarqube.devidence.dev/dashboard?id=automation-hub)
+[![Reliability Rating](https://sonarqube.devidence.dev/api/project_badges/measure?project=automation-hub&metric=software_quality_reliability_rating&token=sqb_7d178597a22d329b0e50efb39a6ae16d00f64db4)](https://sonarqube.devidence.dev/dashboard?id=automation-hub)
+[![Security Rating](https://sonarqube.devidence.dev/api/project_badges/measure?project=automation-hub&metric=software_quality_security_rating&token=sqb_7d178597a22d329b0e50efb39a6ae16d00f64db4)](https://sonarqube.devidence.dev/dashboard?id=automation-hub)
+[![Maintainability Rating](https://sonarqube.devidence.dev/api/project_badges/measure?project=automation-hub&metric=software_quality_maintainability_rating&token=sqb_7d178597a22d329b0e50efb39a6ae16d00f64db4)](https://sonarqube.devidence.dev/dashboard?id=automation-hub)
 
 > **A powerful, configurable automation hub for monitoring emails and handling webhooks with Telegram notifications**
 
