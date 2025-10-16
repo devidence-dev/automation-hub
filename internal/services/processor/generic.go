@@ -33,7 +33,8 @@ func NewGenericEmailProcessor(name string, serviceConfig config.ServiceProcessor
 		logger:   logger,
 		defaultPatterns: map[string]*regexp.Regexp{
 			"cloudflare": regexp.MustCompile(`\b\d{6}\b`),
-			"perplexity": regexp.MustCompile(`\b[a-zA-Z0-9-]{8,12}\b`),
+			// Perplexity pattern is now more flexible - handles both numeric and alphanumeric formats
+			"perplexity": regexp.MustCompile(`(?:\d{5,6}|[a-zA-Z0-9]+-[a-zA-Z0-9]+)`),
 			"default":    regexp.MustCompile(`\b[a-zA-Z0-9]{4,8}\b`), // generic pattern
 		},
 	}
@@ -137,13 +138,31 @@ func (p *GenericEmailProcessor) extractPerplexityCode(text string) string {
 	// Start searching from after the marker
 	searchText := text[idx+len(marker):]
 
-	// Find the code pattern in the remaining text
-	matches := p.codePattern.FindStringSubmatch(searchText)
-	if len(matches) > 0 {
-		p.logger.Info("Perplexity code extracted", zap.String("code", matches[0]))
+	// Try multiple patterns in order of preference
+	// Pattern 1: Numeric only (5-6 digits) - e.g., 36144
+	numericPattern := regexp.MustCompile(`\b(\d{5,6})\b`)
+	if matches := numericPattern.FindStringSubmatch(searchText); len(matches) > 0 {
+		code := matches[1]
+		p.logger.Info("Perplexity code extracted (numeric format)", zap.String("code", code))
+		return code
+	}
+
+	// Pattern 2: Alphanumeric with hyphen - e.g., aw9s5-y1zoy
+	alphanumericPattern := regexp.MustCompile(`\b([a-zA-Z0-9]+-[a-zA-Z0-9]+)\b`)
+	if matches := alphanumericPattern.FindStringSubmatch(searchText); len(matches) > 0 {
+		code := matches[1]
+		p.logger.Info("Perplexity code extracted (alphanumeric format)", zap.String("code", code))
+		return code
+	}
+
+	// Pattern 3: Fallback to the configured pattern
+	if matches := p.codePattern.FindStringSubmatch(searchText); len(matches) > 0 {
+		p.logger.Info("Perplexity code extracted (fallback pattern)", zap.String("code", matches[0]))
 		return matches[0]
 	}
-	p.logger.Warn("Code not found after marker in Perplexity email")
+
+	p.logger.Warn("Code not found after marker in Perplexity email",
+		zap.String("searchText_preview", truncateString(searchText, 300)))
 	return NotFoundCode
 }
 
