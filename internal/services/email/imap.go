@@ -160,7 +160,25 @@ func (c *IMAPClient) processMessage(imapClient *client.Client, msg *imap.Message
 			} else {
 				c.logger.Info("Email processed successfully",
 					zap.String("subject", email.Subject))
-				c.markAsRead(imapClient, msg.SeqNum)
+				// Only mark as read if the processor is Perplexity or Cloudflare
+				// Use type assertion to call GetName() if available
+				if named, ok := processor.(interface{ GetName() string }); ok {
+					name := strings.ToLower(named.GetName())
+					if name == "perplexity" || name == "cloudflare" {
+						c.logger.Debug("Marking email as read for processor",
+							zap.String("processor", name),
+							zap.String("subject", email.Subject))
+						c.markAsRead(imapClient, msg.SeqNum)
+					} else {
+						c.logger.Debug("Not marking email as read for processor",
+							zap.String("processor", name),
+							zap.String("subject", email.Subject))
+					}
+				} else {
+					// If processor has no name, fallback to not marking it as read
+					c.logger.Debug("Processor has no GetName, not marking as read",
+						zap.String("subject", email.Subject))
+				}
 			}
 			return
 		}
