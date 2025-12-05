@@ -10,8 +10,9 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build
-RUN CGO_ENABLED=0 GOOS=linux go build -o automation-hub cmd/automation-hub/main.go
+# Build with explicit architecture support
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -o automation-hub cmd/automation-hub/main.go
 
 # Final stage
 FROM alpine:latest

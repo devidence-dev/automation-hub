@@ -81,7 +81,14 @@ jobs:
       - name: Build Docker image
         run: |
           cd ${{ env.DEPLOY_PATH }}
-          sudo docker build -t automation-hub:${IMAGE_VERSION} --no-cache -f ${{ env.DEPLOY_PATH }}/deployments/docker/Dockerfile --platform linux/arm64 ${{ env.DEPLOY_PATH }}
+          # Detect current architecture and build only for it
+          ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+          sudo docker build \
+            -t automation-hub:${IMAGE_VERSION} \
+            --platform linux/${ARCH} \
+            --no-cache \
+            -f ${{ env.DEPLOY_PATH }}/deployments/docker/Dockerfile \
+            ${{ env.DEPLOY_PATH }}
 
       - name: Start containers
         run: |
