@@ -153,22 +153,31 @@ func (c *IMAPClient) processMessage(imapClient *client.Client, msg *imap.Message
 			c.logger.Info("Processing email",
 				zap.String("subject", email.Subject),
 				zap.String("from", email.From))
+
+			// Try to process the email
 			if err := processor.Process(email); err != nil {
 				c.logger.Error("Failed to process email",
 					zap.String("subject", email.Subject),
+					zap.String("from", email.From),
 					zap.Error(err))
-			} else {
-				c.logger.Info("Email processed successfully",
-					zap.String("subject", email.Subject))
-				c.handlePostProcessing(imapClient, processor, msg, email)
+				return
 			}
+
+			c.logger.Info("Email processed successfully",
+				zap.String("subject", email.Subject),
+				zap.String("from", email.From))
+
+			// Handle post-processing (marking as read only for Perplexity/Cloudflare)
+			c.handlePostProcessing(imapClient, processor, msg, email)
 			return
 		}
 	}
 
-	c.logger.Info("Email ignored (no matching processor)",
+	// No processor matched this email, mark it as read to avoid reprocessing
+	c.logger.Info("Email ignored (no matching processor) - marking as read",
 		zap.String("subject", email.Subject),
 		zap.String("from", email.From))
+	c.markAsRead(imapClient, msg.SeqNum)
 }
 
 func (c *IMAPClient) handlePostProcessing(imapClient *client.Client, processor models.EmailProcessor, msg *imap.Message, email models.Email) {
@@ -180,16 +189,17 @@ func (c *IMAPClient) handlePostProcessing(imapClient *client.Client, processor m
 	}
 
 	name := strings.ToLower(named.GetName())
-	shouldMark := name == "perplexity" || name == "cloudflare"
-
-	if shouldMark {
-		c.logger.Debug("Marking email as read for processor",
+	// Only mark as read for Perplexity and Cloudflare processors
+	if name == "perplexity" || name == "cloudflare" {
+		c.logger.Info("Marking email as read (whitelisted processor)",
 			zap.String("processor", name),
+			zap.String("from", email.From),
 			zap.String("subject", email.Subject))
 		c.markAsRead(imapClient, msg.SeqNum)
 	} else {
-		c.logger.Debug("Not marking email as read for processor",
+		c.logger.Info("Email processed but NOT marked as read (processor not whitelisted)",
 			zap.String("processor", name),
+			zap.String("from", email.From),
 			zap.String("subject", email.Subject))
 	}
 }
@@ -200,6 +210,15 @@ func (c *IMAPClient) markAsRead(imapClient *client.Client, seqNum uint32) {
 	flags := []interface{}{imap.SeenFlag}
 	if err := imapClient.Store(seqSet, "+FLAGS", flags, nil); err != nil {
 		c.logger.Error("Failed to mark email as read", zap.Error(err))
+	}
+}
+
+func (c *IMAPClient) markAsUnread(imapClient *client.Client, seqNum uint32) {
+	seqSet := new(imap.SeqSet)
+	seqSet.AddNum(seqNum)
+	flags := []interface{}{imap.SeenFlag}
+	if err := imapClient.Store(seqSet, "-FLAGS", flags, nil); err != nil {
+		c.logger.Error("Failed to mark email as unread", zap.Error(err))
 	}
 }
 

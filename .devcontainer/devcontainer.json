@@ -40,12 +40,6 @@
   "forwardPorts": [
     8080
   ],
-  "mounts": [
-    "source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent,readonly"
-  ],
-  "remoteEnv": {
-    "SSH_AUTH_SOCK": "/ssh-agent"
-  },
   "postCreateCommand": "go mod download && go mod tidy",
   "remoteUser": "vscode"
 }
