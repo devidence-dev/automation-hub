@@ -1,11 +1,12 @@
 {
   "name": "Automation Hub Dev Container",
+  "shutdownAction": "stopContainer",
   "build": {
     "dockerfile": "Dockerfile",
     "context": ".."
   },
   "mounts": [
-	"type=bind,source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,readonly"
+    "type=bind,source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,readonly"
   ],
   "remoteEnv": {
     "SSH_AUTH_SOCK": "/tmp/ssh-agent.sock"
