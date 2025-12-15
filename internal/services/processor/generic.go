@@ -128,15 +128,25 @@ func (p *GenericEmailProcessor) extractCode(text string) string {
 }
 
 func (p *GenericEmailProcessor) extractPerplexityCode(text string) string {
-	// Find the position after "directamente:"
-	marker := "directamente:"
-	idx := strings.Index(strings.ToLower(text), marker)
-	if idx == -1 {
-		p.logger.Warn("Marker 'directamente:' not found in Perplexity email")
+	// Find the position after "directamente:" (Spanish) or "directly:" (English)
+	markers := []string{"directly:", "directamente:"}
+	var searchText string
+	var markerFound bool
+
+	lowerText := strings.ToLower(text)
+	for _, marker := range markers {
+		if idx := strings.Index(lowerText, marker); idx != -1 {
+			searchText = text[idx+len(marker):]
+			markerFound = true
+			p.logger.Debug("Perplexity marker found", zap.String("marker", marker))
+			break
+		}
+	}
+
+	if !markerFound {
+		p.logger.Warn("Neither 'directly:' nor 'directamente:' marker found in Perplexity email")
 		return NotFoundCode
 	}
-	// Start searching from after the marker
-	searchText := text[idx+len(marker):]
 
 	// Try multiple patterns in order of preference
 	// Pattern 1: Numeric only (5-6 digits) - e.g., 36144

@@ -1,6 +1,10 @@
 {
   "name": "Automation Hub Dev Container",
   "shutdownAction": "stopContainer",
+  "runArgs": [
+    "--name",
+    "automation-hub-dev"
+  ],
   "build": {
     "dockerfile": "Dockerfile",
     "context": ".."
