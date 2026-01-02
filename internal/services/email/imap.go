@@ -173,11 +173,10 @@ func (c *IMAPClient) processMessage(imapClient *client.Client, msg *imap.Message
 		}
 	}
 
-	// No processor matched this email, mark it as read to avoid reprocessing
-	c.logger.Info("Email ignored (no matching processor) - marking as read",
+	// No processor matched this email, leave it unread
+	c.logger.Info("Email ignored (no matching processor)",
 		zap.String("subject", email.Subject),
 		zap.String("from", email.From))
-	c.markAsRead(imapClient, msg.SeqNum)
 }
 
 func (c *IMAPClient) handlePostProcessing(imapClient *client.Client, processor models.EmailProcessor, msg *imap.Message, email models.Email) {

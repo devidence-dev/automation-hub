@@ -38,7 +38,6 @@ jobs:
         run: |
           echo "🧪 Running tests..."
           go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
-
           if [ -f "coverage.out" ]; then
             echo "📊 Coverage generated"
             go tool cover -func=coverage.out | tail -1
@@ -49,7 +48,6 @@ jobs:
         run: |
           echo "🏗️ Building for linux/arm64..."
           GOOS=linux GOARCH=arm64 go build -v -o automation-hub ./cmd/automation-hub
-
           if [ -f "automation-hub" ]; then
             echo "✅ Build successful"
             ls -lh automation-hub
@@ -92,7 +90,6 @@ jobs:
       - name: 📦 Download OSV Scanner binary
         run: |
           echo "📦 Downloading OSV Scanner v2.2.2..."
-
           ARCH=$(uname -m)
           if [ "$ARCH" = "x86_64" ]; then
             BINARY="osv-scanner_linux_amd64"
@@ -101,11 +98,9 @@ jobs:
           else
             BINARY="osv-scanner_linux_amd64"
           fi
-
           wget -q "https://github.com/google/osv-scanner/releases/download/v2.2.2/${BINARY}" -O osv-scanner
           chmod +x osv-scanner
           sudo mv osv-scanner /usr/local/bin/
-
           osv-scanner --version
 
       - name: 🔍 Scan dependencies
@@ -114,8 +109,7 @@ jobs:
           echo "🔍 Scanning for vulnerabilities..."
           echo ""
 
-          # Run scan and capture exit code
-          set +e  # Don't exit on error
+          set +e
           osv-scanner scan --lockfile=go.mod --lockfile=go.sum --format=table
           SCAN_EXIT_CODE=$?
           set -e
@@ -123,22 +117,17 @@ jobs:
           echo ""
           echo "📊 Scan completed with exit code: $SCAN_EXIT_CODE"
 
-          # Generate JSON report (always, even if no vulnerabilities)
           echo "📄 Generating JSON report..."
           osv-scanner scan --lockfile=go.mod --lockfile=go.sum --format=json --output=osv-report.json 2>&1 || true
 
-          # Interpret exit codes
-          # 0 = No vulnerabilities found
-          # 1 = Vulnerabilities found
-          # 127 = No vulnerabilities found (alternative code)
           if [ $SCAN_EXIT_CODE -eq 0 ] || [ $SCAN_EXIT_CODE -eq 127 ]; then
             echo "✅ No vulnerabilities found or scan completed successfully"
             exit 0
           elif [ $SCAN_EXIT_CODE -eq 1 ]; then
-            echo "⚠️  Vulnerabilities found! Check the report."
+            echo "⚠️ Vulnerabilities found! Check the report."
             exit 1
           else
-            echo "⚠️  Scan completed with unexpected code: $SCAN_EXIT_CODE"
+            echo "⚠️ Scan completed with unexpected code: $SCAN_EXIT_CODE"
             exit 0
           fi
         continue-on-error: true
@@ -158,7 +147,7 @@ jobs:
           if [ -f "osv-report.json" ]; then
             echo "📊 OSV Scanner Report available in artifacts"
           else
-            echo "✅ No vulnerabilities detected (20 packages scanned)"
+            echo "✅ No vulnerabilities detected"
           fi
 
   # ==========================================
@@ -204,34 +193,59 @@ jobs:
           retention-days: 30
 
   # =================================================
-  # 📊 SonarQube Analysis - SAST + Secrets + Quality
+  # 🔍 SAST + Code Scanning (sin SonarQube)
   # =================================================
-  sonarqube:
-    name: 📊 SonarQube Analysis
+  sast:
+    name: 🔍 SAST (Semgrep SARIF)
     runs-on: self-hosted
     needs: [test-and-build, lint, osv-scan, dependency-check]
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: 🔍 Run SonarQube Scanner
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      - name: 🧰 Install Semgrep
         run: |
-          echo "🔍 Running SonarQube Scanner..."
+          python3 -m pip install --break-system-packages semgrep
+          export PATH="$HOME/.local/bin:$PATH"
+          semgrep --version
 
-          sonar-scanner \
-            -Dsonar.projectKey=automation-hub \
-            -Dsonar.sources=. \
-            -Dsonar.working.directory=/tmp/.scannerwork \
-            -Dsonar.host.url=${SONAR_HOST_URL} \
-            -Dsonar.token=${SONAR_TOKEN} \
-            -Dsonar.qualitygate.wait=true \
-            -Dsonar.qualitygate.timeout=300
+      - name: 🔎 Semgrep scan (SARIF)
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          semgrep scan \
+            --config p/default \
+            --config p/security-audit \
+            --config p/secrets \
+            --sarif \
+            --output semgrep.sarif \
+            .
+        continue-on-error: true
 
-      - name: ✅ Quality Gate Passed
-        run: echo "🎉 SonarQube Quality Gate passed!"
+      - name: 🔎 Verify SARIF exists
+        if: always()
+        run: |
+          ls -lah semgrep.sarif
+          head -20 semgrep.sarif
+
+      - name: 📤 Upload Semgrep SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+      - name: 📤 Upload Semgrep SARIF artifact (debug)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: semgrep-sarif
+          path: semgrep.sarif
+          retention-days: 30
+          if-no-files-found: warn

@@ -100,6 +100,10 @@ func (p *GenericEmailProcessor) Process(email models.Email) error {
 	return p.telegram.SendMessage(p.config.TelegramChatID, message)
 }
 
+func (p *GenericEmailProcessor) GetName() string {
+	return p.name
+}
+
 func (p *GenericEmailProcessor) extractCode(text string) string {
 	var body string
 	if strings.ToLower(p.name) == "cloudflare" {
@@ -209,8 +213,4 @@ func (p *GenericEmailProcessor) decodeQuotedPrintable(text string) string {
 		}
 	}
 	return text
-}
-
-func (p *GenericEmailProcessor) GetName() string {
-	return p.name
 }
