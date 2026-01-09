@@ -57,7 +57,14 @@ func (c *IMAPClient) checkEmails(processors ...models.EmailProcessor) {
 	}
 	defer c.logout(imapClient)
 
-	ids, err := c.searchUnreadEmails(imapClient)
+	var senders []string
+	for _, p := range processors {
+		if s := p.GetSender(); s != "" {
+			senders = append(senders, s)
+		}
+	}
+
+	ids, err := c.searchUnreadEmails(imapClient, senders)
 	if err != nil {
 		return
 	}
@@ -102,21 +109,49 @@ func (c *IMAPClient) logout(imapClient *client.Client) {
 	}
 }
 
-func (c *IMAPClient) searchUnreadEmails(imapClient *client.Client) ([]uint32, error) {
-	criteria := imap.NewSearchCriteria()
-	criteria.WithoutFlags = []string{imap.SeenFlag}
+func (c *IMAPClient) searchUnreadEmails(imapClient *client.Client, senders []string) ([]uint32, error) {
+	if len(senders) == 0 {
+		// Fallback to searching all unread emails if no senders specified
+		criteria := imap.NewSearchCriteria()
+		criteria.WithoutFlags = []string{imap.SeenFlag}
 
-	ids, err := imapClient.Search(criteria)
-	if err != nil {
-		c.logger.Error("Failed to search emails", zap.Error(err))
-		return nil, err
+		ids, err := imapClient.Search(criteria)
+		if err != nil {
+			c.logger.Error("Failed to search emails", zap.Error(err))
+			return nil, err
+		}
+		if len(ids) > 0 {
+			c.logger.Info("Found unread emails (all sources)", zap.Int("count", len(ids)))
+		}
+		return ids, nil
 	}
 
-	if len(ids) > 0 {
-		c.logger.Info("Found unread emails", zap.Int("count", len(ids)))
+	uniqueIDs := make(map[uint32]struct{})
+	for _, sender := range senders {
+		criteria := imap.NewSearchCriteria()
+		criteria.WithoutFlags = []string{imap.SeenFlag}
+		criteria.Header.Add("From", sender)
+
+		ids, err := imapClient.Search(criteria)
+		if err != nil {
+			c.logger.Error("Failed to search emails for sender", zap.String("sender", sender), zap.Error(err))
+			continue
+		}
+		for _, id := range ids {
+			uniqueIDs[id] = struct{}{}
+		}
 	}
 
-	return ids, nil
+	var allIDs []uint32
+	for id := range uniqueIDs {
+		allIDs = append(allIDs, id)
+	}
+
+	if len(allIDs) > 0 {
+		c.logger.Info("Found unread emails from allowed senders", zap.Int("count", len(allIDs)))
+	}
+
+	return allIDs, nil
 }
 
 func (c *IMAPClient) fetchAndProcessMessages(imapClient *client.Client, ids []uint32, processors ...models.EmailProcessor) {
@@ -130,7 +165,7 @@ func (c *IMAPClient) fetchAndProcessMessages(imapClient *client.Client, ids []ui
 		done <- imapClient.Fetch(seqset, []imap.FetchItem{
 			imap.FetchEnvelope,
 			imap.FetchBodyStructure,
-			"BODY[TEXT]",
+			"BODY.PEEK[TEXT]",
 			imap.FetchFlags,
 			imap.FetchUid,
 		}, messages)

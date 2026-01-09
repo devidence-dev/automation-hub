@@ -104,6 +104,10 @@ func (p *GenericEmailProcessor) GetName() string {
 	return p.name
 }
 
+func (p *GenericEmailProcessor) GetSender() string {
+	return p.config.EmailFrom
+}
+
 func (p *GenericEmailProcessor) extractCode(text string) string {
 	var body string
 	if strings.ToLower(p.name) == "cloudflare" {

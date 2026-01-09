@@ -18,4 +18,5 @@ type TorrentNotification struct {
 type EmailProcessor interface {
 	ShouldProcess(email Email) bool
 	Process(email Email) error
+	GetSender() string
 }
