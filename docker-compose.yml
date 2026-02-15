@@ -21,6 +21,11 @@ services:
     security_opt:
       - no-new-privileges:true
     user: "1000:1000"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 128M
 
 networks:
   automation-hub-network:
