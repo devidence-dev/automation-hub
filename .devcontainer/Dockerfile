@@ -1,5 +1,5 @@
 # Development container for automation-hub
-FROM golang:1.25.5
+FROM golang:1.26.0
 
 # Create vscode user and set up directories
 RUN useradd -m -s /bin/bash vscode && \
