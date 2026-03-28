@@ -1,11 +1,6 @@
-name: Deploy to Raspberry Pi
-
+name: Deploy to Production
 on:
   workflow_dispatch:
-    inputs:
-      ci_commit_sha:
-        description: "SHA del commit del CI exitoso"
-        required: true
 
 env:
   # Public variables (visible in the code)
@@ -81,12 +76,14 @@ jobs:
       - name: Build Docker image
         run: |
           cd ${{ env.DEPLOY_PATH }}
+          GO_VERSION=$(cat .go-version | tr -d '[:space:]')
           # Detect current architecture and build only for it
           ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
           sudo docker build \
             -t automation-hub:${IMAGE_VERSION} \
             --platform linux/${ARCH} \
             --no-cache \
+            --build-arg GO_VERSION=${GO_VERSION} \
             -f ${{ env.DEPLOY_PATH }}/deployments/docker/Dockerfile \
             ${{ env.DEPLOY_PATH }}
 
@@ -102,13 +99,15 @@ jobs:
       - name: Validate deployment
         run: |
           cd ${{ env.DEPLOY_PATH }}
-          echo "⏳ Waiting 30 seconds for container to stabilize..."
-          sleep 30
-          echo "👀 Checking container status..."
-          if sudo docker compose -f ${{ env.DEPLOY_PATH }}/docker-compose.yml -f ${{ env.DEPLOY_PATH }}/docker-compose.override.yml ps | grep -q "Up"; then
-            echo "✅ Container is running successfully"
-          else
-            echo "❌ Container failed to start"
-            sudo docker compose -f ${{ env.DEPLOY_PATH }}/docker-compose.yml -f ${{ env.DEPLOY_PATH }}/docker-compose.override.yml logs
-            exit 1
-          fi
+          echo "⏳ Waiting for container to be healthy..."
+          for i in $(seq 1 10); do
+            if sudo docker compose -f ${{ env.DEPLOY_PATH }}/docker-compose.yml -f ${{ env.DEPLOY_PATH }}/docker-compose.override.yml ps | grep -q "Up"; then
+              echo "✅ Container is running successfully"
+              exit 0
+            fi
+            echo "⏳ Attempt $i/10 - retrying in 6 seconds..."
+            sleep 6
+          done
+          echo "❌ Container failed to start"
+          sudo docker compose -f ${{ env.DEPLOY_PATH }}/docker-compose.yml -f ${{ env.DEPLOY_PATH }}/docker-compose.override.yml logs
+          exit 1

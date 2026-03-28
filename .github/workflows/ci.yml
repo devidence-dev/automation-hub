@@ -25,7 +25,7 @@ jobs:
       - name: 🔧 Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.26.0"
+          go-version-file: ".go-version"
           cache: true
 
       - name: 📦 Download dependencies
@@ -69,7 +69,7 @@ jobs:
       - name: 🔧 Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.25.5"
+          go-version-file: ".go-version"
 
       - name: 🧹 golangci-lint
         uses: golangci/golangci-lint-action@v9
@@ -87,68 +87,13 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 📦 Download OSV Scanner binary
-        run: |
-          echo "📦 Downloading OSV Scanner v2.2.2..."
-          ARCH=$(uname -m)
-          if [ "$ARCH" = "x86_64" ]; then
-            BINARY="osv-scanner_linux_amd64"
-          elif [ "$ARCH" = "aarch64" ]; then
-            BINARY="osv-scanner_linux_arm64"
-          else
-            BINARY="osv-scanner_linux_amd64"
-          fi
-          wget -q "https://github.com/google/osv-scanner/releases/download/v2.2.2/${BINARY}" -O osv-scanner
-          chmod +x osv-scanner
-          sudo mv osv-scanner /usr/local/bin/
-          osv-scanner --version
-
-      - name: 🔍 Scan dependencies
-        id: osv-scan
-        run: |
-          echo "🔍 Scanning for vulnerabilities..."
-          echo ""
-
-          set +e
-          osv-scanner scan --lockfile=go.mod --lockfile=go.sum --format=table
-          SCAN_EXIT_CODE=$?
-          set -e
-
-          echo ""
-          echo "📊 Scan completed with exit code: $SCAN_EXIT_CODE"
-
-          echo "📄 Generating JSON report..."
-          osv-scanner scan --lockfile=go.mod --lockfile=go.sum --format=json --output=osv-report.json 2>&1 || true
-
-          if [ $SCAN_EXIT_CODE -eq 0 ] || [ $SCAN_EXIT_CODE -eq 127 ]; then
-            echo "✅ No vulnerabilities found or scan completed successfully"
-            exit 0
-          elif [ $SCAN_EXIT_CODE -eq 1 ]; then
-            echo "⚠️ Vulnerabilities found! Check the report."
-            exit 1
-          else
-            echo "⚠️ Scan completed with unexpected code: $SCAN_EXIT_CODE"
-            exit 0
-          fi
-        continue-on-error: true
-
-      - name: 📤 Upload OSV report
-        uses: actions/upload-artifact@v4
-        if: always()
+      - name: 🔒 Run OSV Scanner
+        uses: google/osv-scanner-action@v2
         with:
-          name: osv-scanner-report
-          path: osv-report.json
-          retention-days: 30
-          if-no-files-found: warn
-
-      - name: 📊 Scan Summary
-        if: always()
-        run: |
-          if [ -f "osv-report.json" ]; then
-            echo "📊 OSV Scanner Report available in artifacts"
-          else
-            echo "✅ No vulnerabilities detected"
-          fi
+          scan-args: |-
+            --lockfile=go.mod
+            --lockfile=go.sum
+        continue-on-error: true
 
   # ==========================================
   # 🛡️ OWASP Dependency-Check - CVE Scanner
@@ -163,13 +108,13 @@ jobs:
       - name: 🔧 Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24.5"
+          go-version-file: ".go-version"
 
       - name: 📦 Download dependencies
         run: go mod download
 
       - name: 🛡️ Run Dependency-Check
-        uses: dependency-check/Dependency-Check_Action@main
+        uses: dependency-check/Dependency-Check_Action@v3.2.0
         id: depcheck
         with:
           project: "automation-hub"
@@ -199,7 +144,7 @@ jobs:
     name: 🔍 SAST (Semgrep SARIF)
     runs-on: self-hosted
     needs: [test-and-build, lint, osv-scan, dependency-check]
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'pull_request'
     permissions:
       contents: read
       security-events: write

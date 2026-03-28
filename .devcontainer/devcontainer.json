@@ -1,56 +1,55 @@
 {
   "name": "Automation Hub Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/go:1.26",
   "shutdownAction": "stopContainer",
   "runArgs": [
     "--name",
     "automation-hub-dev"
   ],
-  "build": {
-    "dockerfile": "Dockerfile",
-    "context": ".."
-  },
   "mounts": [
-    "type=bind,source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,readonly"
+    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached,readonly",
+    "source=/usr/bin/git,target=/usr/bin/git,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached"
   ],
   "remoteEnv": {
-    "SSH_AUTH_SOCK": "/tmp/ssh-agent.sock"
+    "SSH_AUTH_SOCK": "/tmp/ssh-agent.sock",
+    "GOPATH": "/go",
+    "GOMODCACHE": "/go/pkg/mod"
   },
   "features": {
-    "ghcr.io/devcontainers/features/git:1": {
-      "ppa": true,
-      "version": "latest"
+      "ghcr.io/devcontainers/features/common-utils:2": {
+        "installZsh": "true",
+        "configureZshAsDefaultShell": "true",
+        "installOhMyZsh": "true",
+        "upgradePackages": "true"
+      }
     },
-    "ghcr.io/devcontainers/features/common-utils:2": {
-      "installZsh": "true",
-      "configureZshAsDefaultShell": "true",
-      "installOhMyZsh": "true",
-      "upgradePackages": "true"
-    }
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "golang.go",
-        "ms-vscode.vscode-json",
-        "ms-vscode.yaml",
-        "redhat.vscode-yaml",
-        "streetsidesoftware.code-spell-checker",
-        "ms-vscode.docker",
-        "github.copilot"
-      ],
-      "settings": {
-        "go.toolsManagement.checkForUpdates": "local",
-        "go.useLanguageServer": true,
-        "editor.formatOnSave": true,
-        "editor.codeActionsOnSave": {
-          "source.organizeImports": "explicit"
+    "customizations": {
+      "vscode": {
+        "extensions": [
+          "golang.go",
+          "ms-vscode.vscode-json",
+          "ms-vscode.yaml",
+          "redhat.vscode-yaml",
+          "streetsidesoftware.code-spell-checker",
+          "ms-vscode.docker",
+          "github.copilot",
+          "anthropic.claude-code"
+        ],
+        "settings": {
+          "go.toolsManagement.checkForUpdates": "local",
+          "go.useLanguageServer": true,
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          }
         }
       }
-    }
-  },
-  "forwardPorts": [
-    8080
-  ],
-  "postCreateCommand": "go mod download && go mod tidy",
-  "remoteUser": "vscode"
-}
+    },
+    "forwardPorts": [
+      8080
+    ],
+    "postCreateCommand": "go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && go mod download && go mod tidy",
+    "remoteUser": "vscode"
+  }

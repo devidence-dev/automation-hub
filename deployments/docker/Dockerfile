@@ -1,5 +1,6 @@
 # Build stage
-FROM golang:1.26.0-alpine AS builder
+ARG GO_VERSION
+FROM golang:${GO_VERSION}-alpine AS builder
 
 WORKDIR /app
 
@@ -15,7 +16,7 @@ ARG TARGETARCH
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -o automation-hub cmd/automation-hub/main.go
 
 # Final stage
-FROM alpine:latest
+FROM alpine:3.23.3
 
 RUN apk --no-cache add ca-certificates && \
     adduser -D -u 1000 appuser

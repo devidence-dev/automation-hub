@@ -11,11 +11,13 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 10
-    reviewers:
-      - "devidence-dev"
     commit-message:
       prefix: "🔄"
       include: "scope"
+    groups:
+      go-dependencies:
+        patterns:
+          - "*"
 
   # 🐳 Docker
   - package-ecosystem: "docker"
@@ -23,8 +25,6 @@ updates:
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 5
-    reviewers:
-      - "devidence-dev"
     commit-message:
       prefix: "🐳"
 
@@ -36,8 +36,6 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 5
-    reviewers:
-      - "devidence-dev"
     commit-message:
       prefix: "🚀"
       include: "scope"
