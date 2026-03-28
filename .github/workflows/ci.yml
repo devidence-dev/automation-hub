@@ -74,7 +74,7 @@ jobs:
       - name: 🧹 golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.4.0
+          version: latest
           args: --timeout=5m --enable=errcheck,govet,staticcheck,unused,misspell,gosec --issues-exit-code=0
 
   # ============================================
@@ -87,12 +87,16 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔒 Run OSV Scanner
-        uses: google/osv-scanner-action@v2
-        with:
-          scan-args: |-
-            --lockfile=go.mod
-            --lockfile=go.sum
+      - name: 📦 Download OSV Scanner
+        run: |
+          ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+          wget -q "https://github.com/google/osv-scanner/releases/download/v2.2.2/osv-scanner_linux_${ARCH}" -O osv-scanner
+          chmod +x osv-scanner
+          sudo mv osv-scanner /usr/local/bin/
+
+      - name: 🔍 Scan dependencies
+        run: |
+          osv-scanner scan --lockfile=go.mod --lockfile=go.sum --format=table
         continue-on-error: true
 
   # ==========================================
@@ -114,7 +118,7 @@ jobs:
         run: go mod download
 
       - name: 🛡️ Run Dependency-Check
-        uses: dependency-check/Dependency-Check_Action@v3.2.0
+        uses: dependency-check/Dependency-Check_Action@main
         id: depcheck
         with:
           project: "automation-hub"
