@@ -130,7 +130,7 @@ jobs:
           JAVA_HOME: /opt/jdk
 
       - name: 📤 Upload Dependency-Check report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: dependency-check-report
@@ -187,7 +187,7 @@ jobs:
           category: semgrep
 
       - name: 📤 Upload Semgrep SARIF artifact (debug)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: semgrep-sarif
