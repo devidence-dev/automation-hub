@@ -11,20 +11,89 @@ on:
       - 'go.sum'
       - '.go-version'
   workflow_dispatch:
+    inputs:
+      bump:
+        description: "Cómo incrementar la versión (ignorado si se define custom_tag)"
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      custom_tag:
+        description: "Tag personalizado (e.g. v1.2.3). Anula el bump automático si se define."
+        required: false
+        type: string
+      prerelease:
+        description: "Marcar como pre-release?"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
 
 jobs:
-  build:
-    name: 🏗️ Build & Push image
-    runs-on: self-hosted
+  # ==========================================
+  # 🏷️ Calcular versión semver
+  # ==========================================
+  version:
+    name: 🏷️ Calculate version
+    runs-on: ubuntu-latest
     outputs:
-      image_tag: ${{ steps.tag.outputs.tag }}
+      tag: ${{ steps.semver.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Set image tag
-        id: tag
-        run: echo "tag=$(echo ${{ github.sha }} | cut -c1-7)" >> "$GITHUB_OUTPUT"
+      - name: Calculate semver tag
+        id: semver
+        run: |
+          if [ -n "${{ inputs.custom_tag }}" ]; then
+            TAG="${{ inputs.custom_tag }}"
+            [[ "$TAG" == v* ]] || TAG="v$TAG"
+          else
+            LATEST=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+            [ -z "$LATEST" ] && LATEST="v0.0.0"
+
+            MAJOR=$(echo "$LATEST" | cut -d. -f1 | tr -d 'v')
+            MINOR=$(echo "$LATEST" | cut -d. -f2)
+            PATCH=$(echo "$LATEST" | cut -d. -f3)
+
+            BUMP="${{ inputs.bump }}"
+            [ -z "$BUMP" ] && BUMP="patch"
+
+            case "$BUMP" in
+              major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
+              minor) MINOR=$((MINOR+1)); PATCH=0 ;;
+              patch) PATCH=$((PATCH+1)) ;;
+            esac
+
+            TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          fi
+
+          if [ "${{ inputs.prerelease }}" = "true" ]; then
+            TAG="${TAG}-pre.$(date +%Y%m%d%H%M%S)"
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Calculated version: $TAG"
+
+  # ==========================================
+  # 🏗️ Build & Push image + crear git tag
+  # ==========================================
+  build:
+    name: 🏗️ Build & Push image
+    needs: version
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Build image
         run: |
@@ -34,15 +103,25 @@ jobs:
             --build-arg GO_VERSION=${GO_VERSION} \
             --platform linux/${ARCH} \
             -f deployments/docker/Dockerfile \
-            -t zot.devidence.dev/automation-hub:${{ steps.tag.outputs.tag }} \
+            -t zot.devidence.dev/automation-hub:${{ needs.version.outputs.tag }} \
             .
 
       - name: Push to Zot
-        run: docker push zot.devidence.dev/automation-hub:${{ steps.tag.outputs.tag }}
+        run: docker push zot.devidence.dev/automation-hub:${{ needs.version.outputs.tag }}
 
+      - name: Create and push git tag
+        run: |
+          git config user.email "ci@devidence.dev"
+          git config user.name "homelab-ci"
+          git tag ${{ needs.version.outputs.tag }}
+          git push origin ${{ needs.version.outputs.tag }}
+
+  # ==========================================
+  # 🚀 Deploy to production
+  # ==========================================
   deploy:
     name: 🚀 Deploy to production
-    needs: build
+    needs: [version, build]
     runs-on: self-hosted
     environment: production
     steps:
@@ -52,11 +131,11 @@ jobs:
         run: |
           git clone https://x-access-token:${HOMELAB_DEPLOY_TOKEN}@github.com/devidence-dev/homelab.git /tmp/homelab-automation-hub-deploy
           cd /tmp/homelab-automation-hub-deploy
-          sed -i "s|tag: .*|tag: \"${{ needs.build.outputs.image_tag }}\"|" \
+          sed -i "s|tag: .*|tag: \"${{ needs.version.outputs.tag }}\"|" \
             kubernetes/internal-apps/automation-hub/values.yaml
           git config user.email "ci@devidence.dev"
           git config user.name "homelab-ci"
           git add kubernetes/internal-apps/automation-hub/values.yaml
-          git commit -m "chore(automation-hub): bump image to ${{ needs.build.outputs.image_tag }}"
+          git commit -m "chore(automation-hub): bump image to ${{ needs.version.outputs.tag }}"
           git push
           rm -rf /tmp/homelab-automation-hub-deploy
