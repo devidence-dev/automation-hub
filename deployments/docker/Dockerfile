@@ -25,8 +25,6 @@ WORKDIR /app
 
 # Copy binary with correct ownership
 COPY --from=builder --chown=appuser:appuser /app/automation-hub .
-# Copy config file
-COPY --chown=appuser:appuser configs/config.yaml .
 
 USER appuser
 

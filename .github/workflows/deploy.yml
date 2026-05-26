@@ -1,113 +1,62 @@
-name: Deploy to Production
+name: 🚀 Build and Deploy
+
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'cmd/**'
+      - 'internal/**'
+      - 'deployments/docker/Dockerfile'
+      - 'go.mod'
+      - 'go.sum'
+      - '.go-version'
   workflow_dispatch:
 
-env:
-  # Public variables (visible in the code)
-  BRANCH_NAME: ${{ github.ref_name }} # Updated to use the actual branch name dynamically
-  IMAGE_VERSION: "1.0.0"
-  # Organization variables
-  DEPLOY_PATH: ${{ vars.DEPLOY_BASE_PATH }}/${{ github.event.repository.name }}
-
 jobs:
-  deploy:
-    name: Deploy to Production
-    runs-on: self-hosted # Only one self-hosted runner available
-    # environment: production # Temporarily disabled to test
-    # if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
-
+  build:
+    name: 🏗️ Build & Push image
+    runs-on: [self-hosted, linux, homelab]
+    outputs:
+      image_tag: ${{ steps.tag.outputs.tag }}
     steps:
-      - name: Fetch latest changes
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: tag
+        run: echo "tag=$(echo ${{ github.sha }} | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
         run: |
-          cd ${{ env.DEPLOY_PATH }}
-          # Temporarily use HTTPS for fetch
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git fetch origin
-          # Restore SSH remote
-          git remote set-url origin git@github.com:${{ github.repository }}.git
-
-      - name: Reset to latest branch
-        run: |
-          cd ${{ env.DEPLOY_PATH }}
-          git reset --hard origin/${{ env.BRANCH_NAME }}
-
-      - name: Generate config.yaml from secrets
-        run: |
-          cd ${{ env.DEPLOY_PATH }}
-          echo "📝 Generating config.yaml from template..."
-
-          # Copy template
-          cp configs/config.yaml.example configs/config.yaml
-
-          # Replace placeholders with variables (non-sensitive)
-          sed -i 's|{{EMAIL_HOST}}|${{ vars.EMAIL_HOST }}|g' configs/config.yaml
-          sed -i 's|{{EMAIL_PORT}}|${{ vars.EMAIL_PORT }}|g' configs/config.yaml
-          sed -i 's|{{EMAIL_USERNAME}}|${{ vars.EMAIL_USERNAME }}|g' configs/config.yaml
-
-          # Replace placeholders with secrets (sensitive)
-          sed -i 's|{{TELEGRAM_BOT_TOKEN}}|${{ secrets.TELEGRAM_BOT_TOKEN }}|g' configs/config.yaml
-          sed -i 's|{{EMAIL_PASSWORD}}|${{ secrets.EMAIL_PASSWORD }}|g' configs/config.yaml
-          sed -i 's|{{TELEGRAM_CLOUDFLARE_CHAT_ID}}|${{ secrets.TELEGRAM_CLOUDFLARE_CHAT_ID }}|g' configs/config.yaml
-          sed -i 's|{{TELEGRAM_PERPLEXITY_CHAT_ID}}|${{ secrets.TELEGRAM_PERPLEXITY_CHAT_ID }}|g' configs/config.yaml
-          sed -i 's|{{TELEGRAM_QBITTORRENT_CHAT_ID}}|${{ secrets.TELEGRAM_QBITTORRENT_CHAT_ID }}|g' configs/config.yaml
-
-          # Set proper permissions
-          sudo chown 1000:1000 configs/config.yaml
-          sudo chmod 644 configs/config.yaml
-          echo "✅ config.yaml generated successfully"
-
-      - name: Validate configuration file
-        run: |
-          cd ${{ env.DEPLOY_PATH }}
-          echo "🔍 Validating config.yaml..."
-          if awk '!/^[[:space:]]*#/' configs/config.yaml | grep -q '{{'; then
-            echo "❌ Error: Placeholders not replaced in config.yaml"
-            cat configs/config.yaml
-            exit 1
-          fi
-          echo "✅ Config validation passed"
-
-      - name: Stop running containers
-        run: |
-          cd ${{ env.DEPLOY_PATH }}
-          sudo docker compose -f ${{ env.DEPLOY_PATH }}/docker-compose.yml down
-        continue-on-error: true
-
-      - name: Build Docker image
-        run: |
-          cd ${{ env.DEPLOY_PATH }}
           GO_VERSION=$(cat .go-version | tr -d '[:space:]')
-          # Detect current architecture and build only for it
           ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-          sudo docker build \
-            -t automation-hub:${IMAGE_VERSION} \
-            --platform linux/${ARCH} \
-            --no-cache \
+          docker build \
             --build-arg GO_VERSION=${GO_VERSION} \
-            -f ${{ env.DEPLOY_PATH }}/deployments/docker/Dockerfile \
-            ${{ env.DEPLOY_PATH }}
+            --platform linux/${ARCH} \
+            -f deployments/docker/Dockerfile \
+            -t zot.devidence.dev/automation-hub:${{ steps.tag.outputs.tag }} \
+            .
 
-      - name: Start containers
+      - name: Push to Zot
+        run: docker push zot.devidence.dev/automation-hub:${{ steps.tag.outputs.tag }}
+
+  deploy:
+    name: 🚀 Deploy to production
+    needs: build
+    runs-on: [self-hosted, linux, homelab]
+    environment: production
+    steps:
+      - name: Update image tag in homelab
+        env:
+          HOMELAB_DEPLOY_TOKEN: ${{ secrets.HOMELAB_DEPLOY_TOKEN }}
         run: |
-          cd ${{ env.DEPLOY_PATH }}
-          sudo docker compose -f ${{ env.DEPLOY_PATH }}/docker-compose.yml -f ${{ env.DEPLOY_PATH }}/docker-compose.override.yml up -d
-
-      - name: Clean up old Docker images
-        run: sudo docker image prune -f
-        continue-on-error: true
-
-      - name: Validate deployment
-        run: |
-          cd ${{ env.DEPLOY_PATH }}
-          echo "⏳ Waiting for container to be healthy..."
-          for i in $(seq 1 10); do
-            if sudo docker compose -f ${{ env.DEPLOY_PATH }}/docker-compose.yml -f ${{ env.DEPLOY_PATH }}/docker-compose.override.yml ps | grep -q "Up"; then
-              echo "✅ Container is running successfully"
-              exit 0
-            fi
-            echo "⏳ Attempt $i/10 - retrying in 6 seconds..."
-            sleep 6
-          done
-          echo "❌ Container failed to start"
-          sudo docker compose -f ${{ env.DEPLOY_PATH }}/docker-compose.yml -f ${{ env.DEPLOY_PATH }}/docker-compose.override.yml logs
-          exit 1
+          git clone https://x-access-token:${HOMELAB_DEPLOY_TOKEN}@github.com/devidence-dev/homelab.git /tmp/homelab-automation-hub-deploy
+          cd /tmp/homelab-automation-hub-deploy
+          sed -i "s|tag: .*|tag: \"${{ needs.build.outputs.image_tag }}\"|" \
+            kubernetes/internal-apps/automation-hub/values.yaml
+          git config user.email "ci@devidence.dev"
+          git config user.name "homelab-ci"
+          git add kubernetes/internal-apps/automation-hub/values.yaml
+          git commit -m "chore(automation-hub): bump image to ${{ needs.build.outputs.image_tag }}"
+          git push
+          rm -rf /tmp/homelab-automation-hub-deploy
