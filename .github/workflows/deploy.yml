@@ -1,15 +1,6 @@
 name: 🚀 Build and Deploy
 
 on:
-  push:
-    branches: [main, master]
-    paths:
-      - 'cmd/**'
-      - 'internal/**'
-      - 'deployments/docker/Dockerfile'
-      - 'go.mod'
-      - 'go.sum'
-      - '.go-version'
   workflow_dispatch:
     inputs:
       bump:
