@@ -1,0 +1,92 @@
+{
+  ".claude/settings.json": {
+    "mtime": 1784078484.8482277,
+    "ast_hash": "e1e51f6f8be486960acae9aac64e6390",
+    "semantic_hash": "e1e51f6f8be486960acae9aac64e6390"
+  },
+  ".devcontainer/devcontainer.json": {
+    "mtime": 1774723458.298889,
+    "ast_hash": "d8ff21ef01aa9b10ed384ec7bde3fec6",
+    "semantic_hash": "d8ff21ef01aa9b10ed384ec7bde3fec6"
+  },
+  "go.mod": {
+    "mtime": 1774724947.7216904,
+    "ast_hash": "d9d61bb77d8027c3de566ba702bc2df0",
+    "semantic_hash": "d9d61bb77d8027c3de566ba702bc2df0"
+  },
+  "internal/config/config.go": {
+    "mtime": 1764896463.0645816,
+    "ast_hash": "bb20cf8b31dcbf75281e9db74fa9cb33",
+    "semantic_hash": "bb20cf8b31dcbf75281e9db74fa9cb33"
+  },
+  "internal/handlers/webhook.go": {
+    "mtime": 1764896463.0645816,
+    "ast_hash": "4150ad0ded9917768e4c6cfd07dd0c8e",
+    "semantic_hash": "4150ad0ded9917768e4c6cfd07dd0c8e"
+  },
+  "internal/models/models.go": {
+    "mtime": 1767971151.4537747,
+    "ast_hash": "101ff6a27e2ed1c234bca9bcd8b9afe8",
+    "semantic_hash": "101ff6a27e2ed1c234bca9bcd8b9afe8"
+  },
+  "internal/models/models_test.go": {
+    "mtime": 1764896463.0645816,
+    "ast_hash": "f2f502a37dc8268ee428c3553c0ec849",
+    "semantic_hash": "f2f502a37dc8268ee428c3553c0ec849"
+  },
+  "internal/services/email/imap.go": {
+    "mtime": 1767971151.4537747,
+    "ast_hash": "6647d6365a8496431141a239e058107e",
+    "semantic_hash": "6647d6365a8496431141a239e058107e"
+  },
+  "internal/services/processor/generic.go": {
+    "mtime": 1767971151.4537747,
+    "ast_hash": "e98e19bb0c6d0c8b2f195eb2ce6d9f01",
+    "semantic_hash": "e98e19bb0c6d0c8b2f195eb2ce6d9f01"
+  },
+  "internal/services/processor/manager.go": {
+    "mtime": 1764896463.0645816,
+    "ast_hash": "2fb92f225b75ba426eb2dad680dd15cd",
+    "semantic_hash": "2fb92f225b75ba426eb2dad680dd15cd"
+  },
+  "internal/services/processor/torrent.go": {
+    "mtime": 1764896463.0645816,
+    "ast_hash": "dcc52e30470a4540bec7ed7f3e42ac9f",
+    "semantic_hash": "dcc52e30470a4540bec7ed7f3e42ac9f"
+  },
+  "internal/services/telegram/client.go": {
+    "mtime": 1768011970.2777367,
+    "ast_hash": "7f793d88617db198ff1942afcad1a894",
+    "semantic_hash": "7f793d88617db198ff1942afcad1a894"
+  },
+  ".github/dependabot.yml": {
+    "mtime": 1774724427.3890479,
+    "ast_hash": "99dd1c53e14b1cacc30fe9de776afeaa",
+    "semantic_hash": "99dd1c53e14b1cacc30fe9de776afeaa"
+  },
+  ".github/workflows/ci.yml": {
+    "mtime": 1779825009.3866239,
+    "ast_hash": "42c24d85fcb6a61a42f7f8a814d6975a",
+    "semantic_hash": "42c24d85fcb6a61a42f7f8a814d6975a"
+  },
+  ".github/workflows/deploy.yml": {
+    "mtime": 1779899070.925183,
+    "ast_hash": "446c5755e3da5aa8dcc01c3266446fe8",
+    "semantic_hash": "446c5755e3da5aa8dcc01c3266446fe8"
+  },
+  "CLAUDE.md": {
+    "mtime": 1784078484.8482277,
+    "ast_hash": "82efb97a359f5c7290bf2513d14686be",
+    "semantic_hash": "82efb97a359f5c7290bf2513d14686be"
+  },
+  "README.md": {
+    "mtime": 1764896463.0645816,
+    "ast_hash": "878979a13c6f462fd458be651b3cd05d",
+    "semantic_hash": "878979a13c6f462fd458be651b3cd05d"
+  },
+  "docker-compose.yml": {
+    "mtime": 1771134794.9320621,
+    "ast_hash": "ba7f05cf54fca04f4ac97196a3fa2cd1",
+    "semantic_hash": "ba7f05cf54fca04f4ac97196a3fa2cd1"
+  }
+}
