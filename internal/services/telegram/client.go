@@ -46,7 +46,7 @@ func NewClient(token string, logger *zap.Logger) *Client {
 	}
 }
 
-func (c *Client) SendMessage(chatID string, message string) error {
+func (c *Client) SendMessage(chatID, message string) error {
 	chatIDInt, err := parseInt64(chatID)
 	if err != nil {
 		return fmt.Errorf("invalid chat ID: %w", err)

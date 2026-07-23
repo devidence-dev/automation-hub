@@ -7,11 +7,6 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  security-events: write
-  actions: read
-
 jobs:
   # ==========================================
   # 🧪 Tests & Build Verification
@@ -19,12 +14,14 @@ jobs:
   test-and-build:
     name: 🧪 Tests & Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: 📥 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: 🔧 Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: ".go-version"
           cache: true
@@ -63,17 +60,19 @@ jobs:
   lint:
     name: 🧹 Lint Code
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: 📥 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: 🔧 Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: ".go-version"
 
       - name: 🧹 golangci-lint
-        uses: golangci/golangci-lint-action@v9
+        uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # v6.5.0
         with:
           version: latest
           args: --timeout=5m --enable=errcheck,govet,staticcheck,unused,misspell,gosec --issues-exit-code=0
@@ -84,14 +83,16 @@ jobs:
   osv-scan:
     name: 🔒 OSV Scanner
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: 📥 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: 📦 Download OSV Scanner
         run: |
           ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-          wget -q "https://github.com/google/osv-scanner/releases/download/v2.2.2/osv-scanner_linux_${ARCH}" -O osv-scanner
+          curl --proto '=https' --tlsv1.2 -sSL "https://github.com/google/osv-scanner/releases/download/v2.2.2/osv-scanner_linux_${ARCH}" -o osv-scanner
           chmod +x osv-scanner
           sudo mv osv-scanner /usr/local/bin/
 
@@ -106,12 +107,14 @@ jobs:
   dependency-check:
     name: 🛡️ OWASP Dependency Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: 📥 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: 🔧 Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: ".go-version"
 
@@ -119,7 +122,7 @@ jobs:
         run: go mod download
 
       - name: 🛡️ Run Dependency-Check
-        uses: dependency-check/Dependency-Check_Action@main
+        uses: dependency-check/Dependency-Check_Action@1e54355a8b4c8abaa8cc7d0b70aa655a3bb15a6c # main
         id: depcheck
         with:
           project: "automation-hub"
@@ -135,7 +138,7 @@ jobs:
           JAVA_HOME: /opt/jdk
 
       - name: 📤 Upload Dependency-Check report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.1
         if: always()
         with:
           name: dependency-check-report
@@ -156,13 +159,13 @@ jobs:
       actions: read
     steps:
       - name: 📥 Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
       - name: 🧰 Install Semgrep
         run: |
-          python3 -m pip install --break-system-packages semgrep
+          python3 -m pip install --break-system-packages "semgrep==1.108.0"
           export PATH="$HOME/.local/bin:$PATH"
           semgrep --version
 
@@ -185,14 +188,14 @@ jobs:
           head -20 semgrep.sarif
 
       - name: 📤 Upload Semgrep SARIF
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@4187e74d05793876e9989daffde9c3e66b4acd07 # v3.28.10
         if: always()
         with:
           sarif_file: semgrep.sarif
           category: semgrep
 
       - name: 📤 Upload Semgrep SARIF artifact (debug)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.1
         if: always()
         with:
           name: semgrep-sarif
@@ -226,11 +229,6 @@ jobs:
           go test -race -coverprofile=coverage.out -covermode=atomic ./...
           sed -i 's|^automation-hub/||' coverage.out
 
-      # TODO: completar con los valores reales de Infisical para este repo.
-      # Si la Machine Identity de voraz-bot quedó con Subject wildcard
-      # (repo:devidence-dev/*:ref:refs/heads/main), se reusa el mismo
-      # identity-id/domain - solo falta guardar el SONAR_TOKEN de
-      # automation-hub en Infisical y darle acceso a esa identidad.
       - name: 🔑 Fetch SONAR_TOKEN from Infisical
         uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
         with:

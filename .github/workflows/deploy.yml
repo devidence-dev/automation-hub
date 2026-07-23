@@ -22,9 +22,6 @@ on:
         default: false
         type: boolean
 
-permissions:
-  contents: write
-
 jobs:
   # ==========================================
   # 🏷️ Calcular versión semver
@@ -32,19 +29,25 @@ jobs:
   version:
     name: 🏷️ Calculate version
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       tag: ${{ steps.semver.outputs.tag }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
       - name: Calculate semver tag
         id: semver
+        env:
+          CUSTOM_TAG: ${{ inputs.custom_tag }}
+          BUMP: ${{ inputs.bump }}
+          PRERELEASE: ${{ inputs.prerelease }}
         run: |
-          if [ -n "${{ inputs.custom_tag }}" ]; then
-            TAG="${{ inputs.custom_tag }}"
+          if [ -n "$CUSTOM_TAG" ]; then
+            TAG="$CUSTOM_TAG"
             [[ "$TAG" == v* ]] || TAG="v$TAG"
           else
             LATEST=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
@@ -54,10 +57,10 @@ jobs:
             MINOR=$(echo "$LATEST" | cut -d. -f2)
             PATCH=$(echo "$LATEST" | cut -d. -f3)
 
-            BUMP="${{ inputs.bump }}"
-            [ -z "$BUMP" ] && BUMP="patch"
+            BUMP_TYPE="$BUMP"
+            [ -z "$BUMP_TYPE" ] && BUMP_TYPE="patch"
 
-            case "$BUMP" in
+            case "$BUMP_TYPE" in
               major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
               minor) MINOR=$((MINOR+1)); PATCH=0 ;;
               patch) PATCH=$((PATCH+1)) ;;
@@ -66,7 +69,7 @@ jobs:
             TAG="v${MAJOR}.${MINOR}.${PATCH}"
           fi
 
-          if [ "${{ inputs.prerelease }}" = "true" ]; then
+          if [ "$PRERELEASE" = "true" ]; then
             TAG="${TAG}-pre.$(date +%Y%m%d%H%M%S)"
           fi
 
@@ -80,9 +83,11 @@ jobs:
     name: 🏗️ Build & Push image
     needs: version
     runs-on: self-hosted
+    permissions:
+      contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
@@ -118,6 +123,8 @@ jobs:
     needs: [version, build]
     runs-on: self-hosted
     environment: production
+    permissions:
+      contents: read
     steps:
       - name: Update image tag in homelab
         env:
