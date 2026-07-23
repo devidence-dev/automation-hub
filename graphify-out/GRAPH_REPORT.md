@@ -1,16 +1,16 @@
 # Graph Report - automation-hub  (2026-07-22)
 
 ## Corpus Check
-- 13 files · ~5,501 words
+- 20 files · ~7,540 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 134 nodes · 211 edges · 11 communities (9 shown, 2 thin omitted)
-- Extraction: 93% EXTRACTED · 6% INFERRED · 1% AMBIGUOUS · INFERRED: 13 edges (avg confidence: 0.83)
+- 182 nodes · 303 edges · 15 communities (13 shown, 2 thin omitted)
+- Extraction: 86% EXTRACTED · 13% INFERRED · 1% AMBIGUOUS · INFERRED: 40 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `39badec2`
+- Built from commit: `e149ae47`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -26,18 +26,22 @@
 - Model Tests
 - Root Package
 - CLAUDE.md
+- NewGenericEmailProcessor
+- NewWebhookHandler
+- NewIMAPClient
+- parseInt64
 
 ## God Nodes (most connected - your core abstractions)
 1. `Client` - 22 edges
 2. `IMAPClient` - 16 edges
 3. `GenericEmailProcessor` - 14 edges
-4. `🤖 Automation Hub` - 12 edges
-5. `Config` - 9 edges
-6. `Manager` - 9 edges
-7. `Email` - 7 edges
-8. `TorrentProcessor` - 7 edges
-9. `EmailConfig` - 6 edges
-10. `WebhookHandler` - 6 edges
+4. `NewGenericEmailProcessor()` - 14 edges
+5. `🤖 Automation Hub` - 12 edges
+6. `Config` - 9 edges
+7. `NewWebhookHandler()` - 9 edges
+8. `Email` - 9 edges
+9. `NewIMAPClient()` - 9 edges
+10. `Manager` - 9 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Security & Quality Tooling List (README claims)` --conceptually_related_to--> `CI Job: OSV Scanner (dependency vulnerabilities)`  [AMBIGUOUS]
@@ -59,27 +63,27 @@
 - **Build and Deploy Pipeline Jobs (Version, Build, Deploy)** — _github_workflows_deploy_version, _github_workflows_deploy_build, _github_workflows_deploy_deploy [EXTRACTED 1.00]
 - **Dependabot Multi-Ecosystem Update Strategy (gomod, docker, github-actions)** — _github_dependabot_gomod_updates, _github_dependabot_docker_updates, _github_dependabot_github_actions_updates [EXTRACTED 1.00]
 
-## Communities (11 total, 2 thin omitted)
+## Communities (15 total, 2 thin omitted)
 
 ### Community 0 - "Torrent Webhook Handling"
-Cohesion: 0.28
-Nodes (11): Config, EmailConfig, ServerConfig, ServiceConfig, ServiceProcessorConfig, TelegramConfig, WebhookConfig, WebhookHandler (+3 more)
+Cohesion: 0.26
+Nodes (12): Config, EmailConfig, ServerConfig, ServiceConfig, ServiceProcessorConfig, TelegramConfig, WebhookConfig, Load() (+4 more)
 
 ### Community 1 - "Generic Email Processor"
 Cohesion: 0.26
-Nodes (5): Logger, NewGenericEmailProcessor(), truncateString(), GenericEmailProcessor, Regexp
+Nodes (4): Logger, truncateString(), GenericEmailProcessor, Regexp
 
 ### Community 2 - "Processor Manager & Models"
-Cohesion: 0.20
-Nodes (8): Context, Logger, NewProcessorManager(), Email, EmailProcessor, TorrentNotification, Manager, WaitGroup
+Cohesion: 0.12
+Nodes (12): mockNamedProcessor, Context, Logger, NewProcessorManager(), T, TestProcessorManager(), TestProcessorManager_CanceledContextAsync(), Email (+4 more)
 
 ### Community 3 - "Deployment & Docs"
 Cohesion: 0.18
 Nodes (13): Dependabot Docker Update Config (deployments/docker), Deploy Job: Build & Push Image to Zot Registry, Deploy Job: Deploy to Production (homelab repo), Deploy Job: Calculate semver Version, Graphify Knowledge-Graph Workflow Rules, automation-hub-network Bridge Network, automation-hub Docker Compose Service, Automation Hub Project Overview (+5 more)
 
 ### Community 4 - "IMAP Email Client"
-Cohesion: 0.15
-Nodes (11): BotAPI, IMAPClient, Context, Logger, NewIMAPClient(), Logger, NewClient(), parseInt64() (+3 more)
+Cohesion: 0.20
+Nodes (8): BotAPI, IMAPClient, Context, Logger, NewClient(), Literal, Message, Client
 
 ### Community 5 - "CI Security & Quality Tooling"
 Cohesion: 0.36
@@ -90,12 +94,28 @@ Cohesion: 0.07
 Nodes (28): 🔄 Adding New Email Services, 🆕 Adding New Webhooks, � API & Webhooks, Authors and acknowledgment 🛡, 🤖 Automation Hub, 📡 Available Endpoints, 🚨 Common Issues, ⚙️ Configuration (+20 more)
 
 ### Community 7 - "Email Message Parsing"
-Cohesion: 0.36
-Nodes (8): WebhookProcessorConfig, GetWebhookConfig(), Logger, NewTorrentProcessor(), NewTorrentProcessorLegacy(), TorrentProcessor, Request, ResponseWriter
+Cohesion: 0.24
+Nodes (12): WebhookProcessorConfig, GetWebhookConfig(), Logger, NewTorrentProcessor(), NewTorrentProcessorLegacy(), T, TestGetWebhookConfig(), TestNewTorrentProcessor() (+4 more)
 
 ### Community 8 - "Model Tests"
 Cohesion: 0.67
-Nodes (3): TestEmail(), TestTorrentNotification(), T
+Nodes (3): T, TestEmail(), TestTorrentNotification()
+
+### Community 11 - "NewGenericEmailProcessor"
+Cohesion: 0.39
+Nodes (11): NewGenericEmailProcessor(), T, TestDecodeQuotedPrintable(), TestExtractCode(), TestExtractPerplexityCode(), TestNewGenericEmailProcessor_BuiltInPatterns(), TestNewGenericEmailProcessor_CustomPattern(), TestNewGenericEmailProcessor_InvalidCustomPatternFallback() (+3 more)
+
+### Community 12 - "NewWebhookHandler"
+Cohesion: 0.38
+Nodes (8): WebhookHandler, Logger, NewWebhookHandler(), T, TestHandleTorrentComplete_InvalidJSON(), TestHandleTorrentComplete_MissingWebhookConfig(), TestHandleTorrentComplete_Success(), TestNewWebhookHandler()
+
+### Community 13 - "NewIMAPClient"
+Cohesion: 0.38
+Nodes (8): Logger, NewIMAPClient(), T, TestExtractTextPlain(), TestHandlePostProcessing(), TestMarkAsReadAndUnreadNilClient(), TestNewIMAPClient(), TestParseMessage()
+
+### Community 14 - "parseInt64"
+Cohesion: 0.38
+Nodes (5): parseInt64(), T, TestParseInt64(), TestSendMessageInvalidChatID(), TestSendMessageNilClientOrBot()
 
 ## Ambiguous Edges - Review These
 - `CI Job: OSV Scanner (dependency vulnerabilities)` → `Security & Quality Tooling List (README claims)`  [AMBIGUOUS]
@@ -115,13 +135,13 @@ _Questions this graph is uniquely positioned to answer:_
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
 - **What is the exact relationship between `CI Job: OWASP Dependency-Check (CVE scanner)` and `Security & Quality Tooling List (README claims)`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
-- **Why does `Client` connect `IMAP Email Client` to `Torrent Webhook Handling`, `Generic Email Processor`, `Processor Manager & Models`, `Email Message Parsing`?**
-  _High betweenness centrality (0.178) - this node is a cross-community bridge._
-- **Why does `GenericEmailProcessor` connect `Generic Email Processor` to `Torrent Webhook Handling`, `Processor Manager & Models`, `IMAP Email Client`?**
-  _High betweenness centrality (0.077) - this node is a cross-community bridge._
-- **Why does `IMAPClient` connect `IMAP Email Client` to `Torrent Webhook Handling`?**
-  _High betweenness centrality (0.057) - this node is a cross-community bridge._
+- **Why does `Client` connect `IMAP Email Client` to `Generic Email Processor`, `Processor Manager & Models`, `Email Message Parsing`, `NewGenericEmailProcessor`, `NewWebhookHandler`, `parseInt64`?**
+  _High betweenness centrality (0.240) - this node is a cross-community bridge._
+- **Why does `NewGenericEmailProcessor()` connect `NewGenericEmailProcessor` to `Torrent Webhook Handling`, `Generic Email Processor`, `Processor Manager & Models`, `IMAP Email Client`?**
+  _High betweenness centrality (0.087) - this node is a cross-community bridge._
+- **Why does `GenericEmailProcessor` connect `Generic Email Processor` to `Torrent Webhook Handling`, `Processor Manager & Models`, `NewGenericEmailProcessor`, `IMAP Email Client`?**
+  _High betweenness centrality (0.073) - this node is a cross-community bridge._
+- **Are the 9 inferred relationships involving `NewGenericEmailProcessor()` (e.g. with `TestDecodeQuotedPrintable()` and `TestExtractCode()`) actually correct?**
+  _`NewGenericEmailProcessor()` has 9 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `automation-hub`, `graphify`, `🛡️ Security & Quality` to the rest of the system?**
   _26 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Telegram Notifications` be split into smaller, more focused modules?**
-  _Cohesion score 0.06896551724137931 - nodes in this community are weakly interconnected._

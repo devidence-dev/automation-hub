@@ -171,14 +171,69 @@
       "norm_label": "load()"
     },
     {
+      "label": "config_test.go",
+      "file_type": "code",
+      "source_file": "internal/config/config_test.go",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "internal_config_config_test",
+      "community": 0,
+      "community_name": "Torrent Webhook Handling",
+      "norm_label": "config_test.go"
+    },
+    {
+      "label": "TestLoadSuccess()",
+      "file_type": "code",
+      "source_file": "internal/config/config_test.go",
+      "source_location": "L11",
+      "_origin": "ast",
+      "id": "internal_config_config_test_testloadsuccess",
+      "community": 0,
+      "community_name": "Torrent Webhook Handling",
+      "norm_label": "testloadsuccess()"
+    },
+    {
+      "label": "T",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "internal_config_config_test_go_t",
+      "community": 0,
+      "community_name": "Torrent Webhook Handling",
+      "norm_label": "t"
+    },
+    {
+      "label": "TestLoadErrorMissingConfig()",
+      "file_type": "code",
+      "source_file": "internal/config/config_test.go",
+      "source_location": "L87",
+      "_origin": "ast",
+      "id": "internal_config_config_test_testloaderrormissingconfig",
+      "community": 0,
+      "community_name": "Torrent Webhook Handling",
+      "norm_label": "testloaderrormissingconfig()"
+    },
+    {
+      "label": "TestLoadInvalidYaml()",
+      "file_type": "code",
+      "source_file": "internal/config/config_test.go",
+      "source_location": "L99",
+      "_origin": "ast",
+      "id": "internal_config_config_test_testloadinvalidyaml",
+      "community": 0,
+      "community_name": "Torrent Webhook Handling",
+      "norm_label": "testloadinvalidyaml()"
+    },
+    {
       "label": "webhook.go",
       "file_type": "code",
       "source_file": "internal/handlers/webhook.go",
       "source_location": "L1",
       "_origin": "ast",
       "id": "internal_handlers_webhook",
-      "community": 0,
-      "community_name": "Torrent Webhook Handling",
+      "community": 12,
+      "community_name": "NewWebhookHandler",
       "norm_label": "webhook.go"
     },
     {
@@ -188,8 +243,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "handlers_webhookhandler",
-      "community": 0,
-      "community_name": "Torrent Webhook Handling",
+      "community": 12,
+      "community_name": "NewWebhookHandler",
       "norm_label": "webhookhandler"
     },
     {
@@ -199,8 +254,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "internal_handlers_webhook_go_logger",
-      "community": 0,
-      "community_name": "Torrent Webhook Handling",
+      "community": 12,
+      "community_name": "NewWebhookHandler",
       "norm_label": "logger"
     },
     {
@@ -210,8 +265,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "internal_handlers_webhook_newwebhookhandler",
-      "community": 0,
-      "community_name": "Torrent Webhook Handling",
+      "community": 12,
+      "community_name": "NewWebhookHandler",
       "norm_label": "newwebhookhandler()"
     },
     {
@@ -246,6 +301,72 @@
       "community": 7,
       "community_name": "Email Message Parsing",
       "norm_label": "request"
+    },
+    {
+      "label": "webhook_test.go",
+      "file_type": "code",
+      "source_file": "internal/handlers/webhook_test.go",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "internal_handlers_webhook_test",
+      "community": 12,
+      "community_name": "NewWebhookHandler",
+      "norm_label": "webhook_test.go"
+    },
+    {
+      "label": "TestNewWebhookHandler()",
+      "file_type": "code",
+      "source_file": "internal/handlers/webhook_test.go",
+      "source_location": "L14",
+      "_origin": "ast",
+      "id": "internal_handlers_webhook_test_testnewwebhookhandler",
+      "community": 12,
+      "community_name": "NewWebhookHandler",
+      "norm_label": "testnewwebhookhandler()"
+    },
+    {
+      "label": "T",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "internal_handlers_webhook_test_go_t",
+      "community": 12,
+      "community_name": "NewWebhookHandler",
+      "norm_label": "t"
+    },
+    {
+      "label": "TestHandleTorrentComplete_InvalidJSON()",
+      "file_type": "code",
+      "source_file": "internal/handlers/webhook_test.go",
+      "source_location": "L24",
+      "_origin": "ast",
+      "id": "internal_handlers_webhook_test_testhandletorrentcomplete_invalidjson",
+      "community": 12,
+      "community_name": "NewWebhookHandler",
+      "norm_label": "testhandletorrentcomplete_invalidjson()"
+    },
+    {
+      "label": "TestHandleTorrentComplete_MissingWebhookConfig()",
+      "file_type": "code",
+      "source_file": "internal/handlers/webhook_test.go",
+      "source_location": "L40",
+      "_origin": "ast",
+      "id": "internal_handlers_webhook_test_testhandletorrentcomplete_missingwebhookconfig",
+      "community": 12,
+      "community_name": "NewWebhookHandler",
+      "norm_label": "testhandletorrentcomplete_missingwebhookconfig()"
+    },
+    {
+      "label": "TestHandleTorrentComplete_Success()",
+      "file_type": "code",
+      "source_file": "internal/handlers/webhook_test.go",
+      "source_location": "L59",
+      "_origin": "ast",
+      "id": "internal_handlers_webhook_test_testhandletorrentcomplete_success",
+      "community": 12,
+      "community_name": "NewWebhookHandler",
+      "norm_label": "testhandletorrentcomplete_success()"
     },
     {
       "label": "models.go",
@@ -319,7 +440,7 @@
       "source_file": "",
       "source_location": "",
       "_origin": "ast",
-      "id": "t",
+      "id": "internal_models_models_test_go_t",
       "community": 8,
       "community_name": "Model Tests",
       "norm_label": "t"
@@ -342,8 +463,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "internal_services_email_imap",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 13,
+      "community_name": "NewIMAPClient",
       "norm_label": "imap.go"
     },
     {
@@ -364,8 +485,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "internal_services_email_imap_go_logger",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 13,
+      "community_name": "NewIMAPClient",
       "norm_label": "logger"
     },
     {
@@ -375,8 +496,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "internal_services_email_imap_newimapclient",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 13,
+      "community_name": "NewIMAPClient",
       "norm_label": "newimapclient()"
     },
     {
@@ -504,7 +625,7 @@
       "label": ".markAsUnread()",
       "file_type": "code",
       "source_file": "internal/services/email/imap.go",
-      "source_location": "L250",
+      "source_location": "L253",
       "_origin": "ast",
       "id": "email_imapclient_markasunread",
       "community": 4,
@@ -515,7 +636,7 @@
       "label": ".parseMessage()",
       "file_type": "code",
       "source_file": "internal/services/email/imap.go",
-      "source_location": "L259",
+      "source_location": "L265",
       "_origin": "ast",
       "id": "email_imapclient_parsemessage",
       "community": 4,
@@ -526,7 +647,7 @@
       "label": ".extractTextPlain()",
       "file_type": "code",
       "source_file": "internal/services/email/imap.go",
-      "source_location": "L284",
+      "source_location": "L290",
       "_origin": "ast",
       "id": "email_imapclient_extracttextplain",
       "community": 4,
@@ -543,6 +664,138 @@
       "community": 4,
       "community_name": "IMAP Email Client",
       "norm_label": "literal"
+    },
+    {
+      "label": "imap_test.go",
+      "file_type": "code",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "internal_services_email_imap_test",
+      "community": 13,
+      "community_name": "NewIMAPClient",
+      "norm_label": "imap_test.go"
+    },
+    {
+      "label": "mockNamedProcessor",
+      "file_type": "code",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L14",
+      "_origin": "ast",
+      "id": "email_mocknamedprocessor",
+      "community": 2,
+      "community_name": "Processor Manager & Models",
+      "norm_label": "mocknamedprocessor"
+    },
+    {
+      "label": ".GetName()",
+      "file_type": "code",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L19",
+      "_origin": "ast",
+      "id": "email_mocknamedprocessor_getname",
+      "community": 2,
+      "community_name": "Processor Manager & Models",
+      "norm_label": ".getname()"
+    },
+    {
+      "label": ".GetSender()",
+      "file_type": "code",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L23",
+      "_origin": "ast",
+      "id": "email_mocknamedprocessor_getsender",
+      "community": 2,
+      "community_name": "Processor Manager & Models",
+      "norm_label": ".getsender()"
+    },
+    {
+      "label": ".ShouldProcess()",
+      "file_type": "code",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L27",
+      "_origin": "ast",
+      "id": "email_mocknamedprocessor_shouldprocess",
+      "community": 2,
+      "community_name": "Processor Manager & Models",
+      "norm_label": ".shouldprocess()"
+    },
+    {
+      "label": ".Process()",
+      "file_type": "code",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L31",
+      "_origin": "ast",
+      "id": "email_mocknamedprocessor_process",
+      "community": 2,
+      "community_name": "Processor Manager & Models",
+      "norm_label": ".process()"
+    },
+    {
+      "label": "TestNewIMAPClient()",
+      "file_type": "code",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L35",
+      "_origin": "ast",
+      "id": "internal_services_email_imap_test_testnewimapclient",
+      "community": 13,
+      "community_name": "NewIMAPClient",
+      "norm_label": "testnewimapclient()"
+    },
+    {
+      "label": "T",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "internal_services_email_imap_test_go_t",
+      "community": 13,
+      "community_name": "NewIMAPClient",
+      "norm_label": "t"
+    },
+    {
+      "label": "TestExtractTextPlain()",
+      "file_type": "code",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L49",
+      "_origin": "ast",
+      "id": "internal_services_email_imap_test_testextracttextplain",
+      "community": 13,
+      "community_name": "NewIMAPClient",
+      "norm_label": "testextracttextplain()"
+    },
+    {
+      "label": "TestParseMessage()",
+      "file_type": "code",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L63",
+      "_origin": "ast",
+      "id": "internal_services_email_imap_test_testparsemessage",
+      "community": 13,
+      "community_name": "NewIMAPClient",
+      "norm_label": "testparsemessage()"
+    },
+    {
+      "label": "TestHandlePostProcessing()",
+      "file_type": "code",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L93",
+      "_origin": "ast",
+      "id": "internal_services_email_imap_test_testhandlepostprocessing",
+      "community": 13,
+      "community_name": "NewIMAPClient",
+      "norm_label": "testhandlepostprocessing()"
+    },
+    {
+      "label": "TestMarkAsReadAndUnreadNilClient()",
+      "file_type": "code",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L118",
+      "_origin": "ast",
+      "id": "internal_services_email_imap_test_testmarkasreadandunreadnilclient",
+      "community": 13,
+      "community_name": "NewIMAPClient",
+      "norm_label": "testmarkasreadandunreadnilclient()"
     },
     {
       "label": "generic.go",
@@ -595,8 +848,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "internal_services_processor_generic_newgenericemailprocessor",
-      "community": 1,
-      "community_name": "Generic Email Processor",
+      "community": 11,
+      "community_name": "NewGenericEmailProcessor",
       "norm_label": "newgenericemailprocessor()"
     },
     {
@@ -699,6 +952,127 @@
       "norm_label": ".decodequotedprintable()"
     },
     {
+      "label": "generic_test.go",
+      "file_type": "code",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "internal_services_processor_generic_test",
+      "community": 11,
+      "community_name": "NewGenericEmailProcessor",
+      "norm_label": "generic_test.go"
+    },
+    {
+      "label": "TestNewGenericEmailProcessor_CustomPattern()",
+      "file_type": "code",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L12",
+      "_origin": "ast",
+      "id": "internal_services_processor_generic_test_testnewgenericemailprocessor_custompattern",
+      "community": 11,
+      "community_name": "NewGenericEmailProcessor",
+      "norm_label": "testnewgenericemailprocessor_custompattern()"
+    },
+    {
+      "label": "T",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "internal_services_processor_generic_test_go_t",
+      "community": 11,
+      "community_name": "NewGenericEmailProcessor",
+      "norm_label": "t"
+    },
+    {
+      "label": "TestNewGenericEmailProcessor_InvalidCustomPatternFallback()",
+      "file_type": "code",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L32",
+      "_origin": "ast",
+      "id": "internal_services_processor_generic_test_testnewgenericemailprocessor_invalidcustompatternfallback",
+      "community": 11,
+      "community_name": "NewGenericEmailProcessor",
+      "norm_label": "testnewgenericemailprocessor_invalidcustompatternfallback()"
+    },
+    {
+      "label": "TestNewGenericEmailProcessor_BuiltInPatterns()",
+      "file_type": "code",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L46",
+      "_origin": "ast",
+      "id": "internal_services_processor_generic_test_testnewgenericemailprocessor_builtinpatterns",
+      "community": 11,
+      "community_name": "NewGenericEmailProcessor",
+      "norm_label": "testnewgenericemailprocessor_builtinpatterns()"
+    },
+    {
+      "label": "TestShouldProcess()",
+      "file_type": "code",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L63",
+      "_origin": "ast",
+      "id": "internal_services_processor_generic_test_testshouldprocess",
+      "community": 11,
+      "community_name": "NewGenericEmailProcessor",
+      "norm_label": "testshouldprocess()"
+    },
+    {
+      "label": "TestExtractCode()",
+      "file_type": "code",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L121",
+      "_origin": "ast",
+      "id": "internal_services_processor_generic_test_testextractcode",
+      "community": 11,
+      "community_name": "NewGenericEmailProcessor",
+      "norm_label": "testextractcode()"
+    },
+    {
+      "label": "TestExtractPerplexityCode()",
+      "file_type": "code",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L149",
+      "_origin": "ast",
+      "id": "internal_services_processor_generic_test_testextractperplexitycode",
+      "community": 11,
+      "community_name": "NewGenericEmailProcessor",
+      "norm_label": "testextractperplexitycode()"
+    },
+    {
+      "label": "TestStripMIMEHeaders()",
+      "file_type": "code",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L194",
+      "_origin": "ast",
+      "id": "internal_services_processor_generic_test_teststripmimeheaders",
+      "community": 11,
+      "community_name": "NewGenericEmailProcessor",
+      "norm_label": "teststripmimeheaders()"
+    },
+    {
+      "label": "TestTruncateString()",
+      "file_type": "code",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L230",
+      "_origin": "ast",
+      "id": "internal_services_processor_generic_test_testtruncatestring",
+      "community": 11,
+      "community_name": "NewGenericEmailProcessor",
+      "norm_label": "testtruncatestring()"
+    },
+    {
+      "label": "TestDecodeQuotedPrintable()",
+      "file_type": "code",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L239",
+      "_origin": "ast",
+      "id": "internal_services_processor_generic_test_testdecodequotedprintable",
+      "community": 11,
+      "community_name": "NewGenericEmailProcessor",
+      "norm_label": "testdecodequotedprintable()"
+    },
+    {
       "label": "manager.go",
       "file_type": "code",
       "source_file": "internal/services/processor/manager.go",
@@ -798,6 +1172,50 @@
       "norm_label": ".processemailasync()"
     },
     {
+      "label": "manager_test.go",
+      "file_type": "code",
+      "source_file": "internal/services/processor/manager_test.go",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "internal_services_processor_manager_test",
+      "community": 2,
+      "community_name": "Processor Manager & Models",
+      "norm_label": "manager_test.go"
+    },
+    {
+      "label": "TestProcessorManager()",
+      "file_type": "code",
+      "source_file": "internal/services/processor/manager_test.go",
+      "source_location": "L14",
+      "_origin": "ast",
+      "id": "internal_services_processor_manager_test_testprocessormanager",
+      "community": 2,
+      "community_name": "Processor Manager & Models",
+      "norm_label": "testprocessormanager()"
+    },
+    {
+      "label": "T",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "internal_services_processor_manager_test_go_t",
+      "community": 2,
+      "community_name": "Processor Manager & Models",
+      "norm_label": "t"
+    },
+    {
+      "label": "TestProcessorManager_CanceledContextAsync()",
+      "file_type": "code",
+      "source_file": "internal/services/processor/manager_test.go",
+      "source_location": "L73",
+      "_origin": "ast",
+      "id": "internal_services_processor_manager_test_testprocessormanager_canceledcontextasync",
+      "community": 2,
+      "community_name": "Processor Manager & Models",
+      "norm_label": "testprocessormanager_canceledcontextasync()"
+    },
+    {
       "label": "torrent.go",
       "file_type": "code",
       "source_file": "internal/services/processor/torrent.go",
@@ -875,6 +1293,61 @@
       "norm_label": "getwebhookconfig()"
     },
     {
+      "label": "torrent_test.go",
+      "file_type": "code",
+      "source_file": "internal/services/processor/torrent_test.go",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "internal_services_processor_torrent_test",
+      "community": 7,
+      "community_name": "Email Message Parsing",
+      "norm_label": "torrent_test.go"
+    },
+    {
+      "label": "TestNewTorrentProcessor()",
+      "file_type": "code",
+      "source_file": "internal/services/processor/torrent_test.go",
+      "source_location": "L11",
+      "_origin": "ast",
+      "id": "internal_services_processor_torrent_test_testnewtorrentprocessor",
+      "community": 7,
+      "community_name": "Email Message Parsing",
+      "norm_label": "testnewtorrentprocessor()"
+    },
+    {
+      "label": "T",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "internal_services_processor_torrent_test_go_t",
+      "community": 7,
+      "community_name": "Email Message Parsing",
+      "norm_label": "t"
+    },
+    {
+      "label": "TestNewTorrentProcessorLegacy()",
+      "file_type": "code",
+      "source_file": "internal/services/processor/torrent_test.go",
+      "source_location": "L27",
+      "_origin": "ast",
+      "id": "internal_services_processor_torrent_test_testnewtorrentprocessorlegacy",
+      "community": 7,
+      "community_name": "Email Message Parsing",
+      "norm_label": "testnewtorrentprocessorlegacy()"
+    },
+    {
+      "label": "TestGetWebhookConfig()",
+      "file_type": "code",
+      "source_file": "internal/services/processor/torrent_test.go",
+      "source_location": "L39",
+      "_origin": "ast",
+      "id": "internal_services_processor_torrent_test_testgetwebhookconfig",
+      "community": 7,
+      "community_name": "Email Message Parsing",
+      "norm_label": "testgetwebhookconfig()"
+    },
+    {
       "label": "client.go",
       "file_type": "code",
       "source_file": "internal/services/telegram/client.go",
@@ -936,20 +1409,75 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "telegram_client_sendmessage",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 14,
+      "community_name": "parseInt64",
       "norm_label": ".sendmessage()"
     },
     {
       "label": "parseInt64()",
       "file_type": "code",
       "source_file": "internal/services/telegram/client.go",
-      "source_location": "L95",
+      "source_location": "L99",
       "_origin": "ast",
       "id": "internal_services_telegram_client_parseint64",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 14,
+      "community_name": "parseInt64",
       "norm_label": "parseint64()"
+    },
+    {
+      "label": "client_test.go",
+      "file_type": "code",
+      "source_file": "internal/services/telegram/client_test.go",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "internal_services_telegram_client_test",
+      "community": 14,
+      "community_name": "parseInt64",
+      "norm_label": "client_test.go"
+    },
+    {
+      "label": "TestParseInt64()",
+      "file_type": "code",
+      "source_file": "internal/services/telegram/client_test.go",
+      "source_location": "L10",
+      "_origin": "ast",
+      "id": "internal_services_telegram_client_test_testparseint64",
+      "community": 14,
+      "community_name": "parseInt64",
+      "norm_label": "testparseint64()"
+    },
+    {
+      "label": "T",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "_origin": "ast",
+      "id": "internal_services_telegram_client_test_go_t",
+      "community": 14,
+      "community_name": "parseInt64",
+      "norm_label": "t"
+    },
+    {
+      "label": "TestSendMessageInvalidChatID()",
+      "file_type": "code",
+      "source_file": "internal/services/telegram/client_test.go",
+      "source_location": "L57",
+      "_origin": "ast",
+      "id": "internal_services_telegram_client_test_testsendmessageinvalidchatid",
+      "community": 14,
+      "community_name": "parseInt64",
+      "norm_label": "testsendmessageinvalidchatid()"
+    },
+    {
+      "label": "TestSendMessageNilClientOrBot()",
+      "file_type": "code",
+      "source_file": "internal/services/telegram/client_test.go",
+      "source_location": "L70",
+      "_origin": "ast",
+      "id": "internal_services_telegram_client_test_testsendmessagenilclientorbot",
+      "community": 14,
+      "community_name": "parseInt64",
+      "norm_label": "testsendmessagenilclientorbot()"
     },
     {
       "label": "CLAUDE.md",
@@ -1303,8 +1831,8 @@
       "contributor": null,
       "community": 5,
       "norm_label": "dependabot go modules update config",
-      "id": "_github_dependabot_gomod_updates",
-      "community_name": "CI Security & Quality Tooling"
+      "community_name": "CI Security & Quality Tooling",
+      "id": "_github_dependabot_gomod_updates"
     },
     {
       "label": "Dependabot Docker Update Config (deployments/docker)",
@@ -1317,8 +1845,8 @@
       "contributor": null,
       "community": 3,
       "norm_label": "dependabot docker update config (deployments/docker)",
-      "id": "_github_dependabot_docker_updates",
-      "community_name": "Deployment & Docs"
+      "community_name": "Deployment & Docs",
+      "id": "_github_dependabot_docker_updates"
     },
     {
       "label": "Dependabot GitHub Actions Update Config",
@@ -1331,8 +1859,8 @@
       "contributor": null,
       "community": 5,
       "norm_label": "dependabot github actions update config",
-      "id": "_github_dependabot_github_actions_updates",
-      "community_name": "CI Security & Quality Tooling"
+      "community_name": "CI Security & Quality Tooling",
+      "id": "_github_dependabot_github_actions_updates"
     },
     {
       "label": "CI Job: Tests & Build",
@@ -1345,8 +1873,8 @@
       "contributor": null,
       "community": 5,
       "norm_label": "ci job: tests & build",
-      "id": "_github_workflows_ci_test_and_build",
-      "community_name": "CI Security & Quality Tooling"
+      "community_name": "CI Security & Quality Tooling",
+      "id": "_github_workflows_ci_test_and_build"
     },
     {
       "label": "CI Job: Lint Code (golangci-lint)",
@@ -1359,8 +1887,8 @@
       "contributor": null,
       "community": 5,
       "norm_label": "ci job: lint code (golangci-lint)",
-      "id": "_github_workflows_ci_lint",
-      "community_name": "CI Security & Quality Tooling"
+      "community_name": "CI Security & Quality Tooling",
+      "id": "_github_workflows_ci_lint"
     },
     {
       "label": "CI Job: OSV Scanner (dependency vulnerabilities)",
@@ -1373,8 +1901,8 @@
       "contributor": null,
       "community": 5,
       "norm_label": "ci job: osv scanner (dependency vulnerabilities)",
-      "id": "_github_workflows_ci_osv_scan",
-      "community_name": "CI Security & Quality Tooling"
+      "community_name": "CI Security & Quality Tooling",
+      "id": "_github_workflows_ci_osv_scan"
     },
     {
       "label": "CI Job: OWASP Dependency-Check (CVE scanner)",
@@ -1387,8 +1915,8 @@
       "contributor": null,
       "community": 5,
       "norm_label": "ci job: owasp dependency-check (cve scanner)",
-      "id": "_github_workflows_ci_dependency_check",
-      "community_name": "CI Security & Quality Tooling"
+      "community_name": "CI Security & Quality Tooling",
+      "id": "_github_workflows_ci_dependency_check"
     },
     {
       "label": "CI Job: SAST (Semgrep SARIF, self-hosted)",
@@ -1401,8 +1929,8 @@
       "contributor": null,
       "community": 5,
       "norm_label": "ci job: sast (semgrep sarif, self-hosted)",
-      "id": "_github_workflows_ci_sast",
-      "community_name": "CI Security & Quality Tooling"
+      "community_name": "CI Security & Quality Tooling",
+      "id": "_github_workflows_ci_sast"
     },
     {
       "label": "Deploy Job: Calculate semver Version",
@@ -1415,8 +1943,8 @@
       "contributor": null,
       "community": 3,
       "norm_label": "deploy job: calculate semver version",
-      "id": "_github_workflows_deploy_version",
-      "community_name": "Deployment & Docs"
+      "community_name": "Deployment & Docs",
+      "id": "_github_workflows_deploy_version"
     },
     {
       "label": "Deploy Job: Build & Push Image to Zot Registry",
@@ -1429,8 +1957,8 @@
       "contributor": null,
       "community": 3,
       "norm_label": "deploy job: build & push image to zot registry",
-      "id": "_github_workflows_deploy_build",
-      "community_name": "Deployment & Docs"
+      "community_name": "Deployment & Docs",
+      "id": "_github_workflows_deploy_build"
     },
     {
       "label": "Deploy Job: Deploy to Production (homelab repo)",
@@ -1443,8 +1971,8 @@
       "contributor": null,
       "community": 3,
       "norm_label": "deploy job: deploy to production (homelab repo)",
-      "id": "_github_workflows_deploy_deploy",
-      "community_name": "Deployment & Docs"
+      "community_name": "Deployment & Docs",
+      "id": "_github_workflows_deploy_deploy"
     },
     {
       "label": "Graphify Knowledge-Graph Workflow Rules",
@@ -1457,8 +1985,8 @@
       "contributor": null,
       "community": 3,
       "norm_label": "graphify knowledge-graph workflow rules",
-      "id": "claude_graphify_workflow",
-      "community_name": "Deployment & Docs"
+      "community_name": "Deployment & Docs",
+      "id": "claude_graphify_workflow"
     },
     {
       "label": "Automation Hub Project Overview",
@@ -1471,8 +1999,8 @@
       "contributor": null,
       "community": 3,
       "norm_label": "automation hub project overview",
-      "id": "readme_automation_hub_overview",
-      "community_name": "Deployment & Docs"
+      "community_name": "Deployment & Docs",
+      "id": "readme_automation_hub_overview"
     },
     {
       "label": "Dynamic Email Service Configuration Concept",
@@ -1485,8 +2013,8 @@
       "contributor": null,
       "community": 3,
       "norm_label": "dynamic email service configuration concept",
-      "id": "readme_dynamic_service_config",
-      "community_name": "Deployment & Docs"
+      "community_name": "Deployment & Docs",
+      "id": "readme_dynamic_service_config"
     },
     {
       "label": "Configurable Webhook System Concept",
@@ -1499,8 +2027,8 @@
       "contributor": null,
       "community": 3,
       "norm_label": "configurable webhook system concept",
-      "id": "readme_configurable_webhooks",
-      "community_name": "Deployment & Docs"
+      "community_name": "Deployment & Docs",
+      "id": "readme_configurable_webhooks"
     },
     {
       "label": "qBittorrent Webhook Endpoint (/webhook/qbitorrent, port 8080)",
@@ -1513,8 +2041,8 @@
       "contributor": null,
       "community": 3,
       "norm_label": "qbittorrent webhook endpoint (/webhook/qbitorrent, port 8080)",
-      "id": "readme_qbittorrent_webhook_endpoint",
-      "community_name": "Deployment & Docs"
+      "community_name": "Deployment & Docs",
+      "id": "readme_qbittorrent_webhook_endpoint"
     },
     {
       "label": "Telegram Notification Integration Concept",
@@ -1527,8 +2055,8 @@
       "contributor": null,
       "community": 3,
       "norm_label": "telegram notification integration concept",
-      "id": "readme_telegram_notifications",
-      "community_name": "Deployment & Docs"
+      "community_name": "Deployment & Docs",
+      "id": "readme_telegram_notifications"
     },
     {
       "label": "Docker Compose Deployment Instructions",
@@ -1541,8 +2069,8 @@
       "contributor": null,
       "community": 3,
       "norm_label": "docker compose deployment instructions",
-      "id": "readme_docker_compose_deployment",
-      "community_name": "Deployment & Docs"
+      "community_name": "Deployment & Docs",
+      "id": "readme_docker_compose_deployment"
     },
     {
       "label": "Security & Quality Tooling List (README claims)",
@@ -1555,8 +2083,8 @@
       "contributor": null,
       "community": 5,
       "norm_label": "security & quality tooling list (readme claims)",
-      "id": "readme_security_quality_tools",
-      "community_name": "CI Security & Quality Tooling"
+      "community_name": "CI Security & Quality Tooling",
+      "id": "readme_security_quality_tools"
     },
     {
       "label": "automation-hub Docker Compose Service",
@@ -1569,8 +2097,8 @@
       "contributor": null,
       "community": 3,
       "norm_label": "automation-hub docker compose service",
-      "id": "docker_compose_automation_hub_service",
-      "community_name": "Deployment & Docs"
+      "community_name": "Deployment & Docs",
+      "id": "docker_compose_automation_hub_service"
     },
     {
       "label": "automation-hub-network Bridge Network",
@@ -1583,8 +2111,8 @@
       "contributor": null,
       "community": 3,
       "norm_label": "automation-hub-network bridge network",
-      "id": "docker_compose_automation_hub_network",
-      "community_name": "Deployment & Docs"
+      "community_name": "Deployment & Docs",
+      "id": "docker_compose_automation_hub_network"
     }
   ],
   "links": [
@@ -1916,6 +2444,111 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/config/config_test.go",
+      "source_location": "L93",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_config_config_test_testloaderrormissingconfig",
+      "target": "internal_config_config_load"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/config/config_test.go",
+      "source_location": "L121",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_config_config_test_testloadinvalidyaml",
+      "target": "internal_config_config_load"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/config/config_test.go",
+      "source_location": "L56",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_config_config_test_testloadsuccess",
+      "target": "internal_config_config_load"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/config/config_test.go",
+      "source_location": "L87",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_config_config_test",
+      "target": "internal_config_config_test_testloaderrormissingconfig",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/config/config_test.go",
+      "source_location": "L99",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_config_config_test",
+      "target": "internal_config_config_test_testloadinvalidyaml",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/config/config_test.go",
+      "source_location": "L11",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_config_config_test",
+      "target": "internal_config_config_test_testloadsuccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/config/config_test.go",
+      "source_location": "L11",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_config_config_test_testloadsuccess",
+      "target": "internal_config_config_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/config/config_test.go",
+      "source_location": "L87",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_config_config_test_testloaderrormissingconfig",
+      "target": "internal_config_config_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/config/config_test.go",
+      "source_location": "L99",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_config_config_test_testloadinvalidyaml",
+      "target": "internal_config_config_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "internal/handlers/webhook.go",
@@ -2013,6 +2646,54 @@
       "context": "call",
       "confidence": "INFERRED",
       "confidence_score": 0.8,
+      "source_file": "internal/handlers/webhook_test.go",
+      "source_location": "L27",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_handlers_webhook_test_testhandletorrentcomplete_invalidjson",
+      "target": "internal_handlers_webhook_newwebhookhandler"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/handlers/webhook_test.go",
+      "source_location": "L45",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_handlers_webhook_test_testhandletorrentcomplete_missingwebhookconfig",
+      "target": "internal_handlers_webhook_newwebhookhandler"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/handlers/webhook_test.go",
+      "source_location": "L73",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_handlers_webhook_test_testhandletorrentcomplete_success",
+      "target": "internal_handlers_webhook_newwebhookhandler"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/handlers/webhook_test.go",
+      "source_location": "L17",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_handlers_webhook_test_testnewwebhookhandler",
+      "target": "internal_handlers_webhook_newwebhookhandler"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
       "source_file": "internal/handlers/webhook.go",
       "source_location": "L39",
       "weight": 1.0,
@@ -2054,6 +2735,98 @@
       "_origin": "ast",
       "source": "handlers_webhookhandler_handletorrentcomplete",
       "target": "responsewriter",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/handlers/webhook_test.go",
+      "source_location": "L24",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_handlers_webhook_test",
+      "target": "internal_handlers_webhook_test_testhandletorrentcomplete_invalidjson",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/handlers/webhook_test.go",
+      "source_location": "L40",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_handlers_webhook_test",
+      "target": "internal_handlers_webhook_test_testhandletorrentcomplete_missingwebhookconfig",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/handlers/webhook_test.go",
+      "source_location": "L59",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_handlers_webhook_test",
+      "target": "internal_handlers_webhook_test_testhandletorrentcomplete_success",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/handlers/webhook_test.go",
+      "source_location": "L14",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_handlers_webhook_test",
+      "target": "internal_handlers_webhook_test_testnewwebhookhandler",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/handlers/webhook_test.go",
+      "source_location": "L14",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_handlers_webhook_test_testnewwebhookhandler",
+      "target": "internal_handlers_webhook_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/handlers/webhook_test.go",
+      "source_location": "L24",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_handlers_webhook_test_testhandletorrentcomplete_invalidjson",
+      "target": "internal_handlers_webhook_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/handlers/webhook_test.go",
+      "source_location": "L40",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_handlers_webhook_test_testhandletorrentcomplete_missingwebhookconfig",
+      "target": "internal_handlers_webhook_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/handlers/webhook_test.go",
+      "source_location": "L59",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_handlers_webhook_test_testhandletorrentcomplete_success",
+      "target": "internal_handlers_webhook_test_go_t",
       "confidence_score": 1.0
     },
     {
@@ -2105,11 +2878,35 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "internal/services/email/imap.go",
-      "source_location": "L259",
+      "source_location": "L265",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
       "source": "email_imapclient_parsemessage",
+      "target": "models_email",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L31",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "email_mocknamedprocessor_process",
+      "target": "models_email",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L27",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "email_mocknamedprocessor_shouldprocess",
       "target": "models_email",
       "confidence_score": 1.0
     },
@@ -2240,7 +3037,7 @@
       "context": "parameter_type",
       "_origin": "ast",
       "source": "internal_models_models_test_testemail",
-      "target": "t",
+      "target": "internal_models_models_test_go_t",
       "confidence_score": 1.0
     },
     {
@@ -2252,7 +3049,7 @@
       "context": "parameter_type",
       "_origin": "ast",
       "source": "internal_models_models_test_testtorrentnotification",
-      "target": "t",
+      "target": "internal_models_models_test_go_t",
       "confidence_score": 1.0
     },
     {
@@ -2303,7 +3100,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "internal/services/email/imap.go",
-      "source_location": "L284",
+      "source_location": "L290",
       "weight": 1.0,
       "_origin": "ast",
       "source": "email_imapclient",
@@ -2358,7 +3155,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "internal/services/email/imap.go",
-      "source_location": "L250",
+      "source_location": "L253",
       "weight": 1.0,
       "_origin": "ast",
       "source": "email_imapclient",
@@ -2369,7 +3166,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "internal/services/email/imap.go",
-      "source_location": "L259",
+      "source_location": "L265",
       "weight": 1.0,
       "_origin": "ast",
       "source": "email_imapclient",
@@ -2444,6 +3241,66 @@
       "source": "internal_services_email_imap_newimapclient",
       "target": "internal_services_email_imap_go_logger",
       "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L51",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_email_imap_test_testextracttextplain",
+      "target": "internal_services_email_imap_newimapclient"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L95",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_email_imap_test_testhandlepostprocessing",
+      "target": "internal_services_email_imap_newimapclient"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L120",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_email_imap_test_testmarkasreadandunreadnilclient",
+      "target": "internal_services_email_imap_newimapclient"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L43",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_email_imap_test_testnewimapclient",
+      "target": "internal_services_email_imap_newimapclient"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L65",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_email_imap_test_testparsemessage",
+      "target": "internal_services_email_imap_newimapclient"
     },
     {
       "relation": "calls",
@@ -2641,7 +3498,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "internal/services/email/imap.go",
-      "source_location": "L259",
+      "source_location": "L265",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -2689,7 +3546,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "internal/services/email/imap.go",
-      "source_location": "L250",
+      "source_location": "L253",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -2702,7 +3559,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "internal/services/email/imap.go",
-      "source_location": "L276",
+      "source_location": "L282",
       "weight": 1.0,
       "_origin": "ast",
       "source": "email_imapclient_parsemessage",
@@ -2713,12 +3570,182 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "internal/services/email/imap.go",
-      "source_location": "L284",
+      "source_location": "L290",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
       "source": "email_imapclient_extracttextplain",
       "target": "literal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L14",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_email_imap_test",
+      "target": "email_mocknamedprocessor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L49",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_email_imap_test",
+      "target": "internal_services_email_imap_test_testextracttextplain",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L93",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_email_imap_test",
+      "target": "internal_services_email_imap_test_testhandlepostprocessing",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L118",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_email_imap_test",
+      "target": "internal_services_email_imap_test_testmarkasreadandunreadnilclient",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L35",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_email_imap_test",
+      "target": "internal_services_email_imap_test_testnewimapclient",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L63",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_email_imap_test",
+      "target": "internal_services_email_imap_test_testparsemessage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L19",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "email_mocknamedprocessor",
+      "target": "email_mocknamedprocessor_getname",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L23",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "email_mocknamedprocessor",
+      "target": "email_mocknamedprocessor_getsender",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L31",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "email_mocknamedprocessor",
+      "target": "email_mocknamedprocessor_process",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L27",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "email_mocknamedprocessor",
+      "target": "email_mocknamedprocessor_shouldprocess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L35",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_email_imap_test_testnewimapclient",
+      "target": "internal_services_email_imap_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L49",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_email_imap_test_testextracttextplain",
+      "target": "internal_services_email_imap_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L93",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_email_imap_test_testhandlepostprocessing",
+      "target": "internal_services_email_imap_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L118",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_email_imap_test_testmarkasreadandunreadnilclient",
+      "target": "internal_services_email_imap_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/email/imap_test.go",
+      "source_location": "L63",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_email_imap_test_testparsemessage",
+      "target": "internal_services_email_imap_test_go_t",
       "confidence_score": 1.0
     },
     {
@@ -2919,6 +3946,102 @@
       "context": "call",
       "confidence": "INFERRED",
       "confidence_score": 0.8,
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L241",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test_testdecodequotedprintable",
+      "target": "internal_services_processor_generic_newgenericemailprocessor"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L128",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test_testextractcode",
+      "target": "internal_services_processor_generic_newgenericemailprocessor"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L155",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test_testextractperplexitycode",
+      "target": "internal_services_processor_generic_newgenericemailprocessor"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L52",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test_testnewgenericemailprocessor_builtinpatterns",
+      "target": "internal_services_processor_generic_newgenericemailprocessor"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test_testnewgenericemailprocessor_custompattern",
+      "target": "internal_services_processor_generic_newgenericemailprocessor"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L40",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test_testnewgenericemailprocessor_invalidcustompatternfallback",
+      "target": "internal_services_processor_generic_newgenericemailprocessor"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L70",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test_testshouldprocess",
+      "target": "internal_services_processor_generic_newgenericemailprocessor"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L196",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test_teststripmimeheaders",
+      "target": "internal_services_processor_generic_newgenericemailprocessor"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
       "source_file": "internal/services/processor/manager.go",
       "source_location": "L29",
       "weight": 1.0,
@@ -2996,6 +4119,225 @@
       "_origin": "ast",
       "source": "processor_genericemailprocessor_extractperplexitycode",
       "target": "internal_services_processor_generic_truncatestring",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L231",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test_testtruncatestring",
+      "target": "internal_services_processor_generic_truncatestring"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L239",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test",
+      "target": "internal_services_processor_generic_test_testdecodequotedprintable",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L121",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test",
+      "target": "internal_services_processor_generic_test_testextractcode",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L149",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test",
+      "target": "internal_services_processor_generic_test_testextractperplexitycode",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L46",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test",
+      "target": "internal_services_processor_generic_test_testnewgenericemailprocessor_builtinpatterns",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L12",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test",
+      "target": "internal_services_processor_generic_test_testnewgenericemailprocessor_custompattern",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L32",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test",
+      "target": "internal_services_processor_generic_test_testnewgenericemailprocessor_invalidcustompatternfallback",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L63",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test",
+      "target": "internal_services_processor_generic_test_testshouldprocess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L194",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test",
+      "target": "internal_services_processor_generic_test_teststripmimeheaders",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L230",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test",
+      "target": "internal_services_processor_generic_test_testtruncatestring",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L12",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test_testnewgenericemailprocessor_custompattern",
+      "target": "internal_services_processor_generic_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L239",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test_testdecodequotedprintable",
+      "target": "internal_services_processor_generic_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L121",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test_testextractcode",
+      "target": "internal_services_processor_generic_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L149",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test_testextractperplexitycode",
+      "target": "internal_services_processor_generic_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L46",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test_testnewgenericemailprocessor_builtinpatterns",
+      "target": "internal_services_processor_generic_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L32",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test_testnewgenericemailprocessor_invalidcustompatternfallback",
+      "target": "internal_services_processor_generic_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L63",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test_testshouldprocess",
+      "target": "internal_services_processor_generic_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L194",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test_teststripmimeheaders",
+      "target": "internal_services_processor_generic_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/generic_test.go",
+      "source_location": "L230",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_processor_generic_test_testtruncatestring",
+      "target": "internal_services_processor_generic_test_go_t",
       "confidence_score": 1.0
     },
     {
@@ -3126,6 +4468,30 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/services/processor/manager_test.go",
+      "source_location": "L39",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_manager_test_testprocessormanager",
+      "target": "internal_services_processor_manager_newprocessormanager"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/services/processor/manager_test.go",
+      "source_location": "L86",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_manager_test_testprocessormanager_canceledcontextasync",
+      "target": "internal_services_processor_manager_newprocessormanager"
+    },
+    {
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "internal/services/processor/manager.go",
@@ -3159,6 +4525,52 @@
       "_origin": "ast",
       "source": "processor_manager_processemailasync",
       "target": "internal_services_processor_manager_go_context",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/manager_test.go",
+      "source_location": "L14",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_manager_test",
+      "target": "internal_services_processor_manager_test_testprocessormanager",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/manager_test.go",
+      "source_location": "L73",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_manager_test",
+      "target": "internal_services_processor_manager_test_testprocessormanager_canceledcontextasync",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/manager_test.go",
+      "source_location": "L14",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_processor_manager_test_testprocessormanager",
+      "target": "internal_services_processor_manager_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/manager_test.go",
+      "source_location": "L73",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_processor_manager_test_testprocessormanager_canceledcontextasync",
+      "target": "internal_services_processor_manager_test_go_t",
       "confidence_score": 1.0
     },
     {
@@ -3301,6 +4713,18 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/services/processor/torrent_test.go",
+      "source_location": "L18",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_torrent_test_testnewtorrentprocessor",
+      "target": "internal_services_processor_torrent_newtorrentprocessor"
+    },
+    {
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "internal/services/processor/torrent.go",
@@ -3310,6 +4734,99 @@
       "_origin": "ast",
       "source": "internal_services_processor_torrent_newtorrentprocessorlegacy",
       "target": "telegram_client",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/services/processor/torrent_test.go",
+      "source_location": "L29",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_torrent_test_testnewtorrentprocessorlegacy",
+      "target": "internal_services_processor_torrent_newtorrentprocessorlegacy"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/services/processor/torrent_test.go",
+      "source_location": "L61",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_torrent_test_testgetwebhookconfig",
+      "target": "internal_services_processor_torrent_getwebhookconfig"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/torrent_test.go",
+      "source_location": "L39",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_torrent_test",
+      "target": "internal_services_processor_torrent_test_testgetwebhookconfig",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/torrent_test.go",
+      "source_location": "L11",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_torrent_test",
+      "target": "internal_services_processor_torrent_test_testnewtorrentprocessor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/torrent_test.go",
+      "source_location": "L27",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_processor_torrent_test",
+      "target": "internal_services_processor_torrent_test_testnewtorrentprocessorlegacy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/torrent_test.go",
+      "source_location": "L11",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_processor_torrent_test_testnewtorrentprocessor",
+      "target": "internal_services_processor_torrent_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/torrent_test.go",
+      "source_location": "L39",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_processor_torrent_test_testgetwebhookconfig",
+      "target": "internal_services_processor_torrent_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/processor/torrent_test.go",
+      "source_location": "L27",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_processor_torrent_test_testnewtorrentprocessorlegacy",
+      "target": "internal_services_processor_torrent_test_go_t",
       "confidence_score": 1.0
     },
     {
@@ -3327,7 +4844,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "internal/services/telegram/client.go",
-      "source_location": "L95",
+      "source_location": "L99",
       "weight": 1.0,
       "_origin": "ast",
       "source": "internal_services_telegram_client",
@@ -3409,11 +4926,92 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "internal/services/telegram/client.go",
-      "source_location": "L50",
+      "source_location": "L54",
       "weight": 1.0,
       "_origin": "ast",
       "source": "telegram_client_sendmessage",
       "target": "internal_services_telegram_client_parseint64",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "internal/services/telegram/client_test.go",
+      "source_location": "L45",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_telegram_client_test_testparseint64",
+      "target": "internal_services_telegram_client_parseint64"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/telegram/client_test.go",
+      "source_location": "L10",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_telegram_client_test",
+      "target": "internal_services_telegram_client_test_testparseint64",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/telegram/client_test.go",
+      "source_location": "L57",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_telegram_client_test",
+      "target": "internal_services_telegram_client_test_testsendmessageinvalidchatid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/telegram/client_test.go",
+      "source_location": "L70",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "internal_services_telegram_client_test",
+      "target": "internal_services_telegram_client_test_testsendmessagenilclientorbot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/telegram/client_test.go",
+      "source_location": "L10",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_telegram_client_test_testparseint64",
+      "target": "internal_services_telegram_client_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/telegram/client_test.go",
+      "source_location": "L57",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_telegram_client_test_testsendmessageinvalidchatid",
+      "target": "internal_services_telegram_client_test_go_t",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "internal/services/telegram/client_test.go",
+      "source_location": "L70",
+      "weight": 1.0,
+      "context": "parameter_type",
+      "_origin": "ast",
+      "source": "internal_services_telegram_client_test_testsendmessagenilclientorbot",
+      "target": "internal_services_telegram_client_test_go_t",
       "confidence_score": 1.0
     },
     {
@@ -4029,5 +5627,5 @@
       "source_file": ".github/dependabot.yml"
     }
   ],
-  "built_at_commit": "39badec2a6e5418b485f27224781565d173f8749"
+  "built_at_commit": "e149ae476bc1e985161c94cc1819799601cf9e92"
 }
