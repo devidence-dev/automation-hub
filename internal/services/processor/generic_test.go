@@ -121,7 +121,8 @@ func TestShouldProcess(t *testing.T) {
 func TestExtractCode(t *testing.T) {
 	logger := zap.NewNop()
 	cfg := config.ServiceProcessorConfig{
-		EmailFrom: "test@example.com",
+		EmailFrom:   "test@example.com",
+		CodePattern: `\b\d{6}\b`,
 	}
 
 	p := NewGenericEmailProcessor("default", cfg, nil, logger)
@@ -132,13 +133,13 @@ func TestExtractCode(t *testing.T) {
 		t.Errorf("Expected extracted code 123456, got %s", code)
 	}
 
-	noMatchBody := "Header: Value\n\nNo code here"
+	noMatchBody := "Header: Value\n\nNo numbers here"
 	codeNotFound := p.extractCode(noMatchBody)
 	if codeNotFound != NotFoundCode {
 		t.Errorf("Expected %s, got %s", NotFoundCode, codeNotFound)
 	}
 
-	cfProc := NewGenericEmailProcessor("cloudflare", cfg, nil, logger)
+	cfProc := NewGenericEmailProcessor("cloudflare", config.ServiceProcessorConfig{EmailFrom: "test@example.com"}, nil, logger)
 	cfCode := cfProc.extractCode("Your Cloudflare verification code is 654321")
 	if cfCode != "654321" {
 		t.Errorf("Expected Cloudflare code 654321, got %s", cfCode)

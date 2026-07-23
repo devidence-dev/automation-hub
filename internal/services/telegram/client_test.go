@@ -3,6 +3,7 @@ package telegram
 import (
 	"testing"
 
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
 )
 
@@ -55,14 +56,29 @@ func TestParseInt64(t *testing.T) {
 
 func TestSendMessageInvalidChatID(t *testing.T) {
 	logger := zap.NewNop()
-	// Create client with dummy token
 	client := &Client{
-		bot:    nil,
+		bot:    &tgbotapi.BotAPI{},
 		logger: logger,
 	}
 
 	err := client.SendMessage("invalid_chat_id", "Hello World")
 	if err == nil {
 		t.Error("Expected error when sending message with invalid chat ID, got nil")
+	}
+}
+
+func TestSendMessageNilClientOrBot(t *testing.T) {
+	logger := zap.NewNop()
+	var nilClient *Client
+	if err := nilClient.SendMessage("123456", "Hello"); err != nil {
+		t.Errorf("Expected nil error for nil client, got %v", err)
+	}
+
+	clientWithNilBot := &Client{
+		bot:    nil,
+		logger: logger,
+	}
+	if err := clientWithNilBot.SendMessage("123456", "Hello"); err != nil {
+		t.Errorf("Expected nil error for client with nil bot, got %v", err)
 	}
 }

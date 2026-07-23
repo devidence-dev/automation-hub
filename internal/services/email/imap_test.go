@@ -114,3 +114,11 @@ func TestHandlePostProcessing(t *testing.T) {
 	otherProc := &mockNamedProcessor{name: "generic", sender: "other@test.com"}
 	client.handlePostProcessing(nil, otherProc, msg, email)
 }
+
+func TestMarkAsReadAndUnreadNilClient(t *testing.T) {
+	logger := zap.NewNop()
+	client := NewIMAPClient(config.EmailConfig{}, logger)
+
+	client.markAsRead(nil, 1)
+	client.markAsUnread(nil, 1)
+}

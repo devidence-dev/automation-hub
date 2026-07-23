@@ -239,6 +239,9 @@ func (c *IMAPClient) handlePostProcessing(imapClient *client.Client, processor m
 }
 
 func (c *IMAPClient) markAsRead(imapClient *client.Client, seqNum uint32) {
+	if imapClient == nil {
+		return
+	}
 	seqSet := new(imap.SeqSet)
 	seqSet.AddNum(seqNum)
 	flags := []interface{}{imap.SeenFlag}
@@ -248,6 +251,9 @@ func (c *IMAPClient) markAsRead(imapClient *client.Client, seqNum uint32) {
 }
 
 func (c *IMAPClient) markAsUnread(imapClient *client.Client, seqNum uint32) {
+	if imapClient == nil {
+		return
+	}
 	seqSet := new(imap.SeqSet)
 	seqSet.AddNum(seqNum)
 	flags := []interface{}{imap.SeenFlag}
