@@ -57,7 +57,6 @@
       "_origin": "ast",
       "id": "pkg_automation_hub",
       "community": 9,
-      "community_name": "Root Package",
       "norm_label": "automation-hub"
     },
     {
@@ -68,7 +67,6 @@
       "_origin": "ast",
       "id": "internal_config_config",
       "community": 0,
-      "community_name": "Torrent Webhook Handling",
       "norm_label": "config.go"
     },
     {
@@ -79,7 +77,6 @@
       "_origin": "ast",
       "id": "config_config",
       "community": 0,
-      "community_name": "Torrent Webhook Handling",
       "norm_label": "config"
     },
     {
@@ -90,7 +87,6 @@
       "_origin": "ast",
       "id": "config_serverconfig",
       "community": 0,
-      "community_name": "Torrent Webhook Handling",
       "norm_label": "serverconfig"
     },
     {
@@ -100,8 +96,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "config_emailconfig",
-      "community": 0,
-      "community_name": "Torrent Webhook Handling",
+      "community": 4,
       "norm_label": "emailconfig"
     },
     {
@@ -111,8 +106,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "config_serviceconfig",
-      "community": 0,
-      "community_name": "Torrent Webhook Handling",
+      "community": 1,
       "norm_label": "serviceconfig"
     },
     {
@@ -122,8 +116,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "config_serviceprocessorconfig",
-      "community": 0,
-      "community_name": "Torrent Webhook Handling",
+      "community": 1,
       "norm_label": "serviceprocessorconfig"
     },
     {
@@ -134,7 +127,6 @@
       "_origin": "ast",
       "id": "config_telegramconfig",
       "community": 0,
-      "community_name": "Torrent Webhook Handling",
       "norm_label": "telegramconfig"
     },
     {
@@ -145,7 +137,6 @@
       "_origin": "ast",
       "id": "config_webhookconfig",
       "community": 0,
-      "community_name": "Torrent Webhook Handling",
       "norm_label": "webhookconfig"
     },
     {
@@ -155,8 +146,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "config_webhookprocessorconfig",
-      "community": 7,
-      "community_name": "Email Message Parsing",
+      "community": 0,
       "norm_label": "webhookprocessorconfig"
     },
     {
@@ -167,7 +157,6 @@
       "_origin": "ast",
       "id": "internal_config_config_load",
       "community": 0,
-      "community_name": "Torrent Webhook Handling",
       "norm_label": "load()"
     },
     {
@@ -178,7 +167,6 @@
       "_origin": "ast",
       "id": "internal_handlers_webhook",
       "community": 0,
-      "community_name": "Torrent Webhook Handling",
       "norm_label": "webhook.go"
     },
     {
@@ -189,7 +177,6 @@
       "_origin": "ast",
       "id": "handlers_webhookhandler",
       "community": 0,
-      "community_name": "Torrent Webhook Handling",
       "norm_label": "webhookhandler"
     },
     {
@@ -200,7 +187,6 @@
       "_origin": "ast",
       "id": "internal_handlers_webhook_go_logger",
       "community": 0,
-      "community_name": "Torrent Webhook Handling",
       "norm_label": "logger"
     },
     {
@@ -211,7 +197,6 @@
       "_origin": "ast",
       "id": "internal_handlers_webhook_newwebhookhandler",
       "community": 0,
-      "community_name": "Torrent Webhook Handling",
       "norm_label": "newwebhookhandler()"
     },
     {
@@ -221,8 +206,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "handlers_webhookhandler_handletorrentcomplete",
-      "community": 7,
-      "community_name": "Email Message Parsing",
+      "community": 0,
       "norm_label": ".handletorrentcomplete()"
     },
     {
@@ -232,8 +216,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "responsewriter",
-      "community": 7,
-      "community_name": "Email Message Parsing",
+      "community": 0,
       "norm_label": "responsewriter"
     },
     {
@@ -243,8 +226,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "request",
-      "community": 7,
-      "community_name": "Email Message Parsing",
+      "community": 0,
       "norm_label": "request"
     },
     {
@@ -255,7 +237,6 @@
       "_origin": "ast",
       "id": "internal_models_models",
       "community": 2,
-      "community_name": "Processor Manager & Models",
       "norm_label": "models.go"
     },
     {
@@ -266,7 +247,6 @@
       "_origin": "ast",
       "id": "models_email",
       "community": 2,
-      "community_name": "Processor Manager & Models",
       "norm_label": "email"
     },
     {
@@ -277,7 +257,6 @@
       "_origin": "ast",
       "id": "models_torrentnotification",
       "community": 2,
-      "community_name": "Processor Manager & Models",
       "norm_label": "torrentnotification"
     },
     {
@@ -288,7 +267,6 @@
       "_origin": "ast",
       "id": "models_emailprocessor",
       "community": 2,
-      "community_name": "Processor Manager & Models",
       "norm_label": "emailprocessor"
     },
     {
@@ -299,7 +277,6 @@
       "_origin": "ast",
       "id": "internal_models_models_test",
       "community": 8,
-      "community_name": "Model Tests",
       "norm_label": "models_test.go"
     },
     {
@@ -310,7 +287,6 @@
       "_origin": "ast",
       "id": "internal_models_models_test_testemail",
       "community": 8,
-      "community_name": "Model Tests",
       "norm_label": "testemail()"
     },
     {
@@ -321,7 +297,6 @@
       "_origin": "ast",
       "id": "t",
       "community": 8,
-      "community_name": "Model Tests",
       "norm_label": "t"
     },
     {
@@ -332,7 +307,6 @@
       "_origin": "ast",
       "id": "internal_models_models_test_testtorrentnotification",
       "community": 8,
-      "community_name": "Model Tests",
       "norm_label": "testtorrentnotification()"
     },
     {
@@ -343,7 +317,6 @@
       "_origin": "ast",
       "id": "internal_services_email_imap",
       "community": 4,
-      "community_name": "IMAP Email Client",
       "norm_label": "imap.go"
     },
     {
@@ -354,7 +327,6 @@
       "_origin": "ast",
       "id": "email_imapclient",
       "community": 4,
-      "community_name": "IMAP Email Client",
       "norm_label": "imapclient"
     },
     {
@@ -365,7 +337,6 @@
       "_origin": "ast",
       "id": "internal_services_email_imap_go_logger",
       "community": 4,
-      "community_name": "IMAP Email Client",
       "norm_label": "logger"
     },
     {
@@ -376,7 +347,6 @@
       "_origin": "ast",
       "id": "internal_services_email_imap_newimapclient",
       "community": 4,
-      "community_name": "IMAP Email Client",
       "norm_label": "newimapclient()"
     },
     {
@@ -387,7 +357,6 @@
       "_origin": "ast",
       "id": "email_imapclient_startmonitoring",
       "community": 4,
-      "community_name": "IMAP Email Client",
       "norm_label": ".startmonitoring()"
     },
     {
@@ -398,7 +367,6 @@
       "_origin": "ast",
       "id": "internal_services_email_imap_go_context",
       "community": 4,
-      "community_name": "IMAP Email Client",
       "norm_label": "context"
     },
     {
@@ -409,7 +377,6 @@
       "_origin": "ast",
       "id": "email_imapclient_checkemails",
       "community": 4,
-      "community_name": "IMAP Email Client",
       "norm_label": ".checkemails()"
     },
     {
@@ -420,7 +387,6 @@
       "_origin": "ast",
       "id": "email_imapclient_connectandlogin",
       "community": 4,
-      "community_name": "IMAP Email Client",
       "norm_label": ".connectandlogin()"
     },
     {
@@ -431,7 +397,6 @@
       "_origin": "ast",
       "id": "email_imapclient_logout",
       "community": 4,
-      "community_name": "IMAP Email Client",
       "norm_label": ".logout()"
     },
     {
@@ -442,7 +407,6 @@
       "_origin": "ast",
       "id": "email_imapclient_searchunreademails",
       "community": 4,
-      "community_name": "IMAP Email Client",
       "norm_label": ".searchunreademails()"
     },
     {
@@ -453,7 +417,6 @@
       "_origin": "ast",
       "id": "email_imapclient_fetchandprocessmessages",
       "community": 4,
-      "community_name": "IMAP Email Client",
       "norm_label": ".fetchandprocessmessages()"
     },
     {
@@ -463,8 +426,7 @@
       "source_location": "L183",
       "_origin": "ast",
       "id": "email_imapclient_processmessage",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 7,
       "norm_label": ".processmessage()"
     },
     {
@@ -474,8 +436,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "message",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 7,
       "norm_label": "message"
     },
     {
@@ -485,8 +446,7 @@
       "source_location": "L217",
       "_origin": "ast",
       "id": "email_imapclient_handlepostprocessing",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 7,
       "norm_label": ".handlepostprocessing()"
     },
     {
@@ -496,8 +456,7 @@
       "source_location": "L241",
       "_origin": "ast",
       "id": "email_imapclient_markasread",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 7,
       "norm_label": ".markasread()"
     },
     {
@@ -507,8 +466,7 @@
       "source_location": "L250",
       "_origin": "ast",
       "id": "email_imapclient_markasunread",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 6,
       "norm_label": ".markasunread()"
     },
     {
@@ -518,8 +476,7 @@
       "source_location": "L259",
       "_origin": "ast",
       "id": "email_imapclient_parsemessage",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 7,
       "norm_label": ".parsemessage()"
     },
     {
@@ -529,8 +486,7 @@
       "source_location": "L284",
       "_origin": "ast",
       "id": "email_imapclient_extracttextplain",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 7,
       "norm_label": ".extracttextplain()"
     },
     {
@@ -540,8 +496,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "literal",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 7,
       "norm_label": "literal"
     },
     {
@@ -552,7 +507,6 @@
       "_origin": "ast",
       "id": "internal_services_processor_generic",
       "community": 1,
-      "community_name": "Generic Email Processor",
       "norm_label": "generic.go"
     },
     {
@@ -563,7 +517,6 @@
       "_origin": "ast",
       "id": "processor_genericemailprocessor",
       "community": 1,
-      "community_name": "Generic Email Processor",
       "norm_label": "genericemailprocessor"
     },
     {
@@ -574,7 +527,6 @@
       "_origin": "ast",
       "id": "internal_services_processor_generic_go_logger",
       "community": 1,
-      "community_name": "Generic Email Processor",
       "norm_label": "logger"
     },
     {
@@ -585,7 +537,6 @@
       "_origin": "ast",
       "id": "regexp",
       "community": 1,
-      "community_name": "Generic Email Processor",
       "norm_label": "regexp"
     },
     {
@@ -596,7 +547,6 @@
       "_origin": "ast",
       "id": "internal_services_processor_generic_newgenericemailprocessor",
       "community": 1,
-      "community_name": "Generic Email Processor",
       "norm_label": "newgenericemailprocessor()"
     },
     {
@@ -607,7 +557,6 @@
       "_origin": "ast",
       "id": "processor_genericemailprocessor_shouldprocess",
       "community": 2,
-      "community_name": "Processor Manager & Models",
       "norm_label": ".shouldprocess()"
     },
     {
@@ -618,7 +567,6 @@
       "_origin": "ast",
       "id": "processor_genericemailprocessor_process",
       "community": 1,
-      "community_name": "Generic Email Processor",
       "norm_label": ".process()"
     },
     {
@@ -629,7 +577,6 @@
       "_origin": "ast",
       "id": "processor_genericemailprocessor_getname",
       "community": 1,
-      "community_name": "Generic Email Processor",
       "norm_label": ".getname()"
     },
     {
@@ -640,7 +587,6 @@
       "_origin": "ast",
       "id": "processor_genericemailprocessor_getsender",
       "community": 1,
-      "community_name": "Generic Email Processor",
       "norm_label": ".getsender()"
     },
     {
@@ -651,7 +597,6 @@
       "_origin": "ast",
       "id": "processor_genericemailprocessor_extractcode",
       "community": 1,
-      "community_name": "Generic Email Processor",
       "norm_label": ".extractcode()"
     },
     {
@@ -662,7 +607,6 @@
       "_origin": "ast",
       "id": "processor_genericemailprocessor_extractperplexitycode",
       "community": 1,
-      "community_name": "Generic Email Processor",
       "norm_label": ".extractperplexitycode()"
     },
     {
@@ -673,7 +617,6 @@
       "_origin": "ast",
       "id": "processor_genericemailprocessor_stripmimeheaders",
       "community": 1,
-      "community_name": "Generic Email Processor",
       "norm_label": ".stripmimeheaders()"
     },
     {
@@ -684,7 +627,6 @@
       "_origin": "ast",
       "id": "internal_services_processor_generic_truncatestring",
       "community": 1,
-      "community_name": "Generic Email Processor",
       "norm_label": "truncatestring()"
     },
     {
@@ -695,7 +637,6 @@
       "_origin": "ast",
       "id": "processor_genericemailprocessor_decodequotedprintable",
       "community": 1,
-      "community_name": "Generic Email Processor",
       "norm_label": ".decodequotedprintable()"
     },
     {
@@ -706,7 +647,6 @@
       "_origin": "ast",
       "id": "internal_services_processor_manager",
       "community": 2,
-      "community_name": "Processor Manager & Models",
       "norm_label": "manager.go"
     },
     {
@@ -717,7 +657,6 @@
       "_origin": "ast",
       "id": "processor_manager",
       "community": 2,
-      "community_name": "Processor Manager & Models",
       "norm_label": "manager"
     },
     {
@@ -728,7 +667,6 @@
       "_origin": "ast",
       "id": "internal_services_processor_manager_go_logger",
       "community": 2,
-      "community_name": "Processor Manager & Models",
       "norm_label": "logger"
     },
     {
@@ -739,7 +677,6 @@
       "_origin": "ast",
       "id": "waitgroup",
       "community": 2,
-      "community_name": "Processor Manager & Models",
       "norm_label": "waitgroup"
     },
     {
@@ -750,7 +687,6 @@
       "_origin": "ast",
       "id": "internal_services_processor_manager_newprocessormanager",
       "community": 2,
-      "community_name": "Processor Manager & Models",
       "norm_label": "newprocessormanager()"
     },
     {
@@ -761,7 +697,6 @@
       "_origin": "ast",
       "id": "processor_manager_getprocessors",
       "community": 2,
-      "community_name": "Processor Manager & Models",
       "norm_label": ".getprocessors()"
     },
     {
@@ -772,7 +707,6 @@
       "_origin": "ast",
       "id": "processor_manager_processemailsconcurrently",
       "community": 2,
-      "community_name": "Processor Manager & Models",
       "norm_label": ".processemailsconcurrently()"
     },
     {
@@ -783,7 +717,6 @@
       "_origin": "ast",
       "id": "internal_services_processor_manager_go_context",
       "community": 2,
-      "community_name": "Processor Manager & Models",
       "norm_label": "context"
     },
     {
@@ -794,7 +727,6 @@
       "_origin": "ast",
       "id": "processor_manager_processemailasync",
       "community": 2,
-      "community_name": "Processor Manager & Models",
       "norm_label": ".processemailasync()"
     },
     {
@@ -804,8 +736,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "internal_services_processor_torrent",
-      "community": 7,
-      "community_name": "Email Message Parsing",
+      "community": 0,
       "norm_label": "torrent.go"
     },
     {
@@ -815,8 +746,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "processor_torrentprocessor",
-      "community": 7,
-      "community_name": "Email Message Parsing",
+      "community": 0,
       "norm_label": "torrentprocessor"
     },
     {
@@ -826,8 +756,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "internal_services_processor_torrent_go_logger",
-      "community": 7,
-      "community_name": "Email Message Parsing",
+      "community": 0,
       "norm_label": "logger"
     },
     {
@@ -837,8 +766,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "internal_services_processor_torrent_newtorrentprocessor",
-      "community": 7,
-      "community_name": "Email Message Parsing",
+      "community": 0,
       "norm_label": "newtorrentprocessor()"
     },
     {
@@ -848,8 +776,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "internal_services_processor_torrent_newtorrentprocessorlegacy",
-      "community": 7,
-      "community_name": "Email Message Parsing",
+      "community": 0,
       "norm_label": "newtorrentprocessorlegacy()"
     },
     {
@@ -860,7 +787,6 @@
       "_origin": "ast",
       "id": "processor_torrentprocessor_process",
       "community": 2,
-      "community_name": "Processor Manager & Models",
       "norm_label": ".process()"
     },
     {
@@ -870,8 +796,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "internal_services_processor_torrent_getwebhookconfig",
-      "community": 7,
-      "community_name": "Email Message Parsing",
+      "community": 0,
       "norm_label": "getwebhookconfig()"
     },
     {
@@ -881,8 +806,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "internal_services_telegram_client",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 6,
       "norm_label": "client.go"
     },
     {
@@ -892,8 +816,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "telegram_client",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 6,
       "norm_label": "client"
     },
     {
@@ -903,8 +826,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "botapi",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 6,
       "norm_label": "botapi"
     },
     {
@@ -914,8 +836,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "internal_services_telegram_client_go_logger",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 6,
       "norm_label": "logger"
     },
     {
@@ -925,8 +846,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "internal_services_telegram_client_newclient",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 6,
       "norm_label": "newclient()"
     },
     {
@@ -936,8 +856,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "telegram_client_sendmessage",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 6,
       "norm_label": ".sendmessage()"
     },
     {
@@ -947,350 +866,8 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "internal_services_telegram_client_parseint64",
-      "community": 4,
-      "community_name": "IMAP Email Client",
+      "community": 6,
       "norm_label": "parseint64()"
-    },
-    {
-      "label": "CLAUDE.md",
-      "file_type": "document",
-      "source_file": "CLAUDE.md",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "claude",
-      "community": 10,
-      "community_name": "CLAUDE.md",
-      "norm_label": "claude.md"
-    },
-    {
-      "label": "graphify",
-      "file_type": "document",
-      "source_file": "CLAUDE.md",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "claude_graphify",
-      "community": 10,
-      "community_name": "CLAUDE.md",
-      "norm_label": "graphify"
-    },
-    {
-      "label": "README.md",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "readme",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "readme.md"
-    },
-    {
-      "label": "\ud83e\udd16 Automation Hub",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "readme_automation_hub",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83e\udd16 automation hub"
-    },
-    {
-      "label": "\ud83d\udee1\ufe0f Security & Quality",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L13",
-      "_origin": "ast",
-      "id": "readme_security_quality",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83d\udee1\ufe0f security & quality"
-    },
-    {
-      "label": "\u2728 Features",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L24",
-      "_origin": "ast",
-      "id": "readme_features",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\u2728 features"
-    },
-    {
-      "label": "\ud83c\udfaf Quick Start",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L33",
-      "_origin": "ast",
-      "id": "readme_quick_start",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83c\udfaf quick start"
-    },
-    {
-      "label": "\ud83d\udccb Prerequisites",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L35",
-      "_origin": "ast",
-      "id": "readme_prerequisites",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83d\udccb prerequisites"
-    },
-    {
-      "label": "\u2699\ufe0f Configuration",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L47",
-      "_origin": "ast",
-      "id": "readme_configuration",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\u2699\ufe0f configuration"
-    },
-    {
-      "label": "\ud83d\udd10 Step 1: Setup Configuration",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L49",
-      "_origin": "ast",
-      "id": "readme_step_1_setup_configuration",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83d\udd10 step 1: setup configuration"
-    },
-    {
-      "label": "\ud83d\udcdd Step 2: Configure Services",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L56",
-      "_origin": "ast",
-      "id": "readme_step_2_configure_services",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83d\udcdd step 2: configure services"
-    },
-    {
-      "label": "\ud83e\udd16 Step 3: Setup Telegram Bot",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L110",
-      "_origin": "ast",
-      "id": "readme_step_3_setup_telegram_bot",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83e\udd16 step 3: setup telegram bot"
-    },
-    {
-      "label": "\ud83d\udc33 Deployment",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L121",
-      "_origin": "ast",
-      "id": "readme_deployment",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83d\udc33 deployment"
-    },
-    {
-      "label": "\ud83d\ude80 Option 1: Docker Compose (Recommended)",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L123",
-      "_origin": "ast",
-      "id": "readme_option_1_docker_compose_recommended",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83d\ude80 option 1: docker compose (recommended)"
-    },
-    {
-      "label": "\ud83d\udd27 Option 2: Manual Docker",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L141",
-      "_origin": "ast",
-      "id": "readme_option_2_manual_docker",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83d\udd27 option 2: manual docker"
-    },
-    {
-      "label": "\ufffd Option 3: Local Development",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L155",
-      "_origin": "ast",
-      "id": "readme_option_3_local_development",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ufffd option 3: local development"
-    },
-    {
-      "label": "\ufffd API & Webhooks",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L170",
-      "_origin": "ast",
-      "id": "readme_api_webhooks",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ufffd api & webhooks"
-    },
-    {
-      "label": "\ud83d\udce1 Available Endpoints",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L172",
-      "_origin": "ast",
-      "id": "readme_available_endpoints",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83d\udce1 available endpoints"
-    },
-    {
-      "label": "\ud83d\udce6 qBittorrent Integration",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L178",
-      "_origin": "ast",
-      "id": "readme_qbittorrent_integration",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83d\udce6 qbittorrent integration"
-    },
-    {
-      "label": "\ud83c\udd95 Adding New Webhooks",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L206",
-      "_origin": "ast",
-      "id": "readme_adding_new_webhooks",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83c\udd95 adding new webhooks"
-    },
-    {
-      "label": "\ud83d\udd04 Adding New Email Services",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L231",
-      "_origin": "ast",
-      "id": "readme_adding_new_email_services",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83d\udd04 adding new email services"
-    },
-    {
-      "label": "\ud83d\udd27 External Service Setup",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L256",
-      "_origin": "ast",
-      "id": "readme_external_service_setup",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83d\udd27 external service setup"
-    },
-    {
-      "label": "\ud83d\udce7 Gmail Configuration",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L258",
-      "_origin": "ast",
-      "id": "readme_gmail_configuration",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83d\udce7 gmail configuration"
-    },
-    {
-      "label": "\ud83c\udff4\u200d\u2620\ufe0f qBittorrent Setup",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L266",
-      "_origin": "ast",
-      "id": "readme_qbittorrent_setup",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83c\udff4\u200d\u2620\ufe0f qbittorrent setup"
-    },
-    {
-      "label": "\ufffd Monitoring & Logs",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L284",
-      "_origin": "ast",
-      "id": "readme_monitoring_logs",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ufffd monitoring & logs"
-    },
-    {
-      "label": "\ud83d\udd0d Viewing Logs",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L286",
-      "_origin": "ast",
-      "id": "readme_viewing_logs",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83d\udd0d viewing logs"
-    },
-    {
-      "label": "\ud83d\udcc1 Log Locations",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L299",
-      "_origin": "ast",
-      "id": "readme_log_locations",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83d\udcc1 log locations"
-    },
-    {
-      "label": "\ud83d\udee0\ufe0f Troubleshooting",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L307",
-      "_origin": "ast",
-      "id": "readme_troubleshooting",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83d\udee0\ufe0f troubleshooting"
-    },
-    {
-      "label": "\ud83d\udea8 Common Issues",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L309",
-      "_origin": "ast",
-      "id": "readme_common_issues",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83d\udea8 common issues"
-    },
-    {
-      "label": "Authors and acknowledgment \ud83d\udee1",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L383",
-      "_origin": "ast",
-      "id": "readme_authors_and_acknowledgment",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "authors and acknowledgment \ud83d\udee1"
-    },
-    {
-      "label": "\ud83d\udcc4 License",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L387",
-      "_origin": "ast",
-      "id": "readme_license",
-      "community": 6,
-      "community_name": "Telegram Notifications",
-      "norm_label": "\ud83d\udcc4 license"
     },
     {
       "label": "Dependabot Go Modules Update Config",
@@ -1301,10 +878,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
-      "norm_label": "dependabot go modules update config",
       "id": "_github_dependabot_gomod_updates",
-      "community_name": "CI Security & Quality Tooling"
+      "community": 5,
+      "norm_label": "dependabot go modules update config"
     },
     {
       "label": "Dependabot Docker Update Config (deployments/docker)",
@@ -1315,10 +891,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
-      "norm_label": "dependabot docker update config (deployments/docker)",
       "id": "_github_dependabot_docker_updates",
-      "community_name": "Deployment & Docs"
+      "community": 3,
+      "norm_label": "dependabot docker update config (deployments/docker)"
     },
     {
       "label": "Dependabot GitHub Actions Update Config",
@@ -1329,10 +904,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
-      "norm_label": "dependabot github actions update config",
       "id": "_github_dependabot_github_actions_updates",
-      "community_name": "CI Security & Quality Tooling"
+      "community": 5,
+      "norm_label": "dependabot github actions update config"
     },
     {
       "label": "CI Job: Tests & Build",
@@ -1343,10 +917,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
-      "norm_label": "ci job: tests & build",
       "id": "_github_workflows_ci_test_and_build",
-      "community_name": "CI Security & Quality Tooling"
+      "community": 5,
+      "norm_label": "ci job: tests & build"
     },
     {
       "label": "CI Job: Lint Code (golangci-lint)",
@@ -1357,10 +930,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
-      "norm_label": "ci job: lint code (golangci-lint)",
       "id": "_github_workflows_ci_lint",
-      "community_name": "CI Security & Quality Tooling"
+      "community": 5,
+      "norm_label": "ci job: lint code (golangci-lint)"
     },
     {
       "label": "CI Job: OSV Scanner (dependency vulnerabilities)",
@@ -1371,10 +943,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
-      "norm_label": "ci job: osv scanner (dependency vulnerabilities)",
       "id": "_github_workflows_ci_osv_scan",
-      "community_name": "CI Security & Quality Tooling"
+      "community": 5,
+      "norm_label": "ci job: osv scanner (dependency vulnerabilities)"
     },
     {
       "label": "CI Job: OWASP Dependency-Check (CVE scanner)",
@@ -1385,10 +956,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
-      "norm_label": "ci job: owasp dependency-check (cve scanner)",
       "id": "_github_workflows_ci_dependency_check",
-      "community_name": "CI Security & Quality Tooling"
+      "community": 5,
+      "norm_label": "ci job: owasp dependency-check (cve scanner)"
     },
     {
       "label": "CI Job: SAST (Semgrep SARIF, self-hosted)",
@@ -1399,10 +969,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
-      "norm_label": "ci job: sast (semgrep sarif, self-hosted)",
       "id": "_github_workflows_ci_sast",
-      "community_name": "CI Security & Quality Tooling"
+      "community": 5,
+      "norm_label": "ci job: sast (semgrep sarif, self-hosted)"
     },
     {
       "label": "Deploy Job: Calculate semver Version",
@@ -1413,10 +982,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
-      "norm_label": "deploy job: calculate semver version",
       "id": "_github_workflows_deploy_version",
-      "community_name": "Deployment & Docs"
+      "community": 3,
+      "norm_label": "deploy job: calculate semver version"
     },
     {
       "label": "Deploy Job: Build & Push Image to Zot Registry",
@@ -1427,10 +995,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
-      "norm_label": "deploy job: build & push image to zot registry",
       "id": "_github_workflows_deploy_build",
-      "community_name": "Deployment & Docs"
+      "community": 3,
+      "norm_label": "deploy job: build & push image to zot registry"
     },
     {
       "label": "Deploy Job: Deploy to Production (homelab repo)",
@@ -1441,10 +1008,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
-      "norm_label": "deploy job: deploy to production (homelab repo)",
       "id": "_github_workflows_deploy_deploy",
-      "community_name": "Deployment & Docs"
+      "community": 3,
+      "norm_label": "deploy job: deploy to production (homelab repo)"
     },
     {
       "label": "Graphify Knowledge-Graph Workflow Rules",
@@ -1455,10 +1021,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
-      "norm_label": "graphify knowledge-graph workflow rules",
       "id": "claude_graphify_workflow",
-      "community_name": "Deployment & Docs"
+      "community": 3,
+      "norm_label": "graphify knowledge-graph workflow rules"
     },
     {
       "label": "Automation Hub Project Overview",
@@ -1469,10 +1034,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
-      "norm_label": "automation hub project overview",
       "id": "readme_automation_hub_overview",
-      "community_name": "Deployment & Docs"
+      "community": 3,
+      "norm_label": "automation hub project overview"
     },
     {
       "label": "Dynamic Email Service Configuration Concept",
@@ -1483,10 +1047,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
-      "norm_label": "dynamic email service configuration concept",
       "id": "readme_dynamic_service_config",
-      "community_name": "Deployment & Docs"
+      "community": 3,
+      "norm_label": "dynamic email service configuration concept"
     },
     {
       "label": "Configurable Webhook System Concept",
@@ -1497,10 +1060,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
-      "norm_label": "configurable webhook system concept",
       "id": "readme_configurable_webhooks",
-      "community_name": "Deployment & Docs"
+      "community": 3,
+      "norm_label": "configurable webhook system concept"
     },
     {
       "label": "qBittorrent Webhook Endpoint (/webhook/qbitorrent, port 8080)",
@@ -1511,10 +1073,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
-      "norm_label": "qbittorrent webhook endpoint (/webhook/qbitorrent, port 8080)",
       "id": "readme_qbittorrent_webhook_endpoint",
-      "community_name": "Deployment & Docs"
+      "community": 3,
+      "norm_label": "qbittorrent webhook endpoint (/webhook/qbitorrent, port 8080)"
     },
     {
       "label": "Telegram Notification Integration Concept",
@@ -1525,10 +1086,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
-      "norm_label": "telegram notification integration concept",
       "id": "readme_telegram_notifications",
-      "community_name": "Deployment & Docs"
+      "community": 3,
+      "norm_label": "telegram notification integration concept"
     },
     {
       "label": "Docker Compose Deployment Instructions",
@@ -1539,10 +1099,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
-      "norm_label": "docker compose deployment instructions",
       "id": "readme_docker_compose_deployment",
-      "community_name": "Deployment & Docs"
+      "community": 3,
+      "norm_label": "docker compose deployment instructions"
     },
     {
       "label": "Security & Quality Tooling List (README claims)",
@@ -1553,10 +1112,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 5,
-      "norm_label": "security & quality tooling list (readme claims)",
       "id": "readme_security_quality_tools",
-      "community_name": "CI Security & Quality Tooling"
+      "community": 5,
+      "norm_label": "security & quality tooling list (readme claims)"
     },
     {
       "label": "automation-hub Docker Compose Service",
@@ -1567,10 +1125,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
-      "norm_label": "automation-hub docker compose service",
       "id": "docker_compose_automation_hub_service",
-      "community_name": "Deployment & Docs"
+      "community": 3,
+      "norm_label": "automation-hub docker compose service"
     },
     {
       "label": "automation-hub-network Bridge Network",
@@ -1581,10 +1138,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 3,
-      "norm_label": "automation-hub-network bridge network",
       "id": "docker_compose_automation_hub_network",
-      "community_name": "Deployment & Docs"
+      "community": 3,
+      "norm_label": "automation-hub-network bridge network"
     }
   ],
   "links": [
@@ -3417,325 +2973,6 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "CLAUDE.md",
-      "source_location": "L1",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "claude",
-      "target": "claude_graphify",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L1",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme",
-      "target": "readme_automation_hub",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L170",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_automation_hub",
-      "target": "readme_api_webhooks",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L383",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_automation_hub",
-      "target": "readme_authors_and_acknowledgment",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L47",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_automation_hub",
-      "target": "readme_configuration",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L121",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_automation_hub",
-      "target": "readme_deployment",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L256",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_automation_hub",
-      "target": "readme_external_service_setup",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L24",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_automation_hub",
-      "target": "readme_features",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L387",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_automation_hub",
-      "target": "readme_license",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L284",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_automation_hub",
-      "target": "readme_monitoring_logs",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L33",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_automation_hub",
-      "target": "readme_quick_start",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L13",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_automation_hub",
-      "target": "readme_security_quality",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L307",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_automation_hub",
-      "target": "readme_troubleshooting",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L35",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_quick_start",
-      "target": "readme_prerequisites",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L49",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_configuration",
-      "target": "readme_step_1_setup_configuration",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L56",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_configuration",
-      "target": "readme_step_2_configure_services",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L110",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_configuration",
-      "target": "readme_step_3_setup_telegram_bot",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L123",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_deployment",
-      "target": "readme_option_1_docker_compose_recommended",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L141",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_deployment",
-      "target": "readme_option_2_manual_docker",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L155",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_deployment",
-      "target": "readme_option_3_local_development",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L231",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_api_webhooks",
-      "target": "readme_adding_new_email_services",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L206",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_api_webhooks",
-      "target": "readme_adding_new_webhooks",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L172",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_api_webhooks",
-      "target": "readme_available_endpoints",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L178",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_api_webhooks",
-      "target": "readme_qbittorrent_integration",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L258",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_external_service_setup",
-      "target": "readme_gmail_configuration",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L266",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_external_service_setup",
-      "target": "readme_qbittorrent_setup",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L299",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_monitoring_logs",
-      "target": "readme_log_locations",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L286",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_monitoring_logs",
-      "target": "readme_viewing_logs",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L309",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_troubleshooting",
-      "target": "readme_common_issues",
-      "confidence_score": 1.0
-    },
-    {
       "relation": "conceptually_related_to",
       "confidence": "INFERRED",
       "confidence_score": 0.85,
@@ -4029,5 +3266,5 @@
       "source_file": ".github/dependabot.yml"
     }
   ],
-  "built_at_commit": "39badec2a6e5418b485f27224781565d173f8749"
+  "built_at_commit": "dc240e3b5cde9eb178d860f1210de159a1bb501f"
 }

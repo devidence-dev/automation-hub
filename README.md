@@ -3,10 +3,10 @@
 ![Go Version](https://img.shields.io/badge/Go-1.24.5-00ADD8?logo=go)
 ![Docker](https://img.shields.io/badge/Docker-20.10+-2496ED?logo=docker&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-ARM64%20%7C%20AMD64-green)
-[![Quality Gate Status](https://sonarqube.devidence.dev/api/project_badges/measure?project=automation-hub&metric=alert_status&token=sqb_7d178597a22d329b0e50efb39a6ae16d00f64db4)](https://sonarqube.devidence.dev/dashboard?id=automation-hub)
-[![Reliability Rating](https://sonarqube.devidence.dev/api/project_badges/measure?project=automation-hub&metric=software_quality_reliability_rating&token=sqb_7d178597a22d329b0e50efb39a6ae16d00f64db4)](https://sonarqube.devidence.dev/dashboard?id=automation-hub)
-[![Security Rating](https://sonarqube.devidence.dev/api/project_badges/measure?project=automation-hub&metric=software_quality_security_rating&token=sqb_7d178597a22d329b0e50efb39a6ae16d00f64db4)](https://sonarqube.devidence.dev/dashboard?id=automation-hub)
-[![Maintainability Rating](https://sonarqube.devidence.dev/api/project_badges/measure?project=automation-hub&metric=software_quality_maintainability_rating&token=sqb_7d178597a22d329b0e50efb39a6ae16d00f64db4)](https://sonarqube.devidence.dev/dashboard?id=automation-hub)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=devidence-dev_automation-hub&metric=alert_status&token=<SONARCLOUD_BADGE_TOKEN>)](https://sonarcloud.io/summary/new_code?id=devidence-dev_automation-hub)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=devidence-dev_automation-hub&metric=reliability_rating&token=<SONARCLOUD_BADGE_TOKEN>)](https://sonarcloud.io/summary/new_code?id=devidence-dev_automation-hub)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=devidence-dev_automation-hub&metric=security_rating&token=<SONARCLOUD_BADGE_TOKEN>)](https://sonarcloud.io/summary/new_code?id=devidence-dev_automation-hub)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=devidence-dev_automation-hub&metric=sqale_rating&token=<SONARCLOUD_BADGE_TOKEN>)](https://sonarcloud.io/summary/new_code?id=devidence-dev_automation-hub)
 
 > **A powerful, configurable automation hub for monitoring emails and handling webhooks with Telegram notifications**
 
