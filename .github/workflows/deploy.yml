@@ -85,14 +85,26 @@ jobs:
     runs-on: self-hosted
     permissions:
       contents: write
+      id-token: write # required so this job can request a GitHub OIDC token for Infisical
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - name: Login to Zot
-        run: docker login zot.devidence.dev -u "$ZOT_USERNAME" -p "$ZOT_PASSWORD"
+      - name: Fetch GHCR_TOKEN from Infisical
+        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
+        with:
+          method: "oidc"
+          identity-id: "77942652-da93-4daa-9f33-62534699496b"
+          domain: "https://app.infisical.com"
+          project-slug: "homelab-devidence"
+          env-slug: "prod"
+          secret-path: "/cross"
+          export-type: "env"
+
+      - name: Login to ghcr.io
+        run: docker login ghcr.io -u ${{ github.actor }} -p "$GHCR_TOKEN"
 
       - name: Build image
         run: |
@@ -102,11 +114,11 @@ jobs:
             --build-arg GO_VERSION=${GO_VERSION} \
             --platform linux/${ARCH} \
             -f deployments/docker/Dockerfile \
-            -t zot.devidence.dev/automation-hub:${{ needs.version.outputs.tag }} \
+            -t ghcr.io/devidence-dev/automation-hub:${{ needs.version.outputs.tag }} \
             .
 
-      - name: Push to Zot
-        run: docker push zot.devidence.dev/automation-hub:${{ needs.version.outputs.tag }}
+      - name: Push to GHCR
+        run: docker push ghcr.io/devidence-dev/automation-hub:${{ needs.version.outputs.tag }}
 
       - name: Create and push git tag
         run: |
