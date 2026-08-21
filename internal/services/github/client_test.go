@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -91,5 +92,74 @@ func TestDispatchWorkflowNetworkError(t *testing.T) {
 	err := client.DispatchWorkflow(context.Background(), "owner", "repo", "workflow.yml", "main")
 	if err == nil || !strings.Contains(err.Error(), "network unavailable") {
 		t.Fatalf("DispatchWorkflow() error = %v", err)
+	}
+}
+
+func TestFindLatestRunURL(t *testing.T) {
+	after := time.Date(2026, 8, 21, 12, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name       string
+		response   string
+		wantRunURL string
+		wantErr    bool
+	}{
+		{
+			name: "returns the most recent run created at or after the cutoff",
+			response: `{"workflow_runs":[
+				{"html_url":"https://github.com/owner/repo/actions/runs/2","created_at":"2026-08-21T12:00:05Z"},
+				{"html_url":"https://github.com/owner/repo/actions/runs/1","created_at":"2026-08-21T11:59:00Z"}
+			]}`,
+			wantRunURL: "https://github.com/owner/repo/actions/runs/2",
+		},
+		{
+			name:       "returns empty string when no run is new enough yet",
+			response:   `{"workflow_runs":[{"html_url":"https://github.com/owner/repo/actions/runs/1","created_at":"2026-08-21T11:59:00Z"}]}`,
+			wantRunURL: "",
+		},
+		{
+			name:       "returns empty string when there are no runs yet",
+			response:   `{"workflow_runs":[]}`,
+			wantRunURL: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodGet {
+					t.Errorf("method = %s, want GET", r.Method)
+				}
+				if r.URL.Path != "/repos/owner/repo/actions/workflows/check-updates.yml/runs" {
+					t.Errorf("path = %s", r.URL.Path)
+				}
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(tt.response))
+			}))
+			defer server.Close()
+
+			client := NewClientWithBaseURL("test-token", server.URL, server.Client(), zap.NewNop())
+			runURL, err := client.FindLatestRunURL(context.Background(), "owner", "repo", "check-updates.yml", after)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("FindLatestRunURL() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if runURL != tt.wantRunURL {
+				t.Errorf("FindLatestRunURL() = %q, want %q", runURL, tt.wantRunURL)
+			}
+		})
+	}
+}
+
+func TestFindLatestRunURLHTTPError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"message":"Bad credentials"}`))
+	}))
+	defer server.Close()
+
+	client := NewClientWithBaseURL("test-token", server.URL, server.Client(), zap.NewNop())
+	_, err := client.FindLatestRunURL(context.Background(), "owner", "repo", "check-updates.yml", time.Now())
+	if err == nil {
+		t.Fatal("FindLatestRunURL() error = nil, want error")
 	}
 }

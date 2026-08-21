@@ -17,6 +17,7 @@ type Config struct {
 	WorkflowBot WorkflowBotConfig       `mapstructure:"workflow_bot"`
 	GitHub      GitHubConfig            `mapstructure:"github"`
 	Workflows   []WorkflowCommandConfig `mapstructure:"workflows"`
+	Restarts    []RestartCommandConfig  `mapstructure:"restarts"`
 	Hook        []WebhookConfig         `mapstructure:"hook"`
 }
 
@@ -70,6 +71,16 @@ type WorkflowCommandConfig struct {
 	AllowedChatIDs []string `mapstructure:"allowed_chat_ids"`
 }
 
+// RestartCommandConfig maps a Telegram command to a Kubernetes Deployment
+// rollout restart (equivalent to `kubectl rollout restart deployment/...`).
+type RestartCommandConfig struct {
+	Command        string   `mapstructure:"command"`
+	Description    string   `mapstructure:"description"`
+	Namespace      string   `mapstructure:"namespace"`
+	Deployment     string   `mapstructure:"deployment"`
+	AllowedChatIDs []string `mapstructure:"allowed_chat_ids"`
+}
+
 type WebhookConfig struct {
 	Name   string                 `mapstructure:"name"`
 	Path   string                 `mapstructure:"path"`
@@ -106,23 +117,37 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
-	if err := validateWorkflowCommands(config.Workflows); err != nil {
+	if err := validateBotCommands(config.Workflows, config.Restarts); err != nil {
 		return nil, err
 	}
 
 	return &config, nil
 }
 
-func validateWorkflowCommands(workflows []WorkflowCommandConfig) error {
-	seen := make(map[string]struct{}, len(workflows))
+// validateBotCommands checks command names against Telegram's format rules
+// and rejects duplicates across workflows AND restarts together, since both
+// are registered on the same bot and share one command namespace.
+func validateBotCommands(workflows []WorkflowCommandConfig, restarts []RestartCommandConfig) error {
+	seen := make(map[string]struct{}, len(workflows)+len(restarts))
+	check := func(command string) error {
+		if !telegramCommandPattern.MatchString(command) {
+			return fmt.Errorf("invalid bot command %q: must match %s", command, telegramCommandPattern.String())
+		}
+		if _, exists := seen[command]; exists {
+			return fmt.Errorf("duplicate bot command %q", command)
+		}
+		seen[command] = struct{}{}
+		return nil
+	}
 	for _, workflow := range workflows {
-		if !telegramCommandPattern.MatchString(workflow.Command) {
-			return fmt.Errorf("invalid workflow command %q: must match %s", workflow.Command, telegramCommandPattern.String())
+		if err := check(workflow.Command); err != nil {
+			return err
 		}
-		if _, exists := seen[workflow.Command]; exists {
-			return fmt.Errorf("duplicate workflow command %q", workflow.Command)
+	}
+	for _, restart := range restarts {
+		if err := check(restart.Command); err != nil {
+			return err
 		}
-		seen[workflow.Command] = struct{}{}
 	}
 	return nil
 }

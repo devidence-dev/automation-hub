@@ -19,6 +19,10 @@ type Client struct {
 
 var telegramAPIEndpoint = tgbotapi.APIEndpoint
 
+// pollTimeout is how long Telegram holds a getUpdates request open while
+// waiting for a new update before responding empty (Telegram long-polling).
+const pollTimeout = 30 * time.Second
+
 func NewClient(token string, logger *zap.Logger) *Client {
 	return newClient(token, logger, newHTTPClient(), telegramAPIEndpoint)
 }
@@ -33,16 +37,19 @@ func newClient(token string, logger *zap.Logger, httpClient tgbotapi.HTTPClient,
 }
 
 func newHTTPClient() *http.Client {
-	// Create a custom HTTP client with proper timeout settings
+	// Create a custom HTTP client with proper timeout settings.
+	// Long polling asks Telegram to hold getUpdates open for up to pollTimeout
+	// seconds (see StartPolling), so every timeout here must exceed that window
+	// or Telegram's normal "no updates yet" wait gets mistaken for a hang.
 	return &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: pollTimeout + 10*time.Second,
 		Transport: &http.Transport{
 			Dial: (&net.Dialer{
 				Timeout:   10 * time.Second,
 				KeepAlive: 30 * time.Second,
 			}).Dial,
 			TLSHandshakeTimeout:   10 * time.Second,
-			ResponseHeaderTimeout: 10 * time.Second,
+			ResponseHeaderTimeout: pollTimeout + 5*time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
 			MaxIdleConns:          100,
 		},
@@ -121,7 +128,7 @@ func (c *Client) StartPolling(ctx context.Context, handler func(tgbotapi.Update)
 	}
 
 	updateConfig := tgbotapi.NewUpdate(0)
-	updateConfig.Timeout = 30
+	updateConfig.Timeout = int(pollTimeout.Seconds())
 	updates := c.bot.GetUpdatesChan(updateConfig)
 
 	for {

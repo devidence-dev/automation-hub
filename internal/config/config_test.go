@@ -124,20 +124,28 @@ email:
 	}
 }
 
-func TestValidateWorkflowCommands(t *testing.T) {
+func TestValidateBotCommands(t *testing.T) {
 	tests := []struct {
 		name      string
 		workflows []WorkflowCommandConfig
+		restarts  []RestartCommandConfig
 		wantErr   bool
 	}{
-		{name: "valid", workflows: []WorkflowCommandConfig{{Command: "run_cleanup"}}},
+		{name: "valid workflow", workflows: []WorkflowCommandConfig{{Command: "run_cleanup"}}},
+		{name: "valid restart", restarts: []RestartCommandConfig{{Command: "restart_runner"}}},
 		{name: "invalid characters", workflows: []WorkflowCommandConfig{{Command: "run-cleanup"}}, wantErr: true},
-		{name: "duplicate", workflows: []WorkflowCommandConfig{{Command: "run_cleanup"}, {Command: "run_cleanup"}}, wantErr: true},
+		{name: "duplicate within workflows", workflows: []WorkflowCommandConfig{{Command: "run_cleanup"}, {Command: "run_cleanup"}}, wantErr: true},
+		{
+			name:      "duplicate across workflows and restarts",
+			workflows: []WorkflowCommandConfig{{Command: "run_cleanup"}},
+			restarts:  []RestartCommandConfig{{Command: "run_cleanup"}},
+			wantErr:   true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := validateWorkflowCommands(tt.workflows); (err != nil) != tt.wantErr {
-				t.Errorf("validateWorkflowCommands() error = %v, wantErr %v", err, tt.wantErr)
+			if err := validateBotCommands(tt.workflows, tt.restarts); (err != nil) != tt.wantErr {
+				t.Errorf("validateBotCommands() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

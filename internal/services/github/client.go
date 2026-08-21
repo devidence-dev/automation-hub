@@ -77,3 +77,50 @@ func (c *Client) DispatchWorkflow(ctx context.Context, owner, repo, workflowFile
 	}
 	return fmt.Errorf("GitHub workflow dispatch failed: status %s: %s", resp.Status, strings.TrimSpace(string(responseBody)))
 }
+
+type workflowRun struct {
+	HTMLURL   string    `json:"html_url"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type workflowRunsResponse struct {
+	WorkflowRuns []workflowRun `json:"workflow_runs"`
+}
+
+// FindLatestRunURL looks up the most recent workflow_dispatch run created at
+// or after "after" and returns its HTML URL. workflow_dispatch itself does
+// not return the run it created, so callers poll this shortly afterwards.
+// It returns an empty string (no error) if no matching run is found yet.
+func (c *Client) FindLatestRunURL(ctx context.Context, owner, repo, workflowFile string, after time.Time) (string, error) {
+	endpoint := fmt.Sprintf("%s/repos/%s/%s/actions/workflows/%s/runs?event=workflow_dispatch&per_page=5",
+		c.baseURL, url.PathEscape(owner), url.PathEscape(repo), url.PathEscape(workflowFile))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return "", fmt.Errorf("create list workflow runs request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Accept", "application/vnd.github+json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("list workflow runs request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		responseBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+		return "", fmt.Errorf("list workflow runs failed: status %s: %s", resp.Status, strings.TrimSpace(string(responseBody)))
+	}
+
+	var parsed workflowRunsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
+		return "", fmt.Errorf("decode workflow runs response: %w", err)
+	}
+
+	for _, run := range parsed.WorkflowRuns {
+		if !run.CreatedAt.Before(after) {
+			return run.HTMLURL, nil
+		}
+	}
+	return "", nil
+}

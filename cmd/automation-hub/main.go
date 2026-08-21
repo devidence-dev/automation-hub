@@ -18,6 +18,7 @@ import (
 	"automation-hub/internal/handlers"
 	"automation-hub/internal/services/email"
 	"automation-hub/internal/services/github"
+	"automation-hub/internal/services/kube"
 	"automation-hub/internal/services/processor"
 	"automation-hub/internal/services/telegram"
 )
@@ -41,23 +42,40 @@ func main() {
 	var workflowBotClient *telegram.Client
 	var botHandler *handlers.BotHandler
 
-	if len(cfg.Workflows) > 0 {
+	if len(cfg.Workflows) > 0 || len(cfg.Restarts) > 0 {
 		if cfg.WorkflowBot.BotToken == "" {
-			logger.Fatal("workflow_bot bot_token is required when workflows are configured")
-		}
-		if cfg.GitHub.Token == "" {
-			logger.Fatal("GitHub token is required when workflows are configured")
+			logger.Fatal("workflow_bot bot_token is required when workflows or restarts are configured")
 		}
 		workflowBotClient = telegram.NewClient(cfg.WorkflowBot.BotToken, logger)
-		commands := make([]tgbotapi.BotCommand, 0, len(cfg.Workflows))
+
+		commands := make([]tgbotapi.BotCommand, 0, len(cfg.Workflows)+len(cfg.Restarts))
 		for _, workflow := range cfg.Workflows {
 			commands = append(commands, tgbotapi.BotCommand{Command: workflow.Command, Description: workflow.Description})
+		}
+		for _, restart := range cfg.Restarts {
+			commands = append(commands, tgbotapi.BotCommand{Command: restart.Command, Description: restart.Description})
 		}
 		if err := workflowBotClient.SetMyCommands(commands); err != nil {
 			logger.Fatal("Failed to set Telegram commands", zap.Error(err))
 		}
-		githubClient := github.NewClient(cfg.GitHub.Token, logger)
-		botHandler = handlers.NewBotHandler(githubClient, workflowBotClient, cfg.Workflows, logger)
+
+		var githubClient *github.Client
+		if len(cfg.Workflows) > 0 {
+			if cfg.GitHub.Token == "" {
+				logger.Fatal("GitHub token is required when workflows are configured")
+			}
+			githubClient = github.NewClient(cfg.GitHub.Token, logger)
+		}
+
+		var kubeClient *kube.Client
+		if len(cfg.Restarts) > 0 {
+			kubeClient, err = kube.NewInClusterClient(logger)
+			if err != nil {
+				logger.Fatal("Failed to build Kubernetes client for restarts", zap.Error(err))
+			}
+		}
+
+		botHandler = handlers.NewBotHandler(githubClient, kubeClient, workflowBotClient, cfg.Workflows, cfg.Restarts, logger)
 	}
 
 	// Initialize processor manager with dynamic configuration

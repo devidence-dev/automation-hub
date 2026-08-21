@@ -27,6 +27,16 @@ workflows:
     ref: "main"
     allowed_chat_ids: ["{{TELEGRAM_ADMIN_CHAT_ID}}"]
 
+restarts:
+  # Equivalent to `kubectl rollout restart deployment/github-runner -n infrastructure`.
+  # Fixes the stale docker.sock/containerd.sock bind that follows a Docker or k3s
+  # package upgrade on the host — the pod needs to remount the current socket.
+  - command: "restart_runner"
+    description: "Restart the github-runner pod (fixes stale docker/containerd socket)"
+    namespace: "infrastructure"
+    deployment: "github-runner"
+    allowed_chat_ids: ["{{TELEGRAM_ADMIN_CHAT_ID}}"]
+
 email:
   host: "{{EMAIL_HOST}}"
   port: {{EMAIL_PORT}}
