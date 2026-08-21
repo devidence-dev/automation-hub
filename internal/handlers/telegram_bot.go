@@ -100,7 +100,7 @@ func (h *BotHandler) Handle(update tgbotapi.Update) {
 		return
 	}
 
-	h.sendMessage(chatID, "Unknown command.")
+	h.sendMessage(chatID, "❓ Unknown command.")
 }
 
 func (h *BotHandler) handleUnauthorizedCommand(commandName, chatID, username string) {
@@ -108,28 +108,28 @@ func (h *BotHandler) handleUnauthorizedCommand(commandName, chatID, username str
 		zap.String("command", commandName),
 		zap.String("chat_id", chatID),
 		zap.String("username", username))
-	h.sendMessage(chatID, "You are not authorized to run this command.")
+	h.sendMessage(chatID, "🚫 You are not authorized to run this command.")
 }
 
 func (h *BotHandler) dispatchWorkflow(commandName, chatID string, workflow config.WorkflowCommandConfig) {
 	dispatchedAt := time.Now().UTC()
 	if err := h.githubClient.DispatchWorkflow(context.Background(), workflow.Owner, workflow.Repo, workflow.WorkflowFile, workflow.Ref); err != nil {
 		h.logger.Error("Failed to dispatch GitHub workflow", zap.Error(err), zap.String("command", commandName), zap.String("chat_id", chatID))
-		h.sendMessage(chatID, "Failed to dispatch the workflow. Check the hub logs or try again later.")
+		h.sendMessage(chatID, "❌ Failed to dispatch the workflow. Check the hub logs or try again later.")
 		return
 	}
 
 	runURL := h.findRunURL(commandName, workflow, dispatchedAt)
-	h.sendMessage(chatID, fmt.Sprintf("Workflow *%s* dispatched successfully. View it at %s", workflow.WorkflowFile, runURL))
+	h.sendMessage(chatID, fmt.Sprintf("🚀 Workflow *%s* dispatched successfully. View it at %s", workflow.WorkflowFile, runURL))
 }
 
 func (h *BotHandler) restartDeployment(commandName, chatID string, restart config.RestartCommandConfig) {
 	if err := h.kubeClient.RestartDeployment(context.Background(), restart.Namespace, restart.Deployment); err != nil {
 		h.logger.Error("Failed to restart deployment", zap.Error(err), zap.String("command", commandName), zap.String("chat_id", chatID))
-		h.sendMessage(chatID, "Failed to restart the deployment. Check the hub logs or try again later.")
+		h.sendMessage(chatID, "❌ Failed to restart the deployment. Check the hub logs or try again later.")
 		return
 	}
-	h.sendMessage(chatID, fmt.Sprintf("Deployment *%s* restart triggered. Waiting for it to come back online...", restart.Deployment))
+	h.sendMessage(chatID, fmt.Sprintf("🔄 Deployment *%s* restart triggered. Waiting for it to come back online...", restart.Deployment))
 	go h.awaitRestartReady(commandName, chatID, restart)
 }
 
@@ -142,7 +142,7 @@ func (h *BotHandler) awaitRestartReady(commandName, chatID string, restart confi
 
 	if err := h.kubeClient.WaitForRollout(ctx, restart.Namespace, restart.Deployment, restartReadyPollInterval); err != nil {
 		h.logger.Warn("Deployment did not report ready in time", zap.Error(err), zap.String("command", commandName), zap.String("chat_id", chatID))
-		h.sendMessage(chatID, fmt.Sprintf("Deployment *%s* did not report ready within %s — check it manually.", restart.Deployment, restartReadyTimeout))
+		h.sendMessage(chatID, fmt.Sprintf("⏱️ Deployment *%s* did not report ready within %s — check it manually.", restart.Deployment, restartReadyTimeout))
 		return
 	}
 	h.sendMessage(chatID, fmt.Sprintf("✅ Deployment *%s* is up and running again.", restart.Deployment))
