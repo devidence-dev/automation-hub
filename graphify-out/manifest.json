@@ -55,8 +55,8 @@
     "semantic_hash": "dcc52e30470a4540bec7ed7f3e42ac9f"
   },
   "internal/services/telegram/client.go": {
-    "mtime": 1787332069.0043802,
-    "ast_hash": "40332a233a1dcd7e889e34b6a59c3f72",
+    "mtime": 1787334396.409224,
+    "ast_hash": "b60c3de5c8e8b37d89b2c034ff7b84dd",
     "semantic_hash": ""
   },
   ".github/dependabot.yml": {
@@ -120,28 +120,28 @@
     "semantic_hash": ""
   },
   "internal/services/telegram/client_test.go": {
-    "mtime": 1784773422.0415518,
-    "ast_hash": "c8017ffb0f3a1b46ab124c80ead3e11c",
+    "mtime": 1787334445.786017,
+    "ast_hash": "062e11af908bfda6b99765fafecd35ae",
     "semantic_hash": ""
   },
   "internal/handlers/telegram_webhook_test.go": {
-    "mtime": 1787332103.538149,
-    "ast_hash": "f6d38db2c87c6de74e4bf10f98944617",
+    "mtime": 1787334176.5594912,
+    "ast_hash": "bc857e07b0b90cd8f5c5c6b6f2f3f63a",
     "semantic_hash": ""
   },
   "internal/services/github/client.go": {
-    "mtime": 1787329255.832665,
-    "ast_hash": "84255ee20fa3643d6d152cab1ac6f33c",
+    "mtime": 1787334445.242052,
+    "ast_hash": "29e8c33d2c34461df6b244e82e892845",
     "semantic_hash": ""
   },
   "internal/services/github/client_test.go": {
-    "mtime": 1787329358.449962,
-    "ast_hash": "2b4ea1de3a82c2e1556b12ff6e4017e1",
+    "mtime": 1787334449.3297865,
+    "ast_hash": "f2fd93178fb1249c2c8d7dd7574b522e",
     "semantic_hash": ""
   },
   "internal/handlers/telegram_bot.go": {
-    "mtime": 1787332069.6323397,
-    "ast_hash": "d4a0839e2c47128a85a101645ba2a458",
+    "mtime": 1787334189.438656,
+    "ast_hash": "19ffd5a23d90667897ffb533a68eb6f1",
     "semantic_hash": ""
   },
   "env.yml": {

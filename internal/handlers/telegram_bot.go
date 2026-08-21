@@ -12,7 +12,7 @@ import (
 )
 
 type workflowDispatcher interface {
-	DispatchWorkflow(context.Context, string, string, string, string) error
+	DispatchWorkflow(ctx context.Context, owner, repo, workflowFile, ref string) error
 }
 
 type telegramMessenger interface {
@@ -51,18 +51,21 @@ func (h *BotHandler) Handle(update tgbotapi.Update) {
 		return
 	}
 	if !isAllowed(chatID, workflow.AllowedChatIDs) {
-		username := ""
-		if update.Message.From != nil {
-			username = update.Message.From.UserName
-		}
-		h.logger.Warn("Unauthorized Telegram workflow command attempt",
-			zap.String("command", commandName),
-			zap.String("chat_id", chatID),
-			zap.String("username", username))
-		h.sendMessage(chatID, "No estás autorizado para ejecutar este comando.")
+		h.handleUnauthorizedCommand(commandName, chatID, username(update.Message))
 		return
 	}
+	h.dispatchWorkflow(commandName, chatID, workflow)
+}
 
+func (h *BotHandler) handleUnauthorizedCommand(commandName, chatID, username string) {
+	h.logger.Warn("Unauthorized Telegram workflow command attempt",
+		zap.String("command", commandName),
+		zap.String("chat_id", chatID),
+		zap.String("username", username))
+	h.sendMessage(chatID, "No estás autorizado para ejecutar este comando.")
+}
+
+func (h *BotHandler) dispatchWorkflow(commandName, chatID string, workflow config.WorkflowCommandConfig) {
 	if err := h.githubClient.DispatchWorkflow(context.Background(), workflow.Owner, workflow.Repo, workflow.WorkflowFile, workflow.Ref); err != nil {
 		h.logger.Error("Failed to dispatch GitHub workflow", zap.Error(err), zap.String("command", commandName), zap.String("chat_id", chatID))
 		h.sendMessage(chatID, "No se pudo disparar el workflow. Revisa los logs del hub o inténtalo de nuevo más tarde.")
@@ -71,6 +74,13 @@ func (h *BotHandler) Handle(update tgbotapi.Update) {
 
 	actionsURL := fmt.Sprintf("https://github.com/%s/%s/actions", workflow.Owner, workflow.Repo)
 	h.sendMessage(chatID, fmt.Sprintf("Workflow *%s* disparado correctamente. Puedes verlo en %s", workflow.WorkflowFile, actionsURL))
+}
+
+func username(message *tgbotapi.Message) string {
+	if message.From == nil {
+		return ""
+	}
+	return message.From.UserName
 }
 
 func (h *BotHandler) sendMessage(chatID, message string) {

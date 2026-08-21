@@ -2,13 +2,21 @@ package github
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"go.uber.org/zap"
 )
+
+type failingRoundTripper struct{}
+
+func (failingRoundTripper) RoundTrip(*http.Request) (*http.Response, error) {
+	return nil, errors.New("network unavailable")
+}
 
 func TestDispatchWorkflow(t *testing.T) {
 	tests := []struct {
@@ -49,5 +57,39 @@ func TestDispatchWorkflow(t *testing.T) {
 				t.Fatalf("DispatchWorkflow() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestNewClientDispatchWorkflow(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	previousAPIURL := githubAPIURL
+	githubAPIURL = server.URL
+	t.Cleanup(func() { githubAPIURL = previousAPIURL })
+
+	client := NewClient("test-token", zap.NewNop())
+	if err := client.DispatchWorkflow(context.Background(), "owner", "repo", "workflow.yml", "main"); err != nil {
+		t.Fatalf("DispatchWorkflow() error = %v", err)
+	}
+}
+
+func TestNewClientWithBaseURLUsesDefaults(t *testing.T) {
+	client := NewClientWithBaseURL("token", "https://example.test/", nil, nil)
+	if client.httpClient == nil || client.logger == nil {
+		t.Fatal("NewClientWithBaseURL() did not initialize defaults")
+	}
+	if client.baseURL != "https://example.test" {
+		t.Errorf("baseURL = %q", client.baseURL)
+	}
+}
+
+func TestDispatchWorkflowNetworkError(t *testing.T) {
+	client := NewClientWithBaseURL("token", "https://example.test", &http.Client{Transport: failingRoundTripper{}}, zap.NewNop())
+	err := client.DispatchWorkflow(context.Background(), "owner", "repo", "workflow.yml", "main")
+	if err == nil || !strings.Contains(err.Error(), "network unavailable") {
+		t.Fatalf("DispatchWorkflow() error = %v", err)
 	}
 }

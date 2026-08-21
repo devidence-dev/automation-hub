@@ -17,9 +17,24 @@ type Client struct {
 	logger *zap.Logger
 }
 
+var telegramAPIEndpoint = tgbotapi.APIEndpoint
+
 func NewClient(token string, logger *zap.Logger) *Client {
+	return newClient(token, logger, newHTTPClient(), telegramAPIEndpoint)
+}
+
+func newClient(token string, logger *zap.Logger, httpClient tgbotapi.HTTPClient, apiEndpoint string) *Client {
+	bot, err := tgbotapi.NewBotAPIWithClient(token, apiEndpoint, httpClient)
+	if err != nil {
+		logger.Fatal("Failed to create Telegram bot", zap.Error(err))
+	}
+
+	return &Client{bot: bot, logger: logger}
+}
+
+func newHTTPClient() *http.Client {
 	// Create a custom HTTP client with proper timeout settings
-	httpClient := &http.Client{
+	return &http.Client{
 		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
 			Dial: (&net.Dialer{
@@ -31,19 +46,6 @@ func NewClient(token string, logger *zap.Logger) *Client {
 			ExpectContinueTimeout: 1 * time.Second,
 			MaxIdleConns:          100,
 		},
-	}
-
-	bot, err := tgbotapi.NewBotAPI(token)
-	if err != nil {
-		logger.Fatal("Failed to create Telegram bot", zap.Error(err))
-	}
-
-	// Set the custom HTTP client
-	bot.Client = httpClient
-
-	return &Client{
-		bot:    bot,
-		logger: logger,
 	}
 }
 

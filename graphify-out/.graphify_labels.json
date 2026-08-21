@@ -14,5 +14,6 @@
   "12": "NewWebhookHandler",
   "13": "NewIMAPClient",
   "14": "parseInt64",
-  "15": "BotHandler"
+  "15": "BotHandler",
+  "16": "client_test.go"
 }

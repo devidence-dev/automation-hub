@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const apiURL = "https://api.github.com"
+var githubAPIURL = "https://api.github.com"
 
 // Client is the small subset of the GitHub API needed by automation-hub.
 type Client struct {
@@ -25,7 +25,7 @@ type Client struct {
 }
 
 func NewClient(token string, logger *zap.Logger) *Client {
-	return newClient(token, &http.Client{Timeout: 30 * time.Second}, apiURL, logger)
+	return newClient(token, &http.Client{Timeout: 30 * time.Second}, githubAPIURL, logger)
 }
 
 // NewClientWithBaseURL lets tests point the client at an httptest.Server.

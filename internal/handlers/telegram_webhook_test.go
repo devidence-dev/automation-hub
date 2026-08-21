@@ -16,7 +16,7 @@ type fakeDispatcher struct {
 	err   error
 }
 
-func (f *fakeDispatcher) DispatchWorkflow(_ context.Context, _, _, _, _ string) error {
+func (f *fakeDispatcher) DispatchWorkflow(_ context.Context, owner, repo, workflowFile, ref string) error {
 	f.calls++
 	return f.err
 }
@@ -25,7 +25,7 @@ type fakeMessenger struct {
 	messages []string
 }
 
-func (f *fakeMessenger) SendMessage(_ string, message string) error {
+func (f *fakeMessenger) SendMessage(_, message string) error {
 	f.messages = append(f.messages, message)
 	return nil
 }
