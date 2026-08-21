@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "internal/config/config.go": {
-    "mtime": 1787332068.7323978,
-    "ast_hash": "03ad7c52083c2b896535e88a3fbe6515",
+    "mtime": 1787329522.5432453,
+    "ast_hash": "4a13340b59967159d4aa8b799a2c7727",
     "semantic_hash": ""
   },
   "internal/handlers/webhook.go": {
@@ -55,8 +55,8 @@
     "semantic_hash": "dcc52e30470a4540bec7ed7f3e42ac9f"
   },
   "internal/services/telegram/client.go": {
-    "mtime": 1787332069.0043802,
-    "ast_hash": "40332a233a1dcd7e889e34b6a59c3f72",
+    "mtime": 1787329522.811228,
+    "ast_hash": "93f6f6a98c528ebe6a869e709848877c",
     "semantic_hash": ""
   },
   ".github/dependabot.yml": {
@@ -80,8 +80,8 @@
     "semantic_hash": "82efb97a359f5c7290bf2513d14686be"
   },
   "README.md": {
-    "mtime": 1787332117.7372315,
-    "ast_hash": "0079b1330af4c3f83c463324f71dacb8",
+    "mtime": 1787329481.9738946,
+    "ast_hash": "7f86c4571ecf9f79db525b978aa88962",
     "semantic_hash": ""
   },
   "docker-compose.yml": {
@@ -90,7 +90,7 @@
     "semantic_hash": "ba7f05cf54fca04f4ac97196a3fa2cd1"
   },
   "internal/config/config_test.go": {
-    "mtime": 1787329855.5291545,
+    "mtime": 1787329359.0059257,
     "ast_hash": "ce1b93f56a18d5830bf0a579249c8ce0",
     "semantic_hash": ""
   },
@@ -124,9 +124,14 @@
     "ast_hash": "c8017ffb0f3a1b46ab124c80ead3e11c",
     "semantic_hash": ""
   },
+  "internal/handlers/telegram_webhook.go": {
+    "mtime": 1787329358.1859791,
+    "ast_hash": "403512e87f8975f6ba1bb4a03701495f",
+    "semantic_hash": ""
+  },
   "internal/handlers/telegram_webhook_test.go": {
-    "mtime": 1787332103.538149,
-    "ast_hash": "f6d38db2c87c6de74e4bf10f98944617",
+    "mtime": 1787329482.2338777,
+    "ast_hash": "56bbd1708c4d61d92ad77383216ba054",
     "semantic_hash": ""
   },
   "internal/services/github/client.go": {
@@ -137,16 +142,6 @@
   "internal/services/github/client_test.go": {
     "mtime": 1787329358.449962,
     "ast_hash": "2b4ea1de3a82c2e1556b12ff6e4017e1",
-    "semantic_hash": ""
-  },
-  "internal/handlers/telegram_bot.go": {
-    "mtime": 1787332069.6323397,
-    "ast_hash": "d4a0839e2c47128a85a101645ba2a458",
-    "semantic_hash": ""
-  },
-  "env.yml": {
-    "mtime": 1787331029.0519397,
-    "ast_hash": "c9436a34161ff8bbe44b33de56a3d439",
     "semantic_hash": ""
   }
 }

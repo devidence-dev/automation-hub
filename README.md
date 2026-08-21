@@ -27,6 +27,7 @@ This project implements comprehensive **security and code quality** measures:
 - 🔧 **Dynamic service configuration** - Add new email processors without code changes
 - 🤖 **Telegram notifications** - Organized notifications with custom formatting per service
 - 🔗 **Configurable webhook support** - Handles qBittorrent and other webhook integrations with custom messages
+- ▶️ **GitHub Actions commands** - Authorized Telegram chats can dispatch configured workflows
 - 🏗️ **Modular architecture** - Clean, extensible, and maintainable codebase
 - 🚀 **Docker ready** - Optimized for Raspberry Pi 5 and cloud deployment
 
@@ -115,6 +116,17 @@ telegram:
    - Add your bot to the desired chats
    - Send a message, then visit: `https://api.telegram.org/bot<TOKEN>/getUpdates`
    - Find the `chat.id` values
+
+### ▶️ Trigger GitHub Actions from Telegram
+
+Configure `workflow_bot.bot_token` with the existing bot token used by `github-runner` to notify workflow results. This is intentionally distinct from the notification bot in `telegram`, which automation-hub uses for IMAP and qBittorrent notifications. The hub uses Telegram long polling, so it requires no public endpoint or ingress. Configure a fine-grained GitHub PAT with **Actions: Read and write** access limited to the target repository, then provide it as `AUTOMATION_GITHUB_TOKEN` (or set `github.token` in the configuration).
+
+The example config registers these commands:
+
+- `/run_check_updates` dispatches `check-updates.yml`.
+- `/run_cleanup` dispatches `cleanup.yml`.
+
+Each command has its own `allowed_chat_ids`; requests from other chats are rejected before GitHub is called. To add another ad-hoc workflow, add an entry under `workflows` with a unique lowercase `command` (letters, digits, underscores; 1–32 characters), its repository details, branch (`ref`), and allowlist. Restarting the hub synchronizes the Telegram command menu and restarts long polling. Only one process may consume updates for this bot token; a second `getUpdates` consumer or webhook would cause Telegram to return a `409 Conflict`.
 
 ---
 

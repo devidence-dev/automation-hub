@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -94,6 +95,45 @@ func (c *Client) SendMessage(chatID, message string) error {
 		zap.Error(lastErr),
 		zap.Int("attempts", maxRetries))
 	return fmt.Errorf("failed to send message after %d attempts: %w", maxRetries, lastErr)
+}
+
+// SetMyCommands synchronizes the command menu displayed by Telegram clients.
+func (c *Client) SetMyCommands(commands []tgbotapi.BotCommand) error {
+	if c == nil || c.bot == nil {
+		return fmt.Errorf("telegram client is not initialized")
+	}
+	_, err := c.bot.Request(tgbotapi.SetMyCommandsConfig{Commands: commands})
+	if err != nil {
+		return fmt.Errorf("set Telegram commands: %w", err)
+	}
+	return nil
+}
+
+// StartPolling receives updates through Telegram long polling until ctx is cancelled.
+func (c *Client) StartPolling(ctx context.Context, handler func(tgbotapi.Update)) {
+	if c == nil || c.bot == nil {
+		if c != nil && c.logger != nil {
+			c.logger.Error("Cannot start Telegram polling: client is not initialized")
+		}
+		return
+	}
+
+	updateConfig := tgbotapi.NewUpdate(0)
+	updateConfig.Timeout = 30
+	updates := c.bot.GetUpdatesChan(updateConfig)
+
+	for {
+		select {
+		case <-ctx.Done():
+			c.bot.StopReceivingUpdates()
+			return
+		case update, ok := <-updates:
+			if !ok {
+				return
+			}
+			handler(update)
+		}
+	}
 }
 
 func parseInt64(s string) (int64, error) {

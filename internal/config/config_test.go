@@ -123,3 +123,22 @@ email:
 		t.Error("Expected error for invalid YAML syntax, got nil")
 	}
 }
+
+func TestValidateWorkflowCommands(t *testing.T) {
+	tests := []struct {
+		name      string
+		workflows []WorkflowCommandConfig
+		wantErr   bool
+	}{
+		{name: "valid", workflows: []WorkflowCommandConfig{{Command: "run_cleanup"}}},
+		{name: "invalid characters", workflows: []WorkflowCommandConfig{{Command: "run-cleanup"}}, wantErr: true},
+		{name: "duplicate", workflows: []WorkflowCommandConfig{{Command: "run_cleanup"}, {Command: "run_cleanup"}}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := validateWorkflowCommands(tt.workflows); (err != nil) != tt.wantErr {
+				t.Errorf("validateWorkflowCommands() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

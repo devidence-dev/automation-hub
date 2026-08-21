@@ -239,3 +239,5 @@ graphify-out/.graphify_root
 graphify-out/.graphify_python11
 
 .claude/
+
+env.yml

@@ -1,11 +1,11 @@
 # Graph Report - automation-hub  (2026-08-21)
 
 ## Corpus Check
-- 24 files · ~9,245 words
+- 24 files · ~9,134 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 228 nodes · 364 edges · 16 communities (14 shown, 2 thin omitted)
+- 225 nodes · 360 edges · 15 communities (13 shown, 2 thin omitted)
 - Extraction: 88% EXTRACTED · 12% INFERRED · 1% AMBIGUOUS · INFERRED: 43 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
@@ -30,7 +30,6 @@
 - NewWebhookHandler
 - NewIMAPClient
 - parseInt64
-- BotHandler
 
 ## God Nodes (most connected - your core abstractions)
 1. `IMAPClient` - 16 edges
@@ -64,7 +63,7 @@
 - **Build and Deploy Pipeline Jobs (Version, Build, Deploy)** — _github_workflows_deploy_version, _github_workflows_deploy_build, _github_workflows_deploy_deploy [EXTRACTED 1.00]
 - **Dependabot Multi-Ecosystem Update Strategy (gomod, docker, github-actions)** — _github_dependabot_gomod_updates, _github_dependabot_docker_updates, _github_dependabot_github_actions_updates [EXTRACTED 1.00]
 
-## Communities (16 total, 2 thin omitted)
+## Communities (15 total, 2 thin omitted)
 
 ### Community 0 - "Torrent Webhook Handling"
 Cohesion: 0.22
@@ -83,12 +82,12 @@ Cohesion: 0.12
 Nodes (21): Dependabot Docker Update Config (deployments/docker), Dependabot GitHub Actions Update Config, Dependabot Go Modules Update Config, CI Job: OWASP Dependency-Check (CVE scanner), CI Job: Lint Code (golangci-lint), CI Job: OSV Scanner (dependency vulnerabilities), CI Job: SAST (Semgrep SARIF, self-hosted), CI Job: Tests & Build (+13 more)
 
 ### Community 4 - "IMAP Email Client"
-Cohesion: 0.24
+Cohesion: 0.26
 Nodes (5): IMAPClient, Client, Context, Literal, Message
 
 ### Community 5 - "CI Security & Quality Tooling"
-Cohesion: 0.22
-Nodes (7): fakeDispatcher, fakeMessenger, commandUpdate(), Context, T, Update, TestBotHandlerHandle()
+Cohesion: 0.15
+Nodes (14): WorkflowCommandConfig, BotHandler, fakeDispatcher, fakeMessenger, telegramMessenger, workflowDispatcher, Logger, Request (+6 more)
 
 ### Community 6 - "Telegram Notifications"
 Cohesion: 0.07
@@ -96,7 +95,7 @@ Nodes (29): 🔄 Adding New Email Services, 🆕 Adding New Webhooks, � API & 
 
 ### Community 7 - "Email Message Parsing"
 Cohesion: 0.23
-Nodes (13): WebhookProcessorConfig, GetWebhookConfig(), Client, Logger, NewTorrentProcessor(), NewTorrentProcessorLegacy(), T, TestGetWebhookConfig() (+5 more)
+Nodes (13): WebhookProcessorConfig, Request, ResponseWriter, GetWebhookConfig(), Client, Logger, NewTorrentProcessor(), NewTorrentProcessorLegacy() (+5 more)
 
 ### Community 8 - "Model Tests"
 Cohesion: 0.67
@@ -111,16 +110,12 @@ Cohesion: 0.35
 Nodes (9): WebhookHandler, Client, Logger, NewWebhookHandler(), T, TestHandleTorrentComplete_InvalidJSON(), TestHandleTorrentComplete_MissingWebhookConfig(), TestHandleTorrentComplete_Success() (+1 more)
 
 ### Community 13 - "NewIMAPClient"
-Cohesion: 0.44
+Cohesion: 0.38
 Nodes (8): Logger, NewIMAPClient(), T, TestExtractTextPlain(), TestHandlePostProcessing(), TestMarkAsReadAndUnreadNilClient(), TestNewIMAPClient(), TestParseMessage()
 
 ### Community 14 - "parseInt64"
-Cohesion: 0.15
-Nodes (12): BotAPI, BotCommand, Context, Logger, Update, NewClient(), parseInt64(), T (+4 more)
-
-### Community 15 - "BotHandler"
-Cohesion: 0.35
-Nodes (8): WorkflowCommandConfig, BotHandler, telegramMessenger, workflowDispatcher, Logger, Update, isAllowed(), NewBotHandler()
+Cohesion: 0.18
+Nodes (10): BotAPI, BotCommand, Logger, NewClient(), parseInt64(), T, TestParseInt64(), TestSendMessageInvalidChatID() (+2 more)
 
 ## Ambiguous Edges - Review These
 - `CI Job: OSV Scanner (dependency vulnerabilities)` → `Security & Quality Tooling List (README claims)`  [AMBIGUOUS]
@@ -141,11 +136,11 @@ _Questions this graph is uniquely positioned to answer:_
 - **What is the exact relationship between `CI Job: OWASP Dependency-Check (CVE scanner)` and `Security & Quality Tooling List (README claims)`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
 - **Why does `EmailConfig` connect `Torrent Webhook Handling` to `Processor Manager & Models`, `IMAP Email Client`, `NewIMAPClient`?**
-  _High betweenness centrality (0.149) - this node is a cross-community bridge._
-- **Why does `Config` connect `Torrent Webhook Handling` to `NewWebhookHandler`, `Email Message Parsing`, `BotHandler`?**
-  _High betweenness centrality (0.119) - this node is a cross-community bridge._
-- **Why does `WorkflowCommandConfig` connect `BotHandler` to `Torrent Webhook Handling`?**
-  _High betweenness centrality (0.096) - this node is a cross-community bridge._
+  _High betweenness centrality (0.151) - this node is a cross-community bridge._
+- **Why does `Config` connect `Torrent Webhook Handling` to `NewWebhookHandler`, `CI Security & Quality Tooling`, `Email Message Parsing`?**
+  _High betweenness centrality (0.120) - this node is a cross-community bridge._
+- **Why does `WorkflowCommandConfig` connect `CI Security & Quality Tooling` to `Torrent Webhook Handling`?**
+  _High betweenness centrality (0.093) - this node is a cross-community bridge._
 - **Are the 9 inferred relationships involving `NewGenericEmailProcessor()` (e.g. with `TestDecodeQuotedPrintable()` and `TestExtractCode()`) actually correct?**
   _`NewGenericEmailProcessor()` has 9 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `automation-hub`, `graphify`, `🛡️ Security & Quality` to the rest of the system?**

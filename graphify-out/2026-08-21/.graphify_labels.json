@@ -13,6 +13,5 @@
   "11": "NewGenericEmailProcessor",
   "12": "NewWebhookHandler",
   "13": "NewIMAPClient",
-  "14": "parseInt64",
-  "15": "BotHandler"
+  "14": "parseInt64"
 }

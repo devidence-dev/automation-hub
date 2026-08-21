@@ -4,6 +4,29 @@ server:
 telegram:
   bot_token: "{{TELEGRAM_BOT_TOKEN}}"
 
+workflow_bot:
+  # Bot already used by github-runner to notify workflow results.
+  bot_token: "{{GITHUB_RUNNER_TELEGRAM_BOT_TOKEN}}"
+
+github:
+  token: "{{GITHUB_TOKEN}}"
+
+workflows:
+  - command: "run_check_updates"
+    description: "Check Docker Updates & Notify"
+    owner: "devidence-dev"
+    repo: "github-runner"
+    workflow_file: "check-updates.yml"
+    ref: "main"
+    allowed_chat_ids: ["{{TELEGRAM_ADMIN_CHAT_ID}}"]
+  - command: "run_cleanup"
+    description: "Cleanup unused images"
+    owner: "devidence-dev"
+    repo: "github-runner"
+    workflow_file: "cleanup.yml"
+    ref: "main"
+    allowed_chat_ids: ["{{TELEGRAM_ADMIN_CHAT_ID}}"]
+
 email:
   host: "{{EMAIL_HOST}}"
   port: {{EMAIL_PORT}}
