@@ -99,6 +99,8 @@ jobs:
     permissions:
       contents: write
       id-token: write # required so this job can request a GitHub OIDC token for Infisical
+    outputs:
+      digest: ${{ steps.digest.outputs.digest }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -133,6 +135,14 @@ jobs:
       - name: Push to GHCR
         run: docker push ghcr.io/devidence-dev/automation-hub:${{ needs.version.outputs.tag }}
 
+      - name: Resolve pushed image digest
+        id: digest
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "ghcr.io/devidence-dev/automation-hub:${TAG}" | cut -d'@' -f2)
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+
       - name: Create and push git tag
         env:
           TAG: ${{ needs.version.outputs.tag }}
@@ -161,6 +171,7 @@ jobs:
         env:
           HOMELAB_DEPLOY_TOKEN: ${{ secrets.HOMELAB_DEPLOY_TOKEN }}
           TAG: ${{ needs.version.outputs.tag }}
+          DIGEST: ${{ needs.build.outputs.digest }}
           IS_REBUILD: ${{ needs.version.outputs.is_rebuild }}
         run: |
           rm -rf /tmp/homelab-automation-hub-deploy
@@ -169,12 +180,9 @@ jobs:
 
           VALUES=kubernetes/internal-apps/automation-hub/values.yaml
           sed -i "s|tag: .*|tag: \"${TAG}\"|" "$VALUES"
-
-          if [ "$IS_REBUILD" = "true" ]; then
-            # The tag does not change during a rebuild, so without this there would be
-            # no diff for ArgoCD to sync and the pod would never be recreated.
-            sed -i "s|rebuild-timestamp: .*|rebuild-timestamp: \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"|" "$VALUES"
-          fi
+          # Written on every deploy, not just rebuilds: a rebuild keeps the same tag but
+          # produces a new digest, which is what actually gives ArgoCD a diff to sync.
+          sed -i "s|digest: .*|digest: \"${DIGEST}\"|" "$VALUES"
 
           git config user.email "ci@devidence.dev"
           git config user.name "homelab-ci"
