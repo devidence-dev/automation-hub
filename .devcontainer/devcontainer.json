@@ -1,6 +1,6 @@
 {
   "name": "Automation Hub Dev Container",
-  "image": "mcr.microsoft.com/devcontainers/go:1.26",
+  "image": "golang:1.27.0-trixie",
   "shutdownAction": "stopContainer",
   "runArgs": [
     "--name",
@@ -19,6 +19,7 @@
   },
   "features": {
       "ghcr.io/devcontainers/features/common-utils:2": {
+        "username": "vscode",
         "installZsh": "true",
         "configureZshAsDefaultShell": "true",
         "installOhMyZsh": "true",

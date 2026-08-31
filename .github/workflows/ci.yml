@@ -155,12 +155,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # requerido para pedir el token OIDC a Infisical
+      id-token: write # required to request an OIDC token for Infisical
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0 # historia completa - si no, Sonar tira warning de "shallow clone"
+          fetch-depth: 0 # full history; otherwise, Sonar warns about a shallow clone
 
       - name: 🔧 Setup Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       bump:
-        description: "Cómo incrementar la versión (ignorado si se define custom_tag)"
+        description: "How to increment the version (ignored when custom_tag is set). 'rebuild' rebuilds the image for the current tag without bumping the version — use it when only the base image or language version changed, not the code."
         required: true
         default: patch
         type: choice
@@ -12,19 +12,20 @@ on:
           - patch
           - minor
           - major
+          - rebuild
       custom_tag:
-        description: "Tag personalizado (e.g. v1.2.3). Anula el bump automático si se define."
+        description: "Custom tag (e.g. v1.2.3). Overrides the automatic version bump when set."
         required: false
         type: string
       prerelease:
-        description: "Marcar como pre-release?"
+        description: "Mark as a prerelease?"
         required: false
         default: false
         type: boolean
 
 jobs:
   # ==========================================
-  # 🏷️ Calcular versión semver
+  # 🏷️ Calculate SemVer version
   # ==========================================
   version:
     name: 🏷️ Calculate version
@@ -33,6 +34,7 @@ jobs:
       contents: read
     outputs:
       tag: ${{ steps.semver.outputs.tag }}
+      is_rebuild: ${{ steps.semver.outputs.is_rebuild }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -46,6 +48,8 @@ jobs:
           BUMP: ${{ inputs.bump }}
           PRERELEASE: ${{ inputs.prerelease }}
         run: |
+          IS_REBUILD="false"
+
           if [ -n "$CUSTOM_TAG" ]; then
             TAG="$CUSTOM_TAG"
             [[ "$TAG" == v* ]] || TAG="v$TAG"
@@ -53,31 +57,40 @@ jobs:
             LATEST=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
             [ -z "$LATEST" ] && LATEST="v0.0.0"
 
-            MAJOR=$(echo "$LATEST" | cut -d. -f1 | tr -d 'v')
-            MINOR=$(echo "$LATEST" | cut -d. -f2)
-            PATCH=$(echo "$LATEST" | cut -d. -f3)
-
             BUMP_TYPE="$BUMP"
             [ -z "$BUMP_TYPE" ] && BUMP_TYPE="patch"
 
-            case "$BUMP_TYPE" in
-              major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
-              minor) MINOR=$((MINOR+1)); PATCH=0 ;;
-              patch) PATCH=$((PATCH+1)) ;;
-            esac
+            if [ "$BUMP_TYPE" = "rebuild" ]; then
+              # Reuse the published tag — there is no new version to calculate.
+              TAG="$LATEST"
+              IS_REBUILD="true"
+            else
+              MAJOR=$(echo "$LATEST" | cut -d. -f1 | tr -d 'v')
+              MINOR=$(echo "$LATEST" | cut -d. -f2)
+              PATCH=$(echo "$LATEST" | cut -d. -f3)
 
-            TAG="v${MAJOR}.${MINOR}.${PATCH}"
+              case "$BUMP_TYPE" in
+                major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
+                minor) MINOR=$((MINOR+1)); PATCH=0 ;;
+                patch) PATCH=$((PATCH+1)) ;;
+              esac
+
+              TAG="v${MAJOR}.${MINOR}.${PATCH}"
+            fi
           fi
 
-          if [ "$PRERELEASE" = "true" ]; then
+          # A prerelease always requires a new tag, so it cannot be combined with a
+          # rebuild (which reuses the existing tag by definition) and is ignored then.
+          if [ "$PRERELEASE" = "true" ] && [ "$IS_REBUILD" != "true" ]; then
             TAG="${TAG}-pre.$(date +%Y%m%d%H%M%S)"
           fi
 
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "Calculated version: $TAG"
+          echo "is_rebuild=$IS_REBUILD" >> "$GITHUB_OUTPUT"
+          echo "Calculated version: $TAG (rebuild=$IS_REBUILD)"
 
   # ==========================================
-  # 🏗️ Build & Push image + crear git tag
+  # 🏗️ Build and push image + create Git tag
   # ==========================================
   build:
     name: 🏗️ Build & Push image
@@ -121,11 +134,17 @@ jobs:
         run: docker push ghcr.io/devidence-dev/automation-hub:${{ needs.version.outputs.tag }}
 
       - name: Create and push git tag
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
         run: |
           git config user.email "ci@devidence.dev"
           git config user.name "homelab-ci"
-          git tag ${{ needs.version.outputs.tag }}
-          git push origin ${{ needs.version.outputs.tag }}
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "Tag $TAG ya existe (esperado en un rebuild), no se recrea."
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
 
   # ==========================================
   # 🚀 Deploy to production
@@ -141,15 +160,32 @@ jobs:
       - name: Update image tag in homelab
         env:
           HOMELAB_DEPLOY_TOKEN: ${{ secrets.HOMELAB_DEPLOY_TOKEN }}
+          TAG: ${{ needs.version.outputs.tag }}
+          IS_REBUILD: ${{ needs.version.outputs.is_rebuild }}
         run: |
           rm -rf /tmp/homelab-automation-hub-deploy
           git clone https://x-access-token:${HOMELAB_DEPLOY_TOKEN}@github.com/devidence-dev/homelab.git /tmp/homelab-automation-hub-deploy
           cd /tmp/homelab-automation-hub-deploy
-          sed -i "s|tag: .*|tag: \"${{ needs.version.outputs.tag }}\"|" \
-            kubernetes/internal-apps/automation-hub/values.yaml
+
+          VALUES=kubernetes/internal-apps/automation-hub/values.yaml
+          sed -i "s|tag: .*|tag: \"${TAG}\"|" "$VALUES"
+
+          if [ "$IS_REBUILD" = "true" ]; then
+            # The tag does not change during a rebuild, so without this there would be
+            # no diff for ArgoCD to sync and the pod would never be recreated.
+            sed -i "s|rebuild-timestamp: .*|rebuild-timestamp: \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"|" "$VALUES"
+          fi
+
           git config user.email "ci@devidence.dev"
           git config user.name "homelab-ci"
-          git add kubernetes/internal-apps/automation-hub/values.yaml
-          git commit -m "chore(automation-hub): bump image to ${{ needs.version.outputs.tag }}"
-          git push
+          git add "$VALUES"
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            MSG="chore(automation-hub): bump image to ${TAG}"
+            [ "$IS_REBUILD" = "true" ] && MSG="chore(automation-hub): rebuild image (same tag ${TAG})"
+            git commit -m "$MSG"
+            git push
+          fi
           rm -rf /tmp/homelab-automation-hub-deploy
