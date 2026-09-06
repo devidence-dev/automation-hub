@@ -44,17 +44,17 @@ jobs:
   deploy:
     name: 🚀 Build, Push & Deploy
     needs: resolve-build-args
-    uses: devidence-dev/workflows/.github/workflows/cd-build-deploy-semver.yml@main # TEMP: diagnostic, revert to @v1 once resolved
-    with:
-      app_name: automation-hub
-      dockerfile_path: deployments/docker/Dockerfile
-      build_args: "GO_VERSION=${{ needs.resolve-build-args.outputs.go_version }}"
-      values_path: kubernetes/internal-apps/automation-hub/values.yaml
-      bump: ${{ inputs.bump }}
-      custom_tag: ${{ inputs.custom_tag }}
-      prerelease: ${{ inputs.prerelease }}
-    secrets:
-      HOMELAB_DEPLOY_TOKEN: ${{ secrets.HOMELAB_DEPLOY_TOKEN }}
-    permissions:
-      contents: write
-      id-token: write
+    uses: devidence-dev/workflows/.github/workflows/test-hello-world.yml@main # TEMP: diagnostic, revert to @v1 once resolved
+    # with:
+    #   app_name: automation-hub
+    #   dockerfile_path: deployments/docker/Dockerfile
+    #   build_args: "GO_VERSION=${{ needs.resolve-build-args.outputs.go_version }}"
+    #   values_path: kubernetes/internal-apps/automation-hub/values.yaml
+    #   bump: ${{ inputs.bump }}
+    #   custom_tag: ${{ inputs.custom_tag }}
+    #   prerelease: ${{ inputs.prerelease }}
+    # secrets:
+    #   HOMELAB_DEPLOY_TOKEN: ${{ secrets.HOMELAB_DEPLOY_TOKEN }}
+    # permissions:
+    #   contents: write
+    #   id-token: write
