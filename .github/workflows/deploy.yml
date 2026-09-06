@@ -44,7 +44,7 @@ jobs:
   deploy:
     name: 🚀 Build, Push & Deploy
     needs: resolve-build-args
-    uses: devidence-dev/workflows/.github/workflows/cd-build-deploy-semver.yml@v1
+    uses: devidence-dev/workflows/.github/workflows/cd-build-deploy-semver.yml@main # TEMP: diagnostic, revert to @v1 once resolved
     with:
       app_name: automation-hub
       dockerfile_path: deployments/docker/Dockerfile
