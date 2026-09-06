@@ -207,7 +207,7 @@ func truncateString(s string, maxLen int) string {
 }
 
 func (p *GenericEmailProcessor) decodeQuotedPrintable(text string) string {
-	// Si el texto contiene caracteres quoted-printable, intentar decodificar
+	// If the text contains quoted-printable characters, try to decode it
 	if strings.Contains(text, "=") {
 		reader := quotedprintable.NewReader(strings.NewReader(text))
 		if decoded, err := io.ReadAll(reader); err == nil {

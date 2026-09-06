@@ -44,7 +44,7 @@ type ServiceProcessorConfig struct {
 	EmailSubject    []string `mapstructure:"email_subject"`
 	TelegramChatID  string   `mapstructure:"telegram_chat_id"`
 	TelegramMessage string   `mapstructure:"telegram_message"`
-	CodePattern     string   `mapstructure:"code_pattern,omitempty"` // regex personalizado opcional
+	CodePattern     string   `mapstructure:"code_pattern,omitempty"` // optional custom regex
 }
 
 type TelegramConfig struct {
