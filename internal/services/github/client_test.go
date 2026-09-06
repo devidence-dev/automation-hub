@@ -19,6 +19,24 @@ func (failingRoundTripper) RoundTrip(*http.Request) (*http.Response, error) {
 	return nil, errors.New("network unavailable")
 }
 
+func assertDispatchWorkflowRequest(t *testing.T, r *http.Request) {
+	t.Helper()
+
+	if r.Method != http.MethodPost {
+		t.Errorf("method = %s, want POST", r.Method)
+	}
+	if r.URL.Path != "/repos/owner/repo/actions/workflows/check-updates.yml/dispatches" {
+		t.Errorf("path = %s", r.URL.Path)
+	}
+	if r.Header.Get("Authorization") != "Bearer test-token" {
+		t.Errorf("Authorization header = %q", r.Header.Get("Authorization"))
+	}
+	body, _ := io.ReadAll(r.Body)
+	if string(body) != `{"ref":"master"}` {
+		t.Errorf("body = %s", body)
+	}
+}
+
 func TestDispatchWorkflow(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -34,19 +52,7 @@ func TestDispatchWorkflow(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Method != http.MethodPost {
-					t.Errorf("method = %s, want POST", r.Method)
-				}
-				if r.URL.Path != "/repos/owner/repo/actions/workflows/check-updates.yml/dispatches" {
-					t.Errorf("path = %s", r.URL.Path)
-				}
-				if r.Header.Get("Authorization") != "Bearer test-token" {
-					t.Errorf("Authorization header = %q", r.Header.Get("Authorization"))
-				}
-				body, _ := io.ReadAll(r.Body)
-				if string(body) != `{"ref":"master"}` {
-					t.Errorf("body = %s", body)
-				}
+				assertDispatchWorkflowRequest(t, r)
 				w.WriteHeader(tt.statusCode)
 				_, _ = w.Write([]byte(tt.response))
 			}))

@@ -53,7 +53,8 @@ jobs:
       bump: ${{ inputs.bump }}
       custom_tag: ${{ inputs.custom_tag }}
       prerelease: ${{ inputs.prerelease }}
-    secrets: inherit
+    secrets:
+      HOMELAB_DEPLOY_TOKEN: ${{ secrets.HOMELAB_DEPLOY_TOKEN }}
     permissions:
       contents: write
       id-token: write

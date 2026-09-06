@@ -21,6 +21,40 @@ func (failingRoundTripper) RoundTrip(*http.Request) (*http.Response, error) {
 	return nil, errors.New("network unavailable")
 }
 
+func assertRestartDeploymentRequest(t *testing.T, r *http.Request) {
+	t.Helper()
+
+	if r.Method != http.MethodPatch {
+		t.Errorf("method = %s, want PATCH", r.Method)
+	}
+	if r.URL.Path != "/apis/apps/v1/namespaces/infrastructure/deployments/github-runner" {
+		t.Errorf("path = %s", r.URL.Path)
+	}
+	if r.Header.Get("Authorization") != "Bearer test-token" {
+		t.Errorf("Authorization header = %q", r.Header.Get("Authorization"))
+	}
+	if ct := r.Header.Get("Content-Type"); ct != "application/strategic-merge-patch+json" {
+		t.Errorf("Content-Type = %q", ct)
+	}
+
+	body, _ := io.ReadAll(r.Body)
+	var patch struct {
+		Spec struct {
+			Template struct {
+				Metadata struct {
+					Annotations map[string]string `json:"annotations"`
+				} `json:"metadata"`
+			} `json:"template"`
+		} `json:"spec"`
+	}
+	if err := json.Unmarshal(body, &patch); err != nil {
+		t.Fatalf("invalid patch body: %v", err)
+	}
+	if _, ok := patch.Spec.Template.Metadata.Annotations["kubectl.kubernetes.io/restartedAt"]; !ok {
+		t.Errorf("patch body missing restartedAt annotation: %s", body)
+	}
+}
+
 func TestRestartDeployment(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -35,36 +69,7 @@ func TestRestartDeployment(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Method != http.MethodPatch {
-					t.Errorf("method = %s, want PATCH", r.Method)
-				}
-				if r.URL.Path != "/apis/apps/v1/namespaces/infrastructure/deployments/github-runner" {
-					t.Errorf("path = %s", r.URL.Path)
-				}
-				if r.Header.Get("Authorization") != "Bearer test-token" {
-					t.Errorf("Authorization header = %q", r.Header.Get("Authorization"))
-				}
-				if ct := r.Header.Get("Content-Type"); ct != "application/strategic-merge-patch+json" {
-					t.Errorf("Content-Type = %q", ct)
-				}
-
-				body, _ := io.ReadAll(r.Body)
-				var patch struct {
-					Spec struct {
-						Template struct {
-							Metadata struct {
-								Annotations map[string]string `json:"annotations"`
-							} `json:"metadata"`
-						} `json:"template"`
-					} `json:"spec"`
-				}
-				if err := json.Unmarshal(body, &patch); err != nil {
-					t.Fatalf("invalid patch body: %v", err)
-				}
-				if _, ok := patch.Spec.Template.Metadata.Annotations["kubectl.kubernetes.io/restartedAt"]; !ok {
-					t.Errorf("patch body missing restartedAt annotation: %s", body)
-				}
-
+				assertRestartDeploymentRequest(t, r)
 				w.WriteHeader(tt.statusCode)
 			}))
 			defer server.Close()
