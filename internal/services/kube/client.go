@@ -100,7 +100,7 @@ func (c *Client) RestartDeployment(ctx context.Context, namespace, name string) 
 	if err != nil {
 		return fmt.Errorf("restart deployment request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusOK {
 		return nil
@@ -138,7 +138,7 @@ func (c *Client) getDeployment(ctx context.Context, namespace, name string) (dep
 	if err != nil {
 		return deploymentStatus{}, fmt.Errorf("get deployment request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))

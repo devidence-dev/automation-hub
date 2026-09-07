@@ -14,7 +14,7 @@ func TestLoadSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	configContent := `
 server:
@@ -44,7 +44,7 @@ hook:
       telegram_message: "Downloaded: %s"
 `
 	configFilePath := filepath.Join(tmpDir, "config.yaml")
-	if err := os.WriteFile(configFilePath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configFilePath, []byte(configContent), 0600); err != nil {
 		t.Fatalf("Failed to write test config file: %v", err)
 	}
 
@@ -85,6 +85,8 @@ hook:
 }
 
 func TestLoadErrorMissingConfig(t *testing.T) {
+	t.Chdir(t.TempDir()) // isolate from the repo's own config.yaml/configs/
+
 	viper.Reset()
 	viper.SetConfigName("non_existent_config_file_name_12345")
 	viper.SetConfigType("yaml")
@@ -101,7 +103,7 @@ func TestLoadInvalidYaml(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	invalidContent := `
 server:
@@ -109,7 +111,7 @@ server:
 email:
   invalid_yaml: [unclosed bracket
 `
-	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), []byte(invalidContent), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), []byte(invalidContent), 0600); err != nil {
 		t.Fatalf("Failed to write invalid config file: %v", err)
 	}
 

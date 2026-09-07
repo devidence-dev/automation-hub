@@ -65,7 +65,7 @@ func (c *Client) DispatchWorkflow(ctx context.Context, owner, repo, workflowFile
 	if err != nil {
 		return fmt.Errorf("dispatch workflow request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNoContent {
 		return nil
@@ -105,7 +105,7 @@ func (c *Client) FindLatestRunURL(ctx context.Context, owner, repo, workflowFile
 	if err != nil {
 		return "", fmt.Errorf("list workflow runs request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		responseBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
