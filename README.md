@@ -123,8 +123,8 @@ Configure `workflow_bot.bot_token` with the existing bot token used by `github-r
 
 The example config registers these commands:
 
-- `/run_check_updates` dispatches `check-updates.yml`.
-- `/run_cleanup` dispatches `cleanup.yml`.
+- `/run_check_updates` dispatches `ops-github-runner-check-updates.yml` in `devidence-dev/workflows`.
+- `/run_cleanup` dispatches `ops-github-runner-cleanup.yml` in `devidence-dev/workflows`.
 
 Each command has its own `allowed_chat_ids`; requests from other chats are rejected before GitHub is called. To add another ad-hoc workflow, add an entry under `workflows` with a unique lowercase `command` (letters, digits, underscores; 1–32 characters), its repository details, branch (`ref`), and allowlist. Restarting the hub synchronizes the Telegram command menu and restarts long polling. Only one process may consume updates for this bot token; a second `getUpdates` consumer or webhook would cause Telegram to return a `409 Conflict`.
 
