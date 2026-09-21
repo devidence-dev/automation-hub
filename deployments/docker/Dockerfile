@@ -16,7 +16,7 @@ ARG TARGETARCH
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -o automation-hub cmd/automation-hub/main.go
 
 # Final stage
-FROM alpine:3.24.1
+FROM alpine:3.24.2
 
 RUN apk --no-cache add ca-certificates && \
     adduser -D -u 1000 appuser
