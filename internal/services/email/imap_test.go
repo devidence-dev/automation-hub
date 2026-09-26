@@ -12,12 +12,9 @@ import (
 )
 
 type mockNamedProcessor struct {
-	name   string
-	sender string
-}
-
-func (m *mockNamedProcessor) GetName() string {
-	return m.name
+	name       string
+	sender     string
+	markAsRead bool
 }
 
 func (m *mockNamedProcessor) GetSender() string {
@@ -30,6 +27,10 @@ func (m *mockNamedProcessor) ShouldProcess(email models.Email) bool {
 
 func (m *mockNamedProcessor) Process(email models.Email) error {
 	return nil
+}
+
+func (m *mockNamedProcessor) ShouldMarkAsRead() bool {
+	return m.markAsRead
 }
 
 func TestNewIMAPClient(t *testing.T) {
@@ -97,22 +98,22 @@ func TestHandlePostProcessing(t *testing.T) {
 	email := models.Email{Subject: "Test"}
 	msg := &imap.Message{SeqNum: 1}
 
-	// Processor without GetName interface
+	// Processor without ShouldMarkAsRead interface
 	structProcessor := &models.TorrentNotification{}
 	client.handlePostProcessing(nil, nil, msg, email)
 	_ = structProcessor
 
-	// Processor named "perplexity"
-	perplexityProc := &mockNamedProcessor{name: "perplexity", sender: "perplexity@test.com"}
-	client.handlePostProcessing(nil, perplexityProc, msg, email)
+	// Processor configured to mark as read (mark_as_read: true or unset)
+	readProc := &mockNamedProcessor{name: "perplexity", sender: "perplexity@test.com", markAsRead: true}
+	client.handlePostProcessing(nil, readProc, msg, email)
 
-	// Processor named "cloudflare"
-	cfProc := &mockNamedProcessor{name: "cloudflare", sender: "cf@test.com"}
+	// Another processor configured to mark as read
+	cfProc := &mockNamedProcessor{name: "cloudflare", sender: "cf@test.com", markAsRead: true}
 	client.handlePostProcessing(nil, cfProc, msg, email)
 
-	// Processor named "other"
-	otherProc := &mockNamedProcessor{name: "generic", sender: "other@test.com"}
-	client.handlePostProcessing(nil, otherProc, msg, email)
+	// Processor explicitly configured with mark_as_read: false
+	unreadProc := &mockNamedProcessor{name: "generic", sender: "other@test.com", markAsRead: false}
+	client.handlePostProcessing(nil, unreadProc, msg, email)
 }
 
 func TestMarkAsReadAndUnreadNilClient(t *testing.T) {

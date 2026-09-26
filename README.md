@@ -255,6 +255,7 @@ email:
         telegram_chat_id: "YOUR_CHAT_ID"
         telegram_message: "🐙 GitHub Code: ```%s```"
         code_pattern: "\\b\\d{6}\\b"  # Custom regex for 6-digit codes
+        mark_as_read: true  # Optional: mark the email as read after processing (default: true)
 ```
 
 **That's it!** The system will automatically:
@@ -262,6 +263,7 @@ email:
 - ✅ Match subject patterns
 - ✅ Extract codes using the pattern
 - ✅ Send formatted Telegram notifications
+- ✅ Mark the email as read (unless `mark_as_read: false`), so it isn't re-forwarded on the next poll
 
 ---
 

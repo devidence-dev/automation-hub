@@ -12,10 +12,10 @@
     "semantic_hash": "ecf6e49fcf3a209ccf6be0a268cae46b"
   },
   "internal/config/config.go": {
-    "mtime": 1790444273.2293978,
-    "seen": 1790444435.3355837,
-    "ast_hash": "c93bc90bc4744847d8557843168e806e",
-    "semantic_hash": ""
+    "mtime": 1788207146.0056393,
+    "seen": 1790443336.5483835,
+    "ast_hash": "4733f3137381cc8626ac56ca896e3616",
+    "semantic_hash": "4733f3137381cc8626ac56ca896e3616"
   },
   "internal/handlers/webhook.go": {
     "mtime": 1764896463.0,
@@ -36,16 +36,16 @@
     "semantic_hash": "f2f502a37dc8268ee428c3553c0ec849"
   },
   "internal/services/email/imap.go": {
-    "mtime": 1790444286.6805315,
-    "seen": 1790444435.3355901,
-    "ast_hash": "826a57200d3d41369d511731eb14834e",
-    "semantic_hash": ""
+    "mtime": 1784773176.0,
+    "seen": 1790443336.5483892,
+    "ast_hash": "77443094fa1c278eac8c9a17bf55f91d",
+    "semantic_hash": "77443094fa1c278eac8c9a17bf55f91d"
   },
   "internal/services/processor/generic.go": {
-    "mtime": 1790444277.897097,
-    "seen": 1790444435.3355944,
-    "ast_hash": "de8b5b44381ae5bd0e9388106b4b7775",
-    "semantic_hash": ""
+    "mtime": 1788207146.2736218,
+    "seen": 1790443336.5483937,
+    "ast_hash": "d0065b7d226c8ee28940a02c70550c17",
+    "semantic_hash": "d0065b7d226c8ee28940a02c70550c17"
   },
   "internal/services/processor/manager.go": {
     "mtime": 1764896463.0,
@@ -90,10 +90,10 @@
     "semantic_hash": "82efb97a359f5c7290bf2513d14686be"
   },
   "README.md": {
-    "mtime": 1790444402.3450801,
-    "seen": 1790444435.3356023,
-    "ast_hash": "569a0fc718ae39e0440bc632cc55803b",
-    "semantic_hash": ""
+    "mtime": 1788818661.0742412,
+    "seen": 1790443336.5484009,
+    "ast_hash": "ccd3c378690a399f74ae2cbb9893a114",
+    "semantic_hash": "ccd3c378690a399f74ae2cbb9893a114"
   },
   "docker-compose.yml": {
     "mtime": 1771134794.0,
@@ -114,10 +114,10 @@
     "semantic_hash": "f9ad97ca34c5c02fb41ddbdec345224f"
   },
   "internal/services/email/imap_test.go": {
-    "mtime": 1790444306.9152284,
-    "seen": 1790444435.3355908,
-    "ast_hash": "02a816b94ad299f0d4d0021208546aaa",
-    "semantic_hash": ""
+    "mtime": 1784773430.0,
+    "seen": 1790443336.5483902,
+    "ast_hash": "34dcb52dfb3b505018b0e512e230ce5d",
+    "semantic_hash": "34dcb52dfb3b505018b0e512e230ce5d"
   },
   "internal/services/processor/generic_test.go": {
     "mtime": 1784773176.0,

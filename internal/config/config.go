@@ -45,6 +45,17 @@ type ServiceProcessorConfig struct {
 	TelegramChatID  string   `mapstructure:"telegram_chat_id"`
 	TelegramMessage string   `mapstructure:"telegram_message"`
 	CodePattern     string   `mapstructure:"code_pattern,omitempty"` // optional custom regex
+	MarkAsRead      *bool    `mapstructure:"mark_as_read,omitempty"` // optional; defaults to true
+}
+
+// ShouldMarkAsRead reports whether a processed email should be flagged as
+// read. Unset (nil) defaults to true, since leaving it unread means the
+// same code gets re-forwarded to Telegram on every poll cycle.
+func (c ServiceProcessorConfig) ShouldMarkAsRead() bool {
+	if c.MarkAsRead == nil {
+		return true
+	}
+	return *c.MarkAsRead
 }
 
 type TelegramConfig struct {

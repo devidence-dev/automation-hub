@@ -1,157 +1,139 @@
-# Graph Report - automation-hub  (2026-08-21)
+# Graph Report - automation-hub  (2026-09-26)
 
 ## Corpus Check
-- 24 files · ~9,743 words
+- 28 files · ~12,484 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 257 nodes · 428 edges · 17 communities (15 shown, 2 thin omitted)
-- Extraction: 88% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 49 edges (avg confidence: 0.81)
+- 273 nodes · 574 edges · 19 communities (12 shown, 7 thin omitted)
+- Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 57 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d82ee34a`
+- Built from commit: `fcb89d26`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- Torrent Webhook Handling
-- Generic Email Processor
-- Processor Manager & Models
-- Deployment & Docs
-- IMAP Email Client
-- CI Security & Quality Tooling
-- Telegram Notifications
-- Email Message Parsing
-- Model Tests
-- Root Package
-- CLAUDE.md
-- NewGenericEmailProcessor
-- NewWebhookHandler
-- NewIMAPClient
-- parseInt64
+- go.uber.org/zap.Logger
+- testing.T
 - BotHandler
-- client_test.go
+- 🤖 Automation Hub
+- config.go
+- GenericEmailProcessor
+- IMAPClient
+- context.Context
+- net/http.Request
+- NewIMAPClient
+- Client
+- NewWebhookHandler
+- CLAUDE.md
+- automation-hub-network Bridge Network
+- Dependabot Docker Update Config (deployments/docker)
+- Dependabot GitHub Actions Update Config
+- Dependabot Go Modules Update Config
+- Graphify Knowledge-Graph Workflow Rules
+- automation-hub
 
 ## God Nodes (most connected - your core abstractions)
-1. `IMAPClient` - 16 edges
-2. `GenericEmailProcessor` - 14 edges
-3. `NewGenericEmailProcessor()` - 14 edges
-4. `Config` - 12 edges
-5. `🤖 Automation Hub` - 12 edges
-6. `BotHandler` - 10 edges
-7. `NewWebhookHandler()` - 9 edges
-8. `Email` - 9 edges
-9. `NewIMAPClient()` - 9 edges
-10. `Manager` - 9 edges
+1. `Client` - 17 edges
+2. `IMAPClient` - 16 edges
+3. `BotHandler` - 15 edges
+4. `NewBotHandler()` - 15 edges
+5. `GenericEmailProcessor` - 15 edges
+6. `NewGenericEmailProcessor()` - 14 edges
+7. `Config` - 13 edges
+8. `🤖 Automation Hub` - 12 edges
+9. `NewClientWithBaseURL()` - 11 edges
+10. `NewWebhookHandler()` - 10 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `Security & Quality Tooling List (README claims)` --conceptually_related_to--> `CI Job: OSV Scanner (dependency vulnerabilities)`  [AMBIGUOUS]
-  README.md → .github/workflows/ci.yml
-- `Security & Quality Tooling List (README claims)` --conceptually_related_to--> `CI Job: OWASP Dependency-Check (CVE scanner)`  [AMBIGUOUS]
-  README.md → .github/workflows/ci.yml
-- `Security & Quality Tooling List (README claims)` --conceptually_related_to--> `Dependabot Go Modules Update Config`  [INFERRED]
-  README.md → .github/dependabot.yml
-- `Security & Quality Tooling List (README claims)` --conceptually_related_to--> `CI Job: Lint Code (golangci-lint)`  [INFERRED]
-  README.md → .github/workflows/ci.yml
-- `Security & Quality Tooling List (README claims)` --conceptually_related_to--> `CI Job: SAST (Semgrep SARIF, self-hosted)`  [INFERRED]
-  README.md → .github/workflows/ci.yml
+- `📝 Step 2: Configure Services` --references--> `ServiceConfig`  [INFERRED]
+  README.md → internal/config/config.go
+- `🤖 Step 3: Setup Telegram Bot` --references--> `TelegramConfig`  [INFERRED]
+  README.md → internal/config/config.go
+- `▶️ Trigger GitHub Actions from Telegram` --references--> `WorkflowBotConfig`  [INFERRED]
+  README.md → internal/config/config.go
+- `main()` --calls--> `Load()`  [EXTRACTED]
+  cmd/automation-hub/main.go → internal/config/config.go
+- `main()` --calls--> `NewBotHandler()`  [EXTRACTED]
+  cmd/automation-hub/main.go → internal/handlers/telegram_bot.go
 
 ## Import Cycles
 - None detected.
 
 ## Hyperedges (group relationships)
-- **CI Pipeline Jobs (Tests, Lint, OSV, Dependency-Check, SAST)** — _github_workflows_ci_test_and_build, _github_workflows_ci_lint, _github_workflows_ci_osv_scan, _github_workflows_ci_dependency_check, _github_workflows_ci_sast [EXTRACTED 1.00]
-- **Build and Deploy Pipeline Jobs (Version, Build, Deploy)** — _github_workflows_deploy_version, _github_workflows_deploy_build, _github_workflows_deploy_deploy [EXTRACTED 1.00]
 - **Dependabot Multi-Ecosystem Update Strategy (gomod, docker, github-actions)** — _github_dependabot_gomod_updates, _github_dependabot_docker_updates, _github_dependabot_github_actions_updates [EXTRACTED 1.00]
 
-## Communities (17 total, 2 thin omitted)
+## Communities (19 total, 7 thin omitted)
 
-### Community 0 - "Torrent Webhook Handling"
-Cohesion: 0.22
-Nodes (16): Config, EmailConfig, GitHubConfig, ServerConfig, ServiceConfig, ServiceProcessorConfig, TelegramConfig, WebhookConfig (+8 more)
-
-### Community 1 - "Generic Email Processor"
-Cohesion: 0.16
-Nodes (16): Client, Logger, NewGenericEmailProcessor(), T, TestDecodeQuotedPrintable(), TestExtractCode(), TestExtractPerplexityCode(), TestNewGenericEmailProcessor_BuiltInPatterns() (+8 more)
-
-### Community 2 - "Processor Manager & Models"
-Cohesion: 0.12
-Nodes (13): mockNamedProcessor, Client, Context, Logger, NewProcessorManager(), T, TestProcessorManager(), TestProcessorManager_CanceledContextAsync() (+5 more)
-
-### Community 3 - "Deployment & Docs"
-Cohesion: 0.12
-Nodes (21): Dependabot Docker Update Config (deployments/docker), Dependabot GitHub Actions Update Config, Dependabot Go Modules Update Config, CI Job: OWASP Dependency-Check (CVE scanner), CI Job: Lint Code (golangci-lint), CI Job: OSV Scanner (dependency vulnerabilities), CI Job: SAST (Semgrep SARIF, self-hosted), CI Job: Tests & Build (+13 more)
-
-### Community 4 - "IMAP Email Client"
+### Community 0 - "go.uber.org/zap.Logger"
 Cohesion: 0.24
-Nodes (5): IMAPClient, Client, Context, Message, Literal
+Nodes (15): Client, workflowRun, workflowRunsResponse, go.uber.org/zap.Logger, net/http.Client, NewClient(), newClient(), NewClientWithBaseURL() (+7 more)
 
-### Community 5 - "CI Security & Quality Tooling"
-Cohesion: 0.22
-Nodes (7): fakeDispatcher, fakeMessenger, commandUpdate(), Context, T, Update, TestBotHandlerHandle()
+### Community 1 - "testing.T"
+Cohesion: 0.14
+Nodes (27): Client, net/http.HandlerFunc, net/http.ResponseWriter, testing.T, TestEmail(), TestTorrentNotification(), NewGenericEmailProcessor(), TestDecodeQuotedPrintable() (+19 more)
 
-### Community 6 - "Telegram Notifications"
-Cohesion: 0.07
-Nodes (29): 🔄 Adding New Email Services, 🆕 Adding New Webhooks, � API & Webhooks, Authors and acknowledgment 🛡, 🤖 Automation Hub, 📡 Available Endpoints, 🚨 Common Issues, ⚙️ Configuration (+21 more)
+### Community 2 - "BotHandler"
+Cohesion: 0.14
+Nodes (21): github.com/go-telegram-bot-api/telegram-bot-api/v5.Message, github.com/go-telegram-bot-api/telegram-bot-api/v5.Update, sync.Mutex, BotHandler, deploymentRestarter, fakeMessenger, telegramMessenger, workflowDispatcher (+13 more)
 
-### Community 7 - "Email Message Parsing"
+### Community 3 - "🤖 Automation Hub"
+Cohesion: 0.08
+Nodes (25): CI Pipeline Workflow, Deploy Job: Build, Push & Deploy, Deploy Job: Resolve Build Args, Devidence CD Build Deploy Reusable Workflow, Build and Deploy Workflow, README, Authors and Acknowledgment, 🤖 Automation Hub (+17 more)
+
+### Community 4 - "config.go"
+Cohesion: 0.15
+Nodes (20): GitHubConfig, ServerConfig, ServiceConfig, TelegramConfig, WebhookConfig, WorkflowBotConfig, Config, EmailConfig (+12 more)
+
+### Community 5 - "GenericEmailProcessor"
+Cohesion: 0.09
+Nodes (12): mockNamedProcessor, regexp.Regexp, sync.WaitGroup, Email, EmailProcessor, TorrentNotification, truncateString(), NewProcessorManager() (+4 more)
+
+### Community 6 - "IMAPClient"
+Cohesion: 0.28
+Nodes (4): IMAPClient, github.com/emersion/go-imap/client.Client, imap.Literal, imap.Message
+
+### Community 7 - "context.Context"
+Cohesion: 0.11
+Nodes (19): context.Context, time.Duration, time.Time, fakeDispatcher, fakeRestarter, newClient(), NewClientWithBaseURL(), NewInClusterClient() (+11 more)
+
+### Community 8 - "net/http.Request"
+Cohesion: 0.32
+Nodes (5): failingRoundTripper, net/http.Request, net/http.Response, failingRoundTripper, failingHTTPClient
+
+### Community 9 - "NewIMAPClient"
 Cohesion: 0.23
-Nodes (13): WebhookProcessorConfig, Request, ResponseWriter, GetWebhookConfig(), Client, Logger, NewTorrentProcessor(), NewTorrentProcessorLegacy() (+5 more)
+Nodes (9): CI Job: Devidence Go CI, Devidence Go CI Reusable Workflow, main(), NewIMAPClient(), TestExtractTextPlain(), TestHandlePostProcessing(), TestMarkAsReadAndUnreadNilClient(), TestNewIMAPClient() (+1 more)
 
-### Community 8 - "Model Tests"
-Cohesion: 0.67
-Nodes (3): T, TestEmail(), TestTorrentNotification()
-
-### Community 11 - "NewGenericEmailProcessor"
-Cohesion: 0.18
-Nodes (14): Client, failingRoundTripper, HandlerFunc, Context, Logger, NewClient(), NewClientWithBaseURL(), Request (+6 more)
+### Community 11 - "Client"
+Cohesion: 0.14
+Nodes (17): github.com/go-telegram-bot-api/telegram-bot-api/v5.BotAPI, github.com/go-telegram-bot-api/telegram-bot-api/v5.BotCommand, github.com/go-telegram-bot-api/telegram-bot-api/v5.HTTPClient, WebhookProcessorConfig, GetWebhookConfig(), NewTorrentProcessor(), NewTorrentProcessorLegacy(), TestGetWebhookConfig() (+9 more)
 
 ### Community 12 - "NewWebhookHandler"
-Cohesion: 0.35
-Nodes (9): WebhookHandler, Client, Logger, NewWebhookHandler(), T, TestHandleTorrentComplete_InvalidJSON(), TestHandleTorrentComplete_MissingWebhookConfig(), TestHandleTorrentComplete_Success() (+1 more)
-
-### Community 13 - "NewIMAPClient"
-Cohesion: 0.44
-Nodes (8): Logger, NewIMAPClient(), T, TestExtractTextPlain(), TestHandlePostProcessing(), TestMarkAsReadAndUnreadNilClient(), TestNewIMAPClient(), TestParseMessage()
-
-### Community 14 - "parseInt64"
-Cohesion: 0.20
-Nodes (10): BotAPI, BotCommand, HTTPClient, Context, Logger, Update, NewClient(), newHTTPClient() (+2 more)
-
-### Community 15 - "BotHandler"
-Cohesion: 0.28
-Nodes (10): WorkflowCommandConfig, BotHandler, telegramMessenger, workflowDispatcher, Logger, Message, Update, isAllowed() (+2 more)
-
-### Community 16 - "client_test.go"
-Cohesion: 0.20
-Nodes (18): Client, Request, Response, ResponseWriter, T, newTestClient(), TestNewClient(), TestParseInt64() (+10 more)
-
-## Ambiguous Edges - Review These
-- `CI Job: OSV Scanner (dependency vulnerabilities)` → `Security & Quality Tooling List (README claims)`  [AMBIGUOUS]
-  README.md · relation: conceptually_related_to
-- `CI Job: OWASP Dependency-Check (CVE scanner)` → `Security & Quality Tooling List (README claims)`  [AMBIGUOUS]
-  README.md · relation: conceptually_related_to
+Cohesion: 0.21
+Nodes (11): WebhookHandler, NewWebhookHandler(), TestHandleTorrentComplete_InvalidJSON(), TestHandleTorrentComplete_MissingWebhookConfig(), TestHandleTorrentComplete_Success(), TestNewWebhookHandler(), Adding New Email Services, Adding New Webhooks (+3 more)
 
 ## Knowledge Gaps
-- **27 isolated node(s):** `automation-hub`, `graphify`, `🛡️ Security & Quality`, `✨ Features`, `📋 Prerequisites` (+22 more)
-  These have ≤1 connection - possible missing edges or undocumented components.
-- **2 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **26 isolated node(s):** `automation-hub`, `graphify`, `✨ Features`, `📄 License`, `🚀 Option 1: Docker Compose (Recommended)` (+21 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 45 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **7 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **What is the exact relationship between `CI Job: OSV Scanner (dependency vulnerabilities)` and `Security & Quality Tooling List (README claims)`?**
-  _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
-- **What is the exact relationship between `CI Job: OWASP Dependency-Check (CVE scanner)` and `Security & Quality Tooling List (README claims)`?**
-  _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
-- **Why does `EmailConfig` connect `Torrent Webhook Handling` to `Processor Manager & Models`, `IMAP Email Client`, `NewIMAPClient`?**
-  _High betweenness centrality (0.123) - this node is a cross-community bridge._
-- **Why does `Config` connect `Torrent Webhook Handling` to `NewWebhookHandler`, `Email Message Parsing`, `BotHandler`?**
-  _High betweenness centrality (0.099) - this node is a cross-community bridge._
-- **Why does `WorkflowCommandConfig` connect `BotHandler` to `Torrent Webhook Handling`?**
-  _High betweenness centrality (0.090) - this node is a cross-community bridge._
-- **Are the 9 inferred relationships involving `NewGenericEmailProcessor()` (e.g. with `TestDecodeQuotedPrintable()` and `TestExtractCode()`) actually correct?**
-  _`NewGenericEmailProcessor()` has 9 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `automation-hub`, `graphify`, `🛡️ Security & Quality` to the rest of the system?**
-  _27 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `🤖 Automation Hub` connect `🤖 Automation Hub` to `NewWebhookHandler`, `config.go`?**
+  _High betweenness centrality (0.154) - this node is a cross-community bridge._
+- **Why does `IMAPClient` connect `IMAPClient` to `go.uber.org/zap.Logger`, `NewIMAPClient`, `config.go`?**
+  _High betweenness centrality (0.104) - this node is a cross-community bridge._
+- **What connects `automation-hub`, `graphify`, `✨ Features` to the rest of the system?**
+  _26 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `testing.T` be split into smaller, more focused modules?**
+  _Cohesion score 0.14482758620689656 - nodes in this community are weakly interconnected._
+- **Should `BotHandler` be split into smaller, more focused modules?**
+  _Cohesion score 0.14015151515151514 - nodes in this community are weakly interconnected._
+- **Should `🤖 Automation Hub` be split into smaller, more focused modules?**
+  _Cohesion score 0.08333333333333333 - nodes in this community are weakly interconnected._
+- **Should `config.go` be split into smaller, more focused modules?**
+  _Cohesion score 0.14624505928853754 - nodes in this community are weakly interconnected._

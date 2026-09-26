@@ -215,24 +215,20 @@ func (c *IMAPClient) processMessage(imapClient *client.Client, msg *imap.Message
 }
 
 func (c *IMAPClient) handlePostProcessing(imapClient *client.Client, processor models.EmailProcessor, msg *imap.Message, email models.Email) {
-	named, ok := processor.(interface{ GetName() string })
+	marker, ok := processor.(interface{ ShouldMarkAsRead() bool })
 	if !ok {
-		c.logger.Debug("Processor has no GetName, not marking as read",
+		c.logger.Debug("Processor has no ShouldMarkAsRead, not marking as read",
 			zap.String("subject", email.Subject))
 		return
 	}
 
-	name := strings.ToLower(named.GetName())
-	// Only mark as read for Perplexity and Cloudflare processors
-	if name == "perplexity" || name == "cloudflare" {
-		c.logger.Info("Marking email as read (whitelisted processor)",
-			zap.String("processor", name),
+	if marker.ShouldMarkAsRead() {
+		c.logger.Info("Marking email as read",
 			zap.String("from", email.From),
 			zap.String("subject", email.Subject))
 		c.markAsRead(imapClient, msg.SeqNum)
 	} else {
-		c.logger.Info("Email processed but NOT marked as read (processor not whitelisted)",
-			zap.String("processor", name),
+		c.logger.Info("Email processed but NOT marked as read (mark_as_read: false in config)",
 			zap.String("from", email.From),
 			zap.String("subject", email.Subject))
 	}

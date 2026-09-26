@@ -52,6 +52,16 @@ email:
         telegram_chat_id: "{{TELEGRAM_CLOUDFLARE_CHAT_ID}}"
         telegram_message: "🛡️ Cloudflare App Code: \n```%s```"
         # code_pattern: "\\b\\d{6}\\b"  # Optional: custom regex pattern
+        # mark_as_read: false  # Optional: leave the email unread after processing (default: true)
+    - name: "openai"
+      config:
+        email_from: "noreply@tm.openai.com"
+        email_subject:
+          - "Your temporary ChatGPT login code"
+          - "Tu código temporal de inicio de sesión de ChatGPT"
+        telegram_chat_id: "{{TELEGRAM_OPENAI_CHAT_ID}}"
+        telegram_message: "🤖 ChatGPT Code: ```%s```"
+        code_pattern: "\\b\\d{6}\\b"
     - name: "perplexity"
       config:
         email_from: "team@mail.perplexity.ai"
