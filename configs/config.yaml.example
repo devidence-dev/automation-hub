@@ -61,7 +61,11 @@ email:
           - "Tu código temporal de inicio de sesión de ChatGPT"
         telegram_chat_id: "{{TELEGRAM_OPENAI_CHAT_ID}}"
         telegram_message: "🤖 ChatGPT Code: ```%s```"
-        code_pattern: "\\b\\d{6}\\b"
+        # HTML email body has inline CSS hex colors (e.g. "#202123") that a
+        # bare \b\d{6}\b would greedily match before the real code. The
+        # leading [^#] + capture group rules those out (see generic.go's
+        # extractCode: it prefers submatch group 1 when the pattern has one).
+        code_pattern: "[^#]\\b(\\d{6})\\b"
     - name: "perplexity"
       config:
         email_from: "team@mail.perplexity.ai"

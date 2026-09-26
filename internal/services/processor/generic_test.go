@@ -146,6 +146,29 @@ func TestExtractCode(t *testing.T) {
 	}
 }
 
+// TestExtractCode_IgnoresHexColor guards against a real production bug: an
+// HTML email body with inline CSS hex colors (e.g. "color:#202123") got
+// matched by a bare \b\d{6}\b before ever reaching the real 6-digit code
+// further down. A pattern with a capturing group like "[^#]\b(\d{6})\b"
+// (OpenAI's configured code_pattern) must skip the hex color and return the
+// actual code via submatch group 1.
+func TestExtractCode_IgnoresHexColor(t *testing.T) {
+	logger := zap.NewNop()
+	cfg := config.ServiceProcessorConfig{
+		EmailFrom:   "noreply@tm.openai.com",
+		CodePattern: `[^#]\b(\d{6})\b`,
+	}
+
+	p := NewGenericEmailProcessor("openai", cfg, nil, logger)
+
+	body := "background-color: #ffffff;color:#202123; padding: 0\n" +
+		"Ingresa este codigo:\n662575\n"
+	code := p.extractCode(body)
+	if code != "662575" {
+		t.Errorf("Expected 662575 (ignoring the #202123 hex color), got %s", code)
+	}
+}
+
 func TestExtractPerplexityCode(t *testing.T) {
 	logger := zap.NewNop()
 	cfg := config.ServiceProcessorConfig{

@@ -127,10 +127,17 @@ func (p *GenericEmailProcessor) extractCode(text string) string {
 
 	matches := p.codePattern.FindStringSubmatch(body)
 	if len(matches) > 0 {
+		code := matches[0]
+		// A pattern with a capturing group (e.g. "[^#]\b(\d{6})\b", to rule
+		// out a CSS hex color like "#202123" matching as a bare 6-digit
+		// run) wants group 1, not the full match including its anchor char.
+		if len(matches) > 1 && matches[1] != "" {
+			code = matches[1]
+		}
 		p.logger.Info("Code extracted successfully",
 			zap.String("service", p.name),
-			zap.String("code", matches[0]))
-		return matches[0]
+			zap.String("code", code))
+		return code
 	}
 	p.logger.Warn("Code not found in email",
 		zap.String("service", p.name),
