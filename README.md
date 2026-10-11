@@ -126,6 +126,8 @@ The example config registers these commands:
 - `/run_check_updates` dispatches `ops-github-runner-check-updates.yml` in `devidence-dev/workflows`.
 - `/run_cleanup` dispatches `ops-github-runner-cleanup.yml` in `devidence-dev/workflows`.
 
+An entry can also carry an optional `schedule`, a 5-field cron expression (minute, hour, day of month, month, day of week) evaluated in `America/Guayaquil`. For example, `schedule: "0 9 * * 1,3,5"` dispatches the workflow every Monday, Wednesday and Friday at 09:00. Scheduled dispatches use the same path as the Telegram command, and the log records the run URL GitHub returns. If a scheduled dispatch fails, every chat in that entry's `allowed_chat_ids` gets a failure message. The timezone is embedded in the binary, so it does not depend on the container image. An invalid `schedule` stops startup. Entries without `schedule` run only from Telegram.
+
 Each command has its own `allowed_chat_ids`; requests from other chats are rejected before GitHub is called. To add another ad-hoc workflow, add an entry under `workflows` with a unique lowercase `command` (letters, digits, underscores; 1–32 characters), its repository details, branch (`ref`), and allowlist. Restarting the hub synchronizes the Telegram command menu and restarts long polling. Only one process may consume updates for this bot token; a second `getUpdates` consumer or webhook would cause Telegram to return a `409 Conflict`.
 
 ---

@@ -1,0 +1,22 @@
+{
+  "0": "go.uber.org/zap.Logger",
+  "1": "testing.T",
+  "2": "BotHandler",
+  "3": "🤖 Automation Hub",
+  "4": "config.go",
+  "5": "Email",
+  "6": "IMAPClient",
+  "7": "context.Context",
+  "8": "net/http.Request",
+  "9": "NewIMAPClient",
+  "10": "GenericEmailProcessor",
+  "11": "Client",
+  "12": "NewWebhookHandler",
+  "14": "CLAUDE.md",
+  "15": "automation-hub-network Bridge Network",
+  "16": "Dependabot Docker Update Config (deployments/docker)",
+  "17": "Dependabot GitHub Actions Update Config",
+  "18": "Dependabot Go Modules Update Config",
+  "21": "Graphify Knowledge-Graph Workflow Rules",
+  "56": "automation-hub"
+}

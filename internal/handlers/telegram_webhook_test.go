@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -14,20 +15,19 @@ import (
 	"automation-hub/internal/config"
 )
 
+// fakeDispatcher returns runURL on success; an empty runURL models a 204 answer.
 type fakeDispatcher struct {
-	calls     int
-	err       error
-	runURL    string
-	runURLErr error
+	calls  int
+	err    error
+	runURL string
 }
 
-func (f *fakeDispatcher) DispatchWorkflow(_ context.Context, owner, repo, workflowFile, ref string) error {
+func (f *fakeDispatcher) DispatchWorkflow(_ context.Context, owner, repo, workflowFile, ref string) (string, error) {
 	f.calls++
-	return f.err
-}
-
-func (f *fakeDispatcher) FindLatestRunURL(_ context.Context, owner, repo, workflowFile string, after time.Time) (string, error) {
-	return f.runURL, f.runURLErr
+	if f.err != nil {
+		return "", f.err
+	}
+	return f.runURL, nil
 }
 
 type fakeRestarter struct {
@@ -49,12 +49,14 @@ func (f *fakeRestarter) WaitForRollout(_ context.Context, namespace, deployment 
 
 type fakeMessenger struct {
 	mu       sync.Mutex
+	chatIDs  []string
 	messages []string
 }
 
-func (f *fakeMessenger) SendMessage(_, message string) error {
+func (f *fakeMessenger) SendMessage(chatID, message string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	f.chatIDs = append(f.chatIDs, chatID)
 	f.messages = append(f.messages, message)
 	return nil
 }
@@ -137,12 +139,12 @@ func TestBotHandlerDispatchWorkflowLinksToTheDispatchedRun(t *testing.T) {
 	}
 }
 
-func TestBotHandlerDispatchWorkflowFallsBackWhenRunLookupFails(t *testing.T) {
+func TestBotHandlerDispatchWorkflowFallsBackWhenRunURLIsEmpty(t *testing.T) {
 	workflow := config.WorkflowCommandConfig{
 		Command: "run_check_updates", Owner: "devidence-dev", Repo: "github-runner",
 		WorkflowFile: "check-updates.yml", Ref: "main", AllowedChatIDs: []string{"123"},
 	}
-	dispatcher := &fakeDispatcher{runURLErr: context.DeadlineExceeded}
+	dispatcher := &fakeDispatcher{runURL: ""}
 	messenger := &fakeMessenger{}
 	handler := NewBotHandler(dispatcher, nil, messenger, []config.WorkflowCommandConfig{workflow}, nil, zap.NewNop())
 
@@ -230,4 +232,80 @@ func commandUpdate(command string, chatID int64) tgbotapi.Update {
 		Entities: []tgbotapi.MessageEntity{{Type: "bot_command", Offset: 0, Length: len(command)}},
 		Chat:     &tgbotapi.Chat{ID: chatID},
 	}}
+}
+
+func TestRunWorkflow(t *testing.T) {
+	workflow := config.WorkflowCommandConfig{
+		Command: "run_check_updates", Owner: "devidence-dev", Repo: "workflows",
+		WorkflowFile: "ops-github-runner-check-updates.yml", Ref: "main",
+	}
+	tests := []struct {
+		name        string
+		runURL      string
+		dispatchErr error
+		want        string
+		wantErr     bool
+	}{
+		{name: "returns the html_url of the created run", runURL: "https://github.com/devidence-dev/workflows/actions/runs/123456", want: "https://github.com/devidence-dev/workflows/actions/runs/123456"},
+		{name: "falls back to the Actions page without run details", want: "https://github.com/devidence-dev/workflows/actions"},
+		{name: "dispatch error is returned", dispatchErr: errors.New("status 500"), wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dispatcher := &fakeDispatcher{runURL: tt.runURL, err: tt.dispatchErr}
+			handler := NewBotHandler(dispatcher, nil, nil, nil, nil, zap.NewNop())
+
+			got, err := handler.RunWorkflow(context.Background(), workflow)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("RunWorkflow() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if got != tt.want {
+				t.Errorf("RunWorkflow() = %q, want %q", got, tt.want)
+			}
+			if dispatcher.calls != 1 {
+				t.Errorf("dispatch calls = %d, want 1", dispatcher.calls)
+			}
+		})
+	}
+}
+
+func TestRunScheduled(t *testing.T) {
+	workflow := config.WorkflowCommandConfig{
+		Command: "run_cleanup", Owner: "devidence-dev", Repo: "workflows",
+		WorkflowFile: "ops-github-runner-cleanup.yml", Ref: "main", AllowedChatIDs: []string{"123", "456"},
+	}
+	tests := []struct {
+		name         string
+		dispatchErr  error
+		wantMessages int
+	}{
+		{name: "success sends no chat message"},
+		{name: "failure notifies every allowed chat", dispatchErr: errors.New("status 500"), wantMessages: 2},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dispatcher := &fakeDispatcher{runURL: "https://github.com/devidence-dev/workflows/actions/runs/1", err: tt.dispatchErr}
+			messenger := &fakeMessenger{}
+			handler := NewBotHandler(dispatcher, nil, messenger, []config.WorkflowCommandConfig{workflow}, nil, zap.NewNop())
+
+			handler.RunScheduled(workflow)
+
+			if dispatcher.calls != 1 {
+				t.Errorf("dispatch calls = %d, want 1", dispatcher.calls)
+			}
+			if len(messenger.messages) != tt.wantMessages {
+				t.Fatalf("messages = %#v, want %d", messenger.messages, tt.wantMessages)
+			}
+			for i, message := range messenger.messages {
+				if !strings.Contains(message, "run_cleanup") {
+					t.Errorf("message %q does not name the command", message)
+				}
+				if messenger.chatIDs[i] != workflow.AllowedChatIDs[i] {
+					t.Errorf("message %d sent to chat %q, want %q", i, messenger.chatIDs[i], workflow.AllowedChatIDs[i])
+				}
+			}
+		})
+	}
 }

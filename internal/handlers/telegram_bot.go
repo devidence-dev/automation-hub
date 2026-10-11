@@ -12,14 +12,6 @@ import (
 	"automation-hub/internal/config"
 )
 
-// runLookupAttempts/runLookupDelay bound how long dispatchWorkflow waits for
-// the dispatched run to show up in GitHub's run list before falling back to
-// the repository's general Actions URL.
-const (
-	runLookupAttempts = 5
-	runLookupDelay    = 2 * time.Second
-)
-
 // restartReadyTimeout/restartReadyPollInterval bound how long restartDeployment
 // waits, in the background, for the rollout to report ready before giving up
 // and telling the user to check it manually.
@@ -29,8 +21,7 @@ const (
 )
 
 type workflowDispatcher interface {
-	DispatchWorkflow(ctx context.Context, owner, repo, workflowFile, ref string) error
-	FindLatestRunURL(ctx context.Context, owner, repo, workflowFile string, after time.Time) (string, error)
+	DispatchWorkflow(ctx context.Context, owner, repo, workflowFile, ref string) (string, error)
 }
 
 type deploymentRestarter interface {
@@ -112,15 +103,48 @@ func (h *BotHandler) handleUnauthorizedCommand(commandName, chatID, username str
 }
 
 func (h *BotHandler) dispatchWorkflow(commandName, chatID string, workflow config.WorkflowCommandConfig) {
-	dispatchedAt := time.Now().UTC()
-	if err := h.githubClient.DispatchWorkflow(context.Background(), workflow.Owner, workflow.Repo, workflow.WorkflowFile, workflow.Ref); err != nil {
+	runURL, err := h.RunWorkflow(context.Background(), workflow)
+	if err != nil {
 		h.logger.Error("Failed to dispatch GitHub workflow", zap.Error(err), zap.String("command", commandName), zap.String("chat_id", chatID))
 		h.sendMessage(chatID, "❌ Failed to dispatch the workflow. Check the hub logs or try again later.")
 		return
 	}
-
-	runURL := h.findRunURL(commandName, workflow, dispatchedAt)
 	h.sendMessage(chatID, fmt.Sprintf("🚀 Workflow *%s* dispatched successfully. View it at %s", workflow.WorkflowFile, runURL))
+}
+
+// RunWorkflow dispatches the workflow and returns the URL of the run GitHub
+// created. If GitHub returns no run details, it returns the repository's
+// Actions page instead. It does not depend on a chat, so Telegram commands and
+// schedules share it.
+func (h *BotHandler) RunWorkflow(ctx context.Context, workflow config.WorkflowCommandConfig) (string, error) {
+	runURL, err := h.githubClient.DispatchWorkflow(ctx, workflow.Owner, workflow.Repo, workflow.WorkflowFile, workflow.Ref)
+	if err != nil {
+		return "", err
+	}
+	if runURL == "" {
+		runURL = fmt.Sprintf("https://github.com/%s/%s/actions", workflow.Owner, workflow.Repo)
+	}
+	return runURL, nil
+}
+
+// RunScheduled runs a workflow from the scheduler, outside any Telegram update.
+// It logs the outcome. On failure it tells every chat in allowed_chat_ids.
+func (h *BotHandler) RunScheduled(workflow config.WorkflowCommandConfig) {
+	fields := []zap.Field{
+		zap.String("command", workflow.Command),
+		zap.String("owner", workflow.Owner),
+		zap.String("repo", workflow.Repo),
+		zap.String("workflow", workflow.WorkflowFile),
+	}
+	runURL, err := h.RunWorkflow(context.Background(), workflow)
+	if err != nil {
+		h.logger.Error("Scheduled workflow dispatch failed", append(fields, zap.String("result", "failed"), zap.Error(err))...)
+		for _, chatID := range workflow.AllowedChatIDs {
+			h.sendMessage(chatID, fmt.Sprintf("❌ Scheduled run of `%s` failed to dispatch. Check the hub logs or try again later.", workflow.Command))
+		}
+		return
+	}
+	h.logger.Info("Scheduled workflow dispatched", append(fields, zap.String("result", "dispatched"), zap.String("run_url", runURL))...)
 }
 
 func (h *BotHandler) restartDeployment(commandName, chatID string, restart config.RestartCommandConfig) {
@@ -146,28 +170,6 @@ func (h *BotHandler) awaitRestartReady(commandName, chatID string, restart confi
 		return
 	}
 	h.sendMessage(chatID, fmt.Sprintf("✅ Deployment *%s* is up and running again.", restart.Deployment))
-}
-
-// findRunURL polls GitHub for the run that the dispatch just created.
-// workflow_dispatch itself never returns the run's identity, so this waits a
-// few seconds for the run to appear before giving up and pointing at the
-// repository's general Actions tab instead.
-func (h *BotHandler) findRunURL(commandName string, workflow config.WorkflowCommandConfig, dispatchedAt time.Time) string {
-	actionsURL := fmt.Sprintf("https://github.com/%s/%s/actions", workflow.Owner, workflow.Repo)
-	for attempt := 0; attempt < runLookupAttempts; attempt++ {
-		if attempt > 0 {
-			time.Sleep(runLookupDelay)
-		}
-		runURL, err := h.githubClient.FindLatestRunURL(context.Background(), workflow.Owner, workflow.Repo, workflow.WorkflowFile, dispatchedAt)
-		if err != nil {
-			h.logger.Warn("Failed to look up dispatched workflow run", zap.Error(err), zap.String("command", commandName))
-			return actionsURL
-		}
-		if runURL != "" {
-			return runURL
-		}
-	}
-	return actionsURL
 }
 
 func username(message *tgbotapi.Message) string {

@@ -1,11 +1,12 @@
 module automation-hub
 
-go 1.27.0
+go 1.27.2
 
 require (
 	github.com/emersion/go-imap v1.2.1
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/gorilla/mux v1.8.1
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/viper v1.21.0
 	go.uber.org/zap v1.28.0
 )

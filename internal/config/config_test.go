@@ -3,6 +3,8 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/spf13/viper"
@@ -85,14 +87,11 @@ hook:
 }
 
 func TestLoadErrorMissingConfig(t *testing.T) {
-	t.Chdir(t.TempDir()) // isolate from the repo's own config.yaml/configs/
-
+	// Search only an empty directory: Load() also checks /app, which is the
+	// repo when tests run in Docker and may contain a real configs/config.yaml.
 	viper.Reset()
-	viper.SetConfigName("non_existent_config_file_name_12345")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(os.TempDir())
 
-	_, err := Load()
+	_, err := loadFrom([]string{t.TempDir()})
 	if err == nil {
 		t.Error("Expected error when config file does not exist, got nil")
 	}
@@ -150,5 +149,65 @@ func TestValidateBotCommands(t *testing.T) {
 				t.Errorf("validateBotCommands() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestValidateSchedules(t *testing.T) {
+	tests := []struct {
+		name     string
+		workflow WorkflowCommandConfig
+		wantErr  []string
+	}{
+		{name: "weekday list accepted", workflow: WorkflowCommandConfig{Command: "run_check_updates", Schedule: "0 9 * * 1,3,5"}},
+		{name: "empty schedule accepted", workflow: WorkflowCommandConfig{Command: "run_cleanup"}},
+		{name: "four fields rejected", workflow: WorkflowCommandConfig{Command: "run_cleanup", Schedule: "0 9 * *"}, wantErr: []string{"run_cleanup", "0 9 * *"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateSchedules([]WorkflowCommandConfig{tt.workflow})
+			if len(tt.wantErr) == 0 {
+				if err != nil {
+					t.Fatalf("validateSchedules() error = %v, want nil", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatal("validateSchedules() error = nil, want error")
+			}
+			for _, want := range tt.wantErr {
+				if !strings.Contains(err.Error(), want) {
+					t.Errorf("error %q does not contain %q", err, want)
+				}
+			}
+		})
+	}
+}
+
+// TestLoadExampleConfig keeps configs/config.yaml.example loadable. Its
+// {{PLACEHOLDER}} values are filled with a dummy value first, since they are
+// not valid YAML until replaced.
+func TestLoadExampleConfig(t *testing.T) {
+	example, err := os.ReadFile(filepath.Join("..", "..", "configs", "config.yaml.example"))
+	if err != nil {
+		t.Fatalf("read example config: %v", err)
+	}
+	filled := regexp.MustCompile(`\{\{[A-Z_]+\}\}`).ReplaceAll(example, []byte("123"))
+
+	tmpDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), filled, 0600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	viper.Reset()
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(tmpDir)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if len(cfg.Workflows) != 2 {
+		t.Errorf("workflows = %d, want 2", len(cfg.Workflows))
 	}
 }

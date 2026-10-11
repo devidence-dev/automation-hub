@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/spf13/viper"
+
+	"automation-hub/internal/services/scheduler"
 )
 
 var telegramCommandPattern = regexp.MustCompile(`^[a-z0-9_]{1,32}$`)
@@ -80,6 +82,8 @@ type WorkflowCommandConfig struct {
 	WorkflowFile   string   `mapstructure:"workflow_file"`
 	Ref            string   `mapstructure:"ref"`
 	AllowedChatIDs []string `mapstructure:"allowed_chat_ids"`
+	// Schedule is an optional 5-field cron expression evaluated in America/Guayaquil.
+	Schedule string `mapstructure:"schedule"`
 }
 
 // RestartCommandConfig maps a Telegram command to a Kubernetes Deployment
@@ -103,13 +107,19 @@ type WebhookProcessorConfig struct {
 	TelegramMessage string `mapstructure:"telegram_message"`
 }
 
+// defaultConfigPaths are searched in order: container paths first, then the working directory.
+var defaultConfigPaths = []string{"/app", "./configs", "/app/configs", "."}
+
 func Load() (*Config, error) {
+	return loadFrom(defaultConfigPaths)
+}
+
+func loadFrom(configPaths []string) (*Config, error) {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("/app")
-	viper.AddConfigPath("./configs")
-	viper.AddConfigPath("/app/configs")
-	viper.AddConfigPath(".")
+	for _, path := range configPaths {
+		viper.AddConfigPath(path)
+	}
 
 	// Environment variables override
 	viper.AutomaticEnv()
@@ -129,6 +139,9 @@ func Load() (*Config, error) {
 	}
 
 	if err := validateBotCommands(config.Workflows, config.Restarts); err != nil {
+		return nil, err
+	}
+	if err := validateSchedules(config.Workflows); err != nil {
 		return nil, err
 	}
 
@@ -158,6 +171,20 @@ func validateBotCommands(workflows []WorkflowCommandConfig, restarts []RestartCo
 	for _, restart := range restarts {
 		if err := check(restart.Command); err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+// validateSchedules parses every non-empty schedule with the scheduler's parser,
+// so an invalid expression stops startup before any goroutine starts.
+func validateSchedules(workflows []WorkflowCommandConfig) error {
+	for _, workflow := range workflows {
+		if workflow.Schedule == "" {
+			continue
+		}
+		if _, err := scheduler.ParseSpec(workflow.Schedule); err != nil {
+			return fmt.Errorf("invalid schedule %q for command %q: %w", workflow.Schedule, workflow.Command, err)
 		}
 	}
 	return nil

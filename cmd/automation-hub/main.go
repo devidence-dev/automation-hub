@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	_ "time/tzdata" // embedded zone database: the image may have no /usr/share/zoneinfo
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gorilla/mux"
@@ -20,6 +21,7 @@ import (
 	"automation-hub/internal/services/github"
 	"automation-hub/internal/services/kube"
 	"automation-hub/internal/services/processor"
+	"automation-hub/internal/services/scheduler"
 	"automation-hub/internal/services/telegram"
 )
 
@@ -36,11 +38,19 @@ func main() {
 		logger.Fatal("Failed to load config", zap.Error(err))
 	}
 
+	// Schedules are evaluated in this fixed zone, whatever the host or image provides.
+	loc, err := time.LoadLocation("America/Guayaquil")
+	if err != nil {
+		logger.Fatal("Failed to load timezone", zap.Error(err))
+	}
+	logger.Info("Timezone loaded", zap.String("timezone", loc.String()))
+
 	// Initialize services
 	telegramClient := telegram.NewClient(cfg.Telegram.BotToken, logger)
 	imapClient := email.NewIMAPClient(cfg.Email, logger)
 	var workflowBotClient *telegram.Client
 	var botHandler *handlers.BotHandler
+	var sched *scheduler.Scheduler
 
 	if len(cfg.Workflows) > 0 || len(cfg.Restarts) > 0 {
 		if cfg.WorkflowBot.BotToken == "" {
@@ -76,6 +86,21 @@ func main() {
 		}
 
 		botHandler = handlers.NewBotHandler(githubClient, kubeClient, workflowBotClient, cfg.Workflows, cfg.Restarts, logger)
+
+		for _, workflow := range cfg.Workflows {
+			if workflow.Schedule == "" {
+				continue
+			}
+			if sched == nil {
+				sched = scheduler.New(loc, logger)
+			}
+			if err := sched.Add(workflow.Command, workflow.Schedule, func() { botHandler.RunScheduled(workflow) }); err != nil {
+				logger.Fatal("Failed to register scheduled workflow", zap.Error(err))
+			}
+		}
+		if sched != nil {
+			sched.Start()
+		}
 	}
 
 	// Initialize processor manager with dynamic configuration
@@ -127,6 +152,10 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
+	if sched != nil {
+		logger.Info("Stopping scheduler...")
+		sched.Stop()
+	}
 	logger.Info("Shutting down server...")
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer shutdownCancel()

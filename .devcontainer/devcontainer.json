@@ -1,6 +1,6 @@
 {
   "name": "Automation Hub Dev Container",
-  "image": "golang:1.27.0-trixie",
+  "image": "golang:1.27.2-trixie",
   "shutdownAction": "stopContainer",
   "runArgs": [
     "--name",

@@ -1,0 +1,194 @@
+{
+  ".devcontainer/devcontainer.json": {
+    "mtime": 1788203508.3344693,
+    "seen": 1790443336.54838,
+    "ast_hash": "a4154b50bd4c5e10a8851f9bfe6bd2b7",
+    "semantic_hash": "a4154b50bd4c5e10a8851f9bfe6bd2b7"
+  },
+  "go.mod": {
+    "mtime": 1788203508.3344693,
+    "seen": 1790443336.5483825,
+    "ast_hash": "ecf6e49fcf3a209ccf6be0a268cae46b",
+    "semantic_hash": "ecf6e49fcf3a209ccf6be0a268cae46b"
+  },
+  "internal/config/config.go": {
+    "mtime": 1790444273.2293978,
+    "seen": 1790444435.3355837,
+    "ast_hash": "c93bc90bc4744847d8557843168e806e",
+    "semantic_hash": ""
+  },
+  "internal/handlers/webhook.go": {
+    "mtime": 1764896463.0,
+    "seen": 1790443336.5483866,
+    "ast_hash": "4150ad0ded9917768e4c6cfd07dd0c8e",
+    "semantic_hash": "4150ad0ded9917768e4c6cfd07dd0c8e"
+  },
+  "internal/models/models.go": {
+    "mtime": 1767971151.0,
+    "seen": 1790443336.5483878,
+    "ast_hash": "101ff6a27e2ed1c234bca9bcd8b9afe8",
+    "semantic_hash": "101ff6a27e2ed1c234bca9bcd8b9afe8"
+  },
+  "internal/models/models_test.go": {
+    "mtime": 1764896463.0,
+    "seen": 1790443336.5483887,
+    "ast_hash": "f2f502a37dc8268ee428c3553c0ec849",
+    "semantic_hash": "f2f502a37dc8268ee428c3553c0ec849"
+  },
+  "internal/services/email/imap.go": {
+    "mtime": 1790444286.6805315,
+    "seen": 1790444435.3355901,
+    "ast_hash": "826a57200d3d41369d511731eb14834e",
+    "semantic_hash": ""
+  },
+  "internal/services/processor/generic.go": {
+    "mtime": 1790446523.4430618,
+    "seen": 1790446575.8818257,
+    "ast_hash": "fb0f8d1725bb8525d700cee9f3c4b73d",
+    "semantic_hash": ""
+  },
+  "internal/services/processor/manager.go": {
+    "mtime": 1764896463.0,
+    "seen": 1790443336.548395,
+    "ast_hash": "2fb92f225b75ba426eb2dad680dd15cd",
+    "semantic_hash": "2fb92f225b75ba426eb2dad680dd15cd"
+  },
+  "internal/services/processor/torrent.go": {
+    "mtime": 1764896463.0,
+    "seen": 1790443336.5483966,
+    "ast_hash": "dcc52e30470a4540bec7ed7f3e42ac9f",
+    "semantic_hash": "dcc52e30470a4540bec7ed7f3e42ac9f"
+  },
+  "internal/services/telegram/client.go": {
+    "mtime": 1788747110.0727096,
+    "seen": 1790443336.5483978,
+    "ast_hash": "2631d1a3aabce14d4fe4889a2a25caaa",
+    "semantic_hash": "2631d1a3aabce14d4fe4889a2a25caaa"
+  },
+  ".github/dependabot.yml": {
+    "mtime": 1774724427.0,
+    "seen": 1790443504.5560267,
+    "ast_hash": "99dd1c53e14b1cacc30fe9de776afeaa",
+    "semantic_hash": "99dd1c53e14b1cacc30fe9de776afeaa"
+  },
+  ".github/workflows/ci.yml": {
+    "mtime": 1788744060.6561441,
+    "seen": 1790443336.5483994,
+    "ast_hash": "f44f81ee4c174938d55db6fcfe9ae60f",
+    "semantic_hash": "f44f81ee4c174938d55db6fcfe9ae60f"
+  },
+  ".github/workflows/deploy.yml": {
+    "mtime": 1788729120.6063852,
+    "seen": 1790443336.5484002,
+    "ast_hash": "bb30349c974e070abe07a2cd65c42dd8",
+    "semantic_hash": "bb30349c974e070abe07a2cd65c42dd8"
+  },
+  "CLAUDE.md": {
+    "mtime": 1784078484.0,
+    "seen": 1790443504.5560288,
+    "ast_hash": "82efb97a359f5c7290bf2513d14686be",
+    "semantic_hash": "82efb97a359f5c7290bf2513d14686be"
+  },
+  "README.md": {
+    "mtime": 1790444402.3450801,
+    "seen": 1790444435.3356023,
+    "ast_hash": "569a0fc718ae39e0440bc632cc55803b",
+    "semantic_hash": ""
+  },
+  "docker-compose.yml": {
+    "mtime": 1771134794.0,
+    "seen": 1790443504.55603,
+    "ast_hash": "ba7f05cf54fca04f4ac97196a3fa2cd1",
+    "semantic_hash": "ba7f05cf54fca04f4ac97196a3fa2cd1"
+  },
+  "internal/config/config_test.go": {
+    "mtime": 1788747225.6491597,
+    "seen": 1790443336.5483842,
+    "ast_hash": "6b5d44f90a689abfee11cddf5f771ae7",
+    "semantic_hash": "6b5d44f90a689abfee11cddf5f771ae7"
+  },
+  "internal/handlers/webhook_test.go": {
+    "mtime": 1784772754.0,
+    "seen": 1790443336.548387,
+    "ast_hash": "f9ad97ca34c5c02fb41ddbdec345224f",
+    "semantic_hash": "f9ad97ca34c5c02fb41ddbdec345224f"
+  },
+  "internal/services/email/imap_test.go": {
+    "mtime": 1790444306.9152284,
+    "seen": 1790444435.3355908,
+    "ast_hash": "02a816b94ad299f0d4d0021208546aaa",
+    "semantic_hash": ""
+  },
+  "internal/services/processor/generic_test.go": {
+    "mtime": 1790446545.141653,
+    "seen": 1790446575.8818269,
+    "ast_hash": "31d59f74d28c947e94e585d2a95d0580",
+    "semantic_hash": ""
+  },
+  "internal/services/processor/manager_test.go": {
+    "mtime": 1784772748.0,
+    "seen": 1790443336.5483959,
+    "ast_hash": "807d64ac5d32271dc08e81374ffa784d",
+    "semantic_hash": "807d64ac5d32271dc08e81374ffa784d"
+  },
+  "internal/services/processor/torrent_test.go": {
+    "mtime": 1784772742.0,
+    "seen": 1790443336.5483973,
+    "ast_hash": "976d66bc922e531791957d0646ddbb0a",
+    "semantic_hash": "976d66bc922e531791957d0646ddbb0a"
+  },
+  "internal/services/telegram/client_test.go": {
+    "mtime": 1787334445.0,
+    "seen": 1790443336.5483985,
+    "ast_hash": "062e11af908bfda6b99765fafecd35ae",
+    "semantic_hash": "062e11af908bfda6b99765fafecd35ae"
+  },
+  "internal/handlers/telegram_webhook_test.go": {
+    "mtime": 1787343112.0,
+    "seen": 1790443336.5483859,
+    "ast_hash": "253b309326b6a2aaec130d25c3e83358",
+    "semantic_hash": "253b309326b6a2aaec130d25c3e83358"
+  },
+  "internal/services/github/client.go": {
+    "mtime": 1788747110.0727096,
+    "seen": 1790443336.5483909,
+    "ast_hash": "a12842c658aad4203bacdca4dd8ccf5e",
+    "semantic_hash": "a12842c658aad4203bacdca4dd8ccf5e"
+  },
+  "internal/services/github/client_test.go": {
+    "mtime": 1788726230.7308035,
+    "seen": 1790443336.5483916,
+    "ast_hash": "4f7ae2f341040e3fbfb274c42398df5b",
+    "semantic_hash": "4f7ae2f341040e3fbfb274c42398df5b"
+  },
+  "internal/handlers/telegram_bot.go": {
+    "mtime": 1787344530.0,
+    "seen": 1790443336.548385,
+    "ast_hash": "a857733bcca16459bb5ac98b2cb0eea6",
+    "semantic_hash": "a857733bcca16459bb5ac98b2cb0eea6"
+  },
+  ".devcontainer/devcontainer-lock.json": {
+    "mtime": 1788203508.3344693,
+    "seen": 1790443336.5483768,
+    "ast_hash": "604c02d28b68b30584b8827a126f21cc",
+    "semantic_hash": "604c02d28b68b30584b8827a126f21cc"
+  },
+  "cmd/automation-hub/main.go": {
+    "mtime": 1787342414.0,
+    "seen": 1790443336.5483813,
+    "ast_hash": "d113dac10593e98efa7506b8649dcf4c",
+    "semantic_hash": "d113dac10593e98efa7506b8649dcf4c"
+  },
+  "internal/services/kube/client.go": {
+    "mtime": 1788747110.0727096,
+    "seen": 1790443336.5483925,
+    "ast_hash": "c8bf87f51d1652a349ddac2877bdd322",
+    "semantic_hash": "c8bf87f51d1652a349ddac2877bdd322"
+  },
+  "internal/services/kube/client_test.go": {
+    "mtime": 1788726230.9947863,
+    "seen": 1790443336.548393,
+    "ast_hash": "bcd779279ff95b23992967d1367bd9fa",
+    "semantic_hash": "bcd779279ff95b23992967d1367bd9fa"
+  }
+}
