@@ -194,7 +194,7 @@ func TestLoadExampleConfig(t *testing.T) {
 	filled := regexp.MustCompile(`\{\{[A-Z_]+\}\}`).ReplaceAll(example, []byte("123"))
 
 	tmpDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), filled, 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), filled, 0600); err != nil { //nolint:gosec // G703 false positive: tmpDir comes from t.TempDir()
 		t.Fatalf("write config: %v", err)
 	}
 

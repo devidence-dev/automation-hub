@@ -24,8 +24,8 @@
 
 ## 5. Cross-repo
 
-- [ ] 5.1 (workflows) Remove `schedule:`, the `should-run` job, its `needs:` and its conditions from `ops-github-runner-check-updates.yml` and `ops-github-runner-cleanup.yml`, keeping `workflow_dispatch`. Verify with `actionlint`.
-- [ ] 5.2 (workflows) Rewrite the README "Host-ops: github-runner" section to say that automation-hub owns the schedule. Verify by review.
+- [x] 5.1 (workflows) Remove `schedule:`, the `should-run` job, its `needs:` and its conditions from `ops-github-runner-check-updates.yml` and `ops-github-runner-cleanup.yml`, keeping `workflow_dispatch`. Verify with `actionlint`.
+- [x] 5.2 (workflows) Rewrite the README "Host-ops: github-runner" section to say that automation-hub owns the schedule. Verify by review.
 - [ ] 5.3 (user) Add `schedule` to `run_check_updates` (`0 9 * * 1,3,5`) and `run_cleanup` (`0 9 * * 2,5`) in Infisical `CONFIG_YAML`, and confirm `owner`/`repo` point to `devidence-dev/workflows`. Verify after deploy that the startup log shows `America/Guayaquil` and the expected next runs.
 - [ ] 5.4 (user) Watch the first scheduled run. Verify that the GitHub run started at 09:00 America/Guayaquil and that `/run_check_updates` still works from Telegram.
 
