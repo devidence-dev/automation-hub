@@ -41,6 +41,29 @@ restarts:
     deployment: "github-runner"
     allowed_chat_ids: ["{{TELEGRAM_ADMIN_CHAT_ID}}"]
 
+jobs:
+  # Creates a one-off Kubernetes Job from a suspended CronJob template, like
+  # `kubectl create job --from=cronjob/dependency-report -n internal-apps`.
+  # Needs RBAC in the homelab repo: cronjobs get + jobs create in the namespace.
+  # Optional "schedule" works like it does for workflows.
+  - command: "run_dependency_report"
+    description: "Run the dependency report (Renovate lookup)"
+    namespace: "internal-apps"
+    cronjob: "dependency-report"
+    allowed_chat_ids: ["{{TELEGRAM_ADMIN_CHAT_ID}}"]
+    schedule: "0 9 * * 1"  # Mondays at 09:00
+
+# Enables POST /webhook/dependency-report, called by the Job's reporter container
+# (multipart: exit_code, pod, log_tail, report; header X-Report-Token). The report
+# goes to telegram_chat_id through the "telegram" bot above. Values are Infisical
+# references resolved inside CONFIG_YAML (shown here as ${...} placeholders).
+# Do NOT quote the forks reference: it holds a JSON array, so unquoted YAML reads a
+# list. Quoting it turns the array into a string and config loading fails.
+dependency_report:
+  webhook_token: "${DEPENDENCY_REPORT_TOKEN}"
+  telegram_chat_id: "{{TELEGRAM_DEPENDENCY_REPORT_CHAT_ID}}"
+  forks: ${DEPENDENCY_REPORT_FORKS}  # e.g. ["devidence-dev/discord-tts-bot"]
+
 email:
   host: "{{EMAIL_HOST}}"
   port: {{EMAIL_PORT}}

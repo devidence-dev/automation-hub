@@ -4,6 +4,7 @@
 package kube
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -28,6 +29,7 @@ type Client struct {
 	httpClient *http.Client
 	baseURL    string
 	logger     *zap.Logger
+	now        func() time.Time // overridden in tests
 }
 
 // NewInClusterClient builds a Client from the ServiceAccount token, CA
@@ -75,7 +77,7 @@ func newClient(token string, httpClient *http.Client, baseURL string, logger *za
 	if logger == nil {
 		logger = zap.NewNop()
 	}
-	return &Client{token: token, httpClient: httpClient, baseURL: strings.TrimRight(baseURL, "/"), logger: logger}
+	return &Client{token: token, httpClient: httpClient, baseURL: strings.TrimRight(baseURL, "/"), logger: logger, now: time.Now}
 }
 
 // RestartDeployment triggers a rollout restart, the same effect as
@@ -187,4 +189,107 @@ func (c *Client) WaitForRollout(ctx context.Context, namespace, name string, pol
 		case <-ticker.C:
 		}
 	}
+}
+
+// cronJob is the part of a CronJob that CreateJobFromCronJob copies. The Job
+// spec stays raw so fields this client does not know are not dropped.
+type cronJob struct {
+	Metadata struct {
+		Name string `json:"name"`
+		UID  string `json:"uid"`
+	} `json:"metadata"`
+	Spec struct {
+		JobTemplate struct {
+			Metadata struct {
+				Labels      map[string]string `json:"labels"`
+				Annotations map[string]string `json:"annotations"`
+			} `json:"metadata"`
+			Spec json.RawMessage `json:"spec"`
+		} `json:"jobTemplate"`
+	} `json:"spec"`
+}
+
+// CreateJobFromCronJob creates a Job from the CronJob's job template and
+// returns its name. It mirrors `kubectl create job --from=cronjob/<name>`
+// (createJobFromCronJob in kubectl's pkg/cmd/create/create_job.go): same
+// labels, annotations plus cronjob.kubernetes.io/instantiate=manual, the
+// template spec, and a controller ownerReference to the CronJob without
+// blockOwnerDeletion. The name is <cronjob>-manual-<unix seconds>.
+func (c *Client) CreateJobFromCronJob(ctx context.Context, namespace, name string) (string, error) {
+	cronJobURL := fmt.Sprintf("%s/apis/batch/v1/namespaces/%s/cronjobs/%s",
+		c.baseURL, url.PathEscape(namespace), url.PathEscape(name))
+	var cj cronJob
+	if err := c.doJSON(ctx, http.MethodGet, cronJobURL, nil, http.StatusOK, &cj); err != nil {
+		return "", fmt.Errorf("get cronjob: %w", err)
+	}
+
+	annotations := map[string]string{"cronjob.kubernetes.io/instantiate": "manual"}
+	for k, v := range cj.Spec.JobTemplate.Metadata.Annotations {
+		annotations[k] = v
+	}
+	jobName := fmt.Sprintf("%s-manual-%d", name, c.now().Unix())
+	job := map[string]any{
+		"apiVersion": "batch/v1",
+		"kind":       "Job",
+		"metadata": map[string]any{
+			"name":        jobName,
+			"namespace":   namespace,
+			"labels":      cj.Spec.JobTemplate.Metadata.Labels,
+			"annotations": annotations,
+			"ownerReferences": []map[string]any{{
+				"apiVersion": "batch/v1",
+				"kind":       "CronJob",
+				"name":       cj.Metadata.Name,
+				"uid":        cj.Metadata.UID,
+				"controller": true,
+			}},
+		},
+		"spec": cj.Spec.JobTemplate.Spec,
+	}
+	body, err := json.Marshal(job)
+	if err != nil {
+		return "", fmt.Errorf("encode job: %w", err)
+	}
+
+	jobsURL := fmt.Sprintf("%s/apis/batch/v1/namespaces/%s/jobs", c.baseURL, url.PathEscape(namespace))
+	if err := c.doJSON(ctx, http.MethodPost, jobsURL, body, http.StatusCreated, nil); err != nil {
+		return "", fmt.Errorf("create job: %w", err)
+	}
+	return jobName, nil
+}
+
+// doJSON sends a request and decodes the JSON response into out when out is
+// not nil. Any status other than wantStatus is an error that carries the body.
+func (c *Client) doJSON(ctx context.Context, method, endpoint string, body []byte, wantStatus int, out any) error {
+	var reader io.Reader
+	if body != nil {
+		reader = bytes.NewReader(body)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, endpoint, reader)
+	if err != nil {
+		return fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Accept", "application/json")
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != wantStatus {
+		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+		return fmt.Errorf("status %s: %s", resp.Status, strings.TrimSpace(string(msg)))
+	}
+	if out == nil {
+		return nil
+	}
+	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
+		return fmt.Errorf("decode response: %w", err)
+	}
+	return nil
 }

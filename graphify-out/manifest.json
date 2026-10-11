@@ -1,20 +1,20 @@
 {
   ".devcontainer/devcontainer.json": {
-    "mtime": 1788203508.3344693,
-    "seen": 1790443336.54838,
-    "ast_hash": "a4154b50bd4c5e10a8851f9bfe6bd2b7",
-    "semantic_hash": "a4154b50bd4c5e10a8851f9bfe6bd2b7"
+    "mtime": 1791758396.8049433,
+    "seen": 1791761740.7976449,
+    "ast_hash": "d9a24f95ddd1754290beafbaf2219198",
+    "semantic_hash": ""
   },
   "go.mod": {
-    "mtime": 1791758070.3382409,
-    "seen": 1791758271.4590073,
-    "ast_hash": "9e95e8f5a385a3b946a8be5dfc39d154",
+    "mtime": 1791758396.964933,
+    "seen": 1791761740.7976477,
+    "ast_hash": "90e86f066792aff758a54d92e24c5187",
     "semantic_hash": ""
   },
   "internal/config/config.go": {
-    "mtime": 1791758035.2565265,
-    "seen": 1791758271.4590082,
-    "ast_hash": "e83c716bb5df5b40245c7d6d13d08747",
+    "mtime": 1791761677.99913,
+    "seen": 1791761740.7976484,
+    "ast_hash": "3b56ce9f6bf93fa282222104f156dd51",
     "semantic_hash": ""
   },
   "internal/handlers/webhook.go": {
@@ -60,10 +60,10 @@
     "semantic_hash": "dcc52e30470a4540bec7ed7f3e42ac9f"
   },
   "internal/services/telegram/client.go": {
-    "mtime": 1788747110.0727096,
-    "seen": 1790443336.5483978,
-    "ast_hash": "2631d1a3aabce14d4fe4889a2a25caaa",
-    "semantic_hash": "2631d1a3aabce14d4fe4889a2a25caaa"
+    "mtime": 1791761375.0234308,
+    "seen": 1791761740.79767,
+    "ast_hash": "a9d3732935a0ab20385cfbd2d696c4a4",
+    "semantic_hash": ""
   },
   ".github/dependabot.yml": {
     "mtime": 1774724427.0,
@@ -90,9 +90,9 @@
     "semantic_hash": "82efb97a359f5c7290bf2513d14686be"
   },
   "README.md": {
-    "mtime": 1791757933.2511673,
-    "seen": 1791758271.4590304,
-    "ast_hash": "d536900241253ea4317088bf09e96b14",
+    "mtime": 1791761431.4836261,
+    "seen": 1791761740.7976747,
+    "ast_hash": "4e294258a1dd596fccf814f2a87c4193",
     "semantic_hash": ""
   },
   "docker-compose.yml": {
@@ -102,9 +102,9 @@
     "semantic_hash": "ba7f05cf54fca04f4ac97196a3fa2cd1"
   },
   "internal/config/config_test.go": {
-    "mtime": 1791758035.2565265,
-    "seen": 1791758271.459009,
-    "ast_hash": "c76bc98c42bd87f377618c6b10395463",
+    "mtime": 1791761410.9370093,
+    "seen": 1791761740.797649,
+    "ast_hash": "b52472a5c352f1ab4c90db192cc20620",
     "semantic_hash": ""
   },
   "internal/handlers/webhook_test.go": {
@@ -138,15 +138,15 @@
     "semantic_hash": "976d66bc922e531791957d0646ddbb0a"
   },
   "internal/services/telegram/client_test.go": {
-    "mtime": 1787334445.0,
-    "seen": 1790443336.5483985,
-    "ast_hash": "062e11af908bfda6b99765fafecd35ae",
-    "semantic_hash": "062e11af908bfda6b99765fafecd35ae"
+    "mtime": 1791761380.4070675,
+    "seen": 1791761740.7976706,
+    "ast_hash": "3bfbcaf63d9f79095d527660386078ae",
+    "semantic_hash": ""
   },
   "internal/handlers/telegram_webhook_test.go": {
-    "mtime": 1791757988.6315627,
-    "seen": 1791758271.4590108,
-    "ast_hash": "5eb024867b3c9d7d261a194b1e248431",
+    "mtime": 1791761470.0970306,
+    "seen": 1791761740.7976525,
+    "ast_hash": "95447888a2f81949928d8f893d5fcbbd",
     "semantic_hash": ""
   },
   "internal/services/github/client.go": {
@@ -162,9 +162,9 @@
     "semantic_hash": ""
   },
   "internal/handlers/telegram_bot.go": {
-    "mtime": 1791757963.2372158,
-    "seen": 1791758271.45901,
-    "ast_hash": "08f20cea21ee27fc33e0f8b95ba822b3",
+    "mtime": 1791761470.0970306,
+    "seen": 1791761740.7976515,
+    "ast_hash": "30a5ca1125ef4d38604c77d2d813c653",
     "semantic_hash": ""
   },
   ".devcontainer/devcontainer-lock.json": {
@@ -174,22 +174,22 @@
     "semantic_hash": "604c02d28b68b30584b8827a126f21cc"
   },
   "cmd/automation-hub/main.go": {
-    "mtime": 1791758057.9270494,
-    "seen": 1791758271.4590056,
-    "ast_hash": "9949d398284a7cac9babe8e9260918d0",
+    "mtime": 1791761556.7232246,
+    "seen": 1791761740.7976465,
+    "ast_hash": "e4c39b2558a4de4e51ed6262b4238bf4",
     "semantic_hash": ""
   },
   "internal/services/kube/client.go": {
-    "mtime": 1788747110.0727096,
-    "seen": 1790443336.5483925,
-    "ast_hash": "c8bf87f51d1652a349ddac2877bdd322",
-    "semantic_hash": "c8bf87f51d1652a349ddac2877bdd322"
+    "mtime": 1791761453.0701745,
+    "seen": 1791761740.7976625,
+    "ast_hash": "db961be9953e7f3997d759d62264b36c",
+    "semantic_hash": ""
   },
   "internal/services/kube/client_test.go": {
-    "mtime": 1788726230.9947863,
-    "seen": 1790443336.548393,
-    "ast_hash": "bcd779279ff95b23992967d1367bd9fa",
-    "semantic_hash": "bcd779279ff95b23992967d1367bd9fa"
+    "mtime": 1791761450.2863617,
+    "seen": 1791761740.797663,
+    "ast_hash": "51a254502dbb45a00f78aa324d17fe42",
+    "semantic_hash": ""
   },
   "internal/services/scheduler/scheduler.go": {
     "mtime": 1791757888.6380694,
@@ -210,21 +210,21 @@
     "semantic_hash": ""
   },
   "openspec/changes/add-dependency-report-job/design.md": {
-    "mtime": 1791757436.9033313,
-    "seen": 1791758271.459032,
-    "ast_hash": "119cd5ea4c5f074755404f5ed7abe02f",
+    "mtime": 1791760986.6580253,
+    "seen": 1791761740.797677,
+    "ast_hash": "acc8877cad35a4ab95392a5f49deebd4",
     "semantic_hash": ""
   },
   "openspec/changes/add-dependency-report-job/proposal.md": {
-    "mtime": 1791757392.5301883,
-    "seen": 1791758271.4590325,
-    "ast_hash": "5c4a4b4516972d35f117398863fc16ae",
+    "mtime": 1791760994.925449,
+    "seen": 1791761740.7976778,
+    "ast_hash": "ed2fcc79534a52aa51b2621d37d5f33b",
     "semantic_hash": ""
   },
   "openspec/changes/add-dependency-report-job/specs/dependency-report/spec.md": {
-    "mtime": 1791757394.6060548,
-    "seen": 1791758271.459033,
-    "ast_hash": "6d6680e19457cfa716fee23f0b723bba",
+    "mtime": 1791760986.6580253,
+    "seen": 1791761740.7976782,
+    "ast_hash": "bc765c0260390081944c57e4ac610c7b",
     "semantic_hash": ""
   },
   "openspec/changes/add-dependency-report-job/specs/job-commands/spec.md": {
@@ -234,39 +234,63 @@
     "semantic_hash": ""
   },
   "openspec/changes/add-dependency-report-job/tasks.md": {
-    "mtime": 1791757437.9672627,
-    "seen": 1791758271.4590342,
-    "ast_hash": "e7ccaa5c9d75a758652d82afebb5466b",
+    "mtime": 1791761740.202991,
+    "seen": 1791761740.79768,
+    "ast_hash": "9e055d9823e856139ce849b642257b2b",
     "semantic_hash": ""
   },
-  "openspec/changes/add-workflow-scheduler/.openspec.yaml": {
+  "internal/handlers/dependency_report.go": {
+    "mtime": 1791761677.99913,
+    "seen": 1791761740.7976499,
+    "ast_hash": "3b875e3f3dd9a19487e03d4b6af9b073",
+    "semantic_hash": ""
+  },
+  "internal/handlers/dependency_report_test.go": {
+    "mtime": 1791761677.99913,
+    "seen": 1791761740.7976506,
+    "ast_hash": "2fcb6a438a3158f362cda2ee46dff377",
+    "semantic_hash": ""
+  },
+  "internal/handlers/testdata/renovate-report.json": {
+    "mtime": 1791761566.6105633,
+    "seen": 1791761740.797653,
+    "ast_hash": "41ed3ef8f0c0d4398ee3acd22d934902",
+    "semantic_hash": ""
+  },
+  "openspec/changes/archive/2026-10-11-add-workflow-scheduler/.openspec.yaml": {
     "mtime": 1791757272.2659092,
-    "seen": 1791758271.4590347,
+    "seen": 1791761740.7976804,
     "ast_hash": "e75798be34fdfae33aa2735597ff5737",
     "semantic_hash": ""
   },
-  "openspec/changes/add-workflow-scheduler/design.md": {
-    "mtime": 1791757663.784668,
-    "seen": 1791758271.4590352,
-    "ast_hash": "0485806c53b3f2582bda0415823f6a15",
+  "openspec/changes/archive/2026-10-11-add-workflow-scheduler/design.md": {
+    "mtime": 1791760025.8863435,
+    "seen": 1791761740.797681,
+    "ast_hash": "2420703f3c3b0b699e4798492e42a5f0",
     "semantic_hash": ""
   },
-  "openspec/changes/add-workflow-scheduler/proposal.md": {
+  "openspec/changes/archive/2026-10-11-add-workflow-scheduler/proposal.md": {
     "mtime": 1791757690.2189546,
-    "seen": 1791758271.4590354,
+    "seen": 1791761740.7976816,
     "ast_hash": "62ab62d74ab9ea09b58d8c9942bfa806",
     "semantic_hash": ""
   },
-  "openspec/changes/add-workflow-scheduler/specs/scheduled-dispatch/spec.md": {
+  "openspec/changes/archive/2026-10-11-add-workflow-scheduler/specs/scheduled-dispatch/spec.md": {
     "mtime": 1791757660.6608703,
-    "seen": 1791758271.4590366,
+    "seen": 1791761740.7976823,
     "ast_hash": "d14eec0847128306381f4fbc14e7a964",
     "semantic_hash": ""
   },
-  "openspec/changes/add-workflow-scheduler/tasks.md": {
-    "mtime": 1791758270.977157,
-    "seen": 1791758271.459037,
-    "ast_hash": "5d3b66b1e2fe69a0b52ce0d0e3255ccf",
+  "openspec/changes/archive/2026-10-11-add-workflow-scheduler/tasks.md": {
+    "mtime": 1791760025.8863435,
+    "seen": 1791761740.7976828,
+    "ast_hash": "6c2f6f37d9a6b9ce3ab40e45ca8aa077",
+    "semantic_hash": ""
+  },
+  "openspec/specs/scheduled-dispatch/spec.md": {
+    "mtime": 1791760069.1275697,
+    "seen": 1791761740.7976835,
+    "ast_hash": "cd27327345ff1bc72c24d477dd11ec2b",
     "semantic_hash": ""
   }
 }

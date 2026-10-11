@@ -56,7 +56,17 @@ func newHTTPClient() *http.Client {
 	}
 }
 
+// SendMessage sends a Markdown message.
 func (c *Client) SendMessage(chatID, message string) error {
+	return c.send(chatID, message, tgbotapi.ModeMarkdown)
+}
+
+// SendHTML sends a message with HTML parse mode. The caller must escape variable text.
+func (c *Client) SendHTML(chatID, message string) error {
+	return c.send(chatID, message, tgbotapi.ModeHTML)
+}
+
+func (c *Client) send(chatID, message, parseMode string) error {
 	if c == nil || c.bot == nil {
 		return nil
 	}
@@ -67,7 +77,7 @@ func (c *Client) SendMessage(chatID, message string) error {
 	}
 
 	msg := tgbotapi.NewMessage(chatIDInt, message)
-	msg.ParseMode = "Markdown"
+	msg.ParseMode = parseMode
 
 	// Retry logic for transient network errors
 	maxRetries := 3

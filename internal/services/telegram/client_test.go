@@ -132,6 +132,42 @@ func TestSendMessageSuccess(t *testing.T) {
 	}
 }
 
+func TestSendParseMode(t *testing.T) {
+	tests := []struct {
+		name     string
+		send     func(*Client) error
+		wantMode string
+	}{
+		{name: "SendMessage keeps Markdown", send: func(c *Client) error { return c.SendMessage("123", "<b>x</b>") }, wantMode: "Markdown"},
+		{name: "SendHTML uses HTML", send: func(c *Client) error { return c.SendHTML("123", "<b>x</b>") }, wantMode: "HTML"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotMode, gotText string
+			client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case "/bottest-token/getMe":
+					writeTelegramResponse(w, map[string]interface{}{"id": 1, "is_bot": true, "first_name": "Test"})
+				case "/bottest-token/sendMessage":
+					if err := r.ParseForm(); err != nil {
+						t.Fatal(err)
+					}
+					gotMode, gotText = r.Form.Get("parse_mode"), r.Form.Get("text")
+					writeTelegramResponse(w, map[string]interface{}{"message_id": 1, "date": 1, "chat": map[string]interface{}{"id": 123, "type": "private"}})
+				default:
+					t.Errorf("unexpected path %s", r.URL.Path)
+				}
+			})
+			if err := tt.send(client); err != nil {
+				t.Fatalf("send error = %v", err)
+			}
+			if gotMode != tt.wantMode || gotText != "<b>x</b>" {
+				t.Errorf("parse_mode = %q text = %q, want %q and the text unchanged", gotMode, gotText, tt.wantMode)
+			}
+		})
+	}
+}
+
 func TestNewClient(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/bottest-token/getMe" {

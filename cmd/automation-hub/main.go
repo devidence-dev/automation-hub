@@ -52,18 +52,21 @@ func main() {
 	var botHandler *handlers.BotHandler
 	var sched *scheduler.Scheduler
 
-	if len(cfg.Workflows) > 0 || len(cfg.Restarts) > 0 {
+	if len(cfg.Workflows) > 0 || len(cfg.Restarts) > 0 || len(cfg.Jobs) > 0 {
 		if cfg.WorkflowBot.BotToken == "" {
-			logger.Fatal("workflow_bot bot_token is required when workflows or restarts are configured")
+			logger.Fatal("workflow_bot bot_token is required when workflows, restarts or jobs are configured")
 		}
 		workflowBotClient = telegram.NewClient(cfg.WorkflowBot.BotToken, logger)
 
-		commands := make([]tgbotapi.BotCommand, 0, len(cfg.Workflows)+len(cfg.Restarts))
+		commands := make([]tgbotapi.BotCommand, 0, len(cfg.Workflows)+len(cfg.Restarts)+len(cfg.Jobs))
 		for _, workflow := range cfg.Workflows {
 			commands = append(commands, tgbotapi.BotCommand{Command: workflow.Command, Description: workflow.Description})
 		}
 		for _, restart := range cfg.Restarts {
 			commands = append(commands, tgbotapi.BotCommand{Command: restart.Command, Description: restart.Description})
+		}
+		for _, job := range cfg.Jobs {
+			commands = append(commands, tgbotapi.BotCommand{Command: job.Command, Description: job.Description})
 		}
 		if err := workflowBotClient.SetMyCommands(commands); err != nil {
 			logger.Fatal("Failed to set Telegram commands", zap.Error(err))
@@ -78,14 +81,14 @@ func main() {
 		}
 
 		var kubeClient *kube.Client
-		if len(cfg.Restarts) > 0 {
+		if len(cfg.Restarts) > 0 || len(cfg.Jobs) > 0 {
 			kubeClient, err = kube.NewInClusterClient(logger)
 			if err != nil {
-				logger.Fatal("Failed to build Kubernetes client for restarts", zap.Error(err))
+				logger.Fatal("Failed to build Kubernetes client for restarts or jobs", zap.Error(err))
 			}
 		}
 
-		botHandler = handlers.NewBotHandler(githubClient, kubeClient, workflowBotClient, cfg.Workflows, cfg.Restarts, logger)
+		botHandler = handlers.NewBotHandler(githubClient, kubeClient, workflowBotClient, cfg.Workflows, cfg.Restarts, kubeClient, cfg.Jobs, logger)
 
 		for _, workflow := range cfg.Workflows {
 			if workflow.Schedule == "" {
@@ -96,6 +99,17 @@ func main() {
 			}
 			if err := sched.Add(workflow.Command, workflow.Schedule, func() { botHandler.RunScheduled(workflow) }); err != nil {
 				logger.Fatal("Failed to register scheduled workflow", zap.Error(err))
+			}
+		}
+		for _, job := range cfg.Jobs {
+			if job.Schedule == "" {
+				continue
+			}
+			if sched == nil {
+				sched = scheduler.New(loc, logger)
+			}
+			if err := sched.Add(job.Command, job.Schedule, func() { botHandler.RunScheduledJob(job) }); err != nil {
+				logger.Fatal("Failed to register scheduled job", zap.Error(err))
 			}
 		}
 		if sched != nil {
@@ -119,18 +133,7 @@ func main() {
 	router := mux.NewRouter()
 	webhookHandler := handlers.NewWebhookHandler(telegramClient, cfg, logger)
 
-	// Register webhook routes dynamically from configuration
-	for _, hook := range cfg.Hook {
-		switch hook.Name {
-		case "qbittorrent":
-			router.HandleFunc(hook.Path, webhookHandler.HandleTorrentComplete).Methods("POST")
-			logger.Info("Registered webhook route",
-				zap.String("name", hook.Name),
-				zap.String("path", hook.Path))
-		default:
-			logger.Warn("Unknown webhook type", zap.String("name", hook.Name))
-		}
-	}
+	registerRoutes(router, cfg, webhookHandler, telegramClient, logger)
 
 	srv := &http.Server{
 		Addr:         cfg.Server.Address,
@@ -165,4 +168,30 @@ func main() {
 	}
 
 	logger.Info("Server exited")
+}
+
+// reportSender is what the dependency-report webhook needs from the notifications bot.
+type reportSender interface {
+	SendHTML(chatID, text string) error
+}
+
+// registerRoutes wires the webhook routes from the configuration.
+func registerRoutes(router *mux.Router, cfg *config.Config, webhookHandler *handlers.WebhookHandler, sender reportSender, logger *zap.Logger) {
+	for _, hook := range cfg.Hook {
+		switch hook.Name {
+		case "qbittorrent":
+			router.HandleFunc(hook.Path, webhookHandler.HandleTorrentComplete).Methods("POST")
+			logger.Info("Registered webhook route",
+				zap.String("name", hook.Name),
+				zap.String("path", hook.Path))
+		default:
+			logger.Warn("Unknown webhook type", zap.String("name", hook.Name))
+		}
+	}
+
+	// Not part of the switch above: the section is top-level with a fixed path.
+	if cfg.DependencyReport != nil {
+		router.Handle("/webhook/dependency-report", handlers.NewDependencyReportHandler(*cfg.DependencyReport, sender, logger)).Methods("POST")
+		logger.Info("Registered webhook route", zap.String("name", "dependency-report"), zap.String("path", "/webhook/dependency-report"))
+	}
 }

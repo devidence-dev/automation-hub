@@ -18,14 +18,14 @@ Receives the Renovate lookup report produced by the in-cluster dependency-report
 - **THEN** `POST /webhook/dependency-report` returns 404
 
 ### Requirement: Request handling
-The endpoint SHALL accept `multipart/form-data` with fields `exit_code`, `pod`, `forks` (JSON array of `owner/repo`), file `log_tail` and optional file `report`, and SHALL enforce a maximum body size. A malformed request SHALL get 400. A valid request SHALL get 202 at once, and the Telegram messages are then sent in the background.
+The endpoint SHALL accept `multipart/form-data` with fields `exit_code`, `pod`, file `log_tail` and optional file `report`, and SHALL enforce a maximum body size. A malformed request SHALL get 400. A valid request SHALL get 202 at once, and the Telegram messages are then sent in the background.
 
 #### Scenario: Valid request
 - **WHEN** a POST with a valid token, `exit_code=0` and a `report` file arrives
 - **THEN** the response is 202 before any Telegram message is sent
 
-#### Scenario: Malformed forks
-- **WHEN** `forks` is not a JSON array
+#### Scenario: Malformed exit code
+- **WHEN** `exit_code` is not an integer
 - **THEN** the response is 400 and nothing is sent
 
 ### Requirement: Renovate failure message
@@ -36,14 +36,14 @@ If `exit_code` is not `0` or `report` is missing, the system SHALL send one mess
 - **THEN** the message starts with `❌ Renovate falló (exit 1) en el pod dependency-report-manual-1791763200-x7k2p` and shows `&lt;html&gt;`
 
 ### Requirement: Per-repository message
-For each repository in the report, the system SHALL list every dependency that has at least one update of type `major`, `minor` or `patch` (`digest` and `pin` are ignored). Each line looks like `<emoji> <code>depName</code> <current> → <new> (<type>), …`, with 🔴 when any of those updates is `major` and 🟡 otherwise. Duplicate lines are removed. The message SHALL start with `<b>📦 <owner/repo></b>`, followed by ` (fork, solo informativo)` when the repo is in `forks`. When `libYearsWithStatus` is present, it SHALL then show `<outdated>/<total> desactualizadas · <libyears rounded to 1 decimal> libyears`, then `⚠️ <N> errores en el scan` when the repo has N problems with `level >= 50`, then a blank line and at most 40 dependency lines, then `… y <M> más`. A repo with no listed dependencies and no errors SHALL produce no message.
+For each repository in the report, the system SHALL list every dependency that has at least one update of type `major`, `minor` or `patch` (`digest` and `pin` are ignored). Each line looks like `<emoji> <code>depName</code> <current> → <new> (<type>), …`, with 🔴 when any of those updates is `major` and 🟡 otherwise. Duplicate lines are removed. The message SHALL start with `<b>📦 <owner/repo></b>`, followed by ` (fork, solo informativo)` when the repo is in the configured `dependency_report.forks`. When `libYearsWithStatus` is present, it SHALL then show `<outdated>/<total> desactualizadas · <libyears rounded to 1 decimal> libyears`, then `⚠️ <N> errores en el scan` when the repo has N problems with `level >= 50`, then a blank line and at most 40 dependency lines, then `… y <M> más`. A repo with no listed dependencies and no errors SHALL produce no message.
 
 #### Scenario: Major update
 - **WHEN** `devidence-dev/QuantWarden` has dep `golang.org/x/net` at `0.30.0` with a `major` update to `1.0.0`, and `dependencyStatus` is `{outdated: 3, total: 20}` with `libYears.total` `2.345`
 - **THEN** its message contains `<b>📦 devidence-dev/QuantWarden</b>`, `3/20 desactualizadas · 2.3 libyears` and a 🔴 line for `golang.org/x/net`
 
 #### Scenario: Fork
-- **WHEN** `devidence-dev/discord-tts-bot` is in `forks` and has a `minor` update
+- **WHEN** `devidence-dev/discord-tts-bot` is in `dependency_report.forks` and has a `minor` update
 - **THEN** its header ends with ` (fork, solo informativo)` and the line uses 🟡
 
 #### Scenario: More than 40 lines

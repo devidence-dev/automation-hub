@@ -7,7 +7,7 @@ The dependency report PoC runs Renovate inside GitHub Actions in the public `wor
 ## What Changes
 
 - New `jobs:` bot command type: a command creates a Kubernetes Job from a suspended CronJob template (like `kubectl create job --from=cronjob/...`). It can be triggered from Telegram or by a `schedule` (reusing `add-workflow-scheduler`).
-- New `dependency_report:` config (`webhook_token`, `telegram_chat_id`), plus a new `POST /webhook/dependency-report` endpoint that receives the Renovate report from the Job, formats it and sends it to Telegram in the agreed format.
+- New `dependency_report:` config (`webhook_token`, `telegram_chat_id`, `forks`), whose values are Infisical references inside `CONFIG_YAML`, plus a new `POST /webhook/dependency-report` endpoint that receives the Renovate report from the Job, formats it and sends it to Telegram in the agreed format.
 - Telegram client: support for HTML parse mode, with no change to the existing Markdown messages.
 - `main.go`: build the bot and the in-cluster kube client when `jobs:` is configured, and register the new route only when `dependency_report:` is configured.
 - Command names stay unique across `workflows`, `restarts` and `jobs`.
@@ -27,11 +27,11 @@ The dependency report PoC runs Renovate inside GitHub Actions in the public `wor
 - `dependency-report`: authenticated webhook that turns a Renovate report into Telegram messages.
 
 ### Modified Capabilities
-<!-- none: openspec/specs is empty; scheduling of jobs is specified inside job-commands -->
+<!-- none: job scheduling is specified inside job-commands -->
 
 ## Impact
 
 - Depends on `add-workflow-scheduler` (scheduler, dispatch core, `schedule` validation).
 - Code: `internal/config`, `cmd/automation-hub/main.go`, `internal/services/kube` (`CreateJobFromCronJob`), `internal/services/telegram` (HTML send), `internal/handlers` (job command and new `dependency_report.go`).
 - API: new HTTP endpoint `POST /webhook/dependency-report` (multipart, header `X-Report-Token`).
-- Other repos and the user: homelab (ExternalSecret, suspended CronJob, Role/RoleBinding, two mandatory NetworkPolicies), Infisical secrets, and deleting the interim `ops-dependency-report.yml` from `workflows`.
+- Other repos and the user: homelab manifests inside `kubernetes/internal-apps/automation-hub/`, part of the existing automation-hub Argo app (ExternalSecret, suspended CronJob, Role/RoleBinding, two mandatory NetworkPolicies); new secrets in automation-hub's Infisical store; and deleting the interim `ops-dependency-report.yml` from `workflows`.

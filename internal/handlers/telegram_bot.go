@@ -29,6 +29,10 @@ type deploymentRestarter interface {
 	WaitForRollout(ctx context.Context, namespace, deployment string, pollInterval time.Duration) error
 }
 
+type jobCreator interface {
+	CreateJobFromCronJob(ctx context.Context, namespace, name string) (string, error)
+}
+
 type telegramMessenger interface {
 	SendMessage(string, string) error
 }
@@ -40,10 +44,12 @@ type BotHandler struct {
 	telegramClient telegramMessenger
 	commands       map[string]config.WorkflowCommandConfig
 	restarts       map[string]config.RestartCommandConfig
+	jobClient      jobCreator
+	jobs           map[string]config.JobCommandConfig
 	logger         *zap.Logger
 }
 
-func NewBotHandler(githubClient workflowDispatcher, kubeClient deploymentRestarter, telegramClient telegramMessenger, workflows []config.WorkflowCommandConfig, restarts []config.RestartCommandConfig, logger *zap.Logger) *BotHandler {
+func NewBotHandler(githubClient workflowDispatcher, kubeClient deploymentRestarter, telegramClient telegramMessenger, workflows []config.WorkflowCommandConfig, restarts []config.RestartCommandConfig, jobClient jobCreator, jobs []config.JobCommandConfig, logger *zap.Logger) *BotHandler {
 	commands := make(map[string]config.WorkflowCommandConfig, len(workflows))
 	for _, workflow := range workflows {
 		commands[workflow.Command] = workflow
@@ -51,6 +57,10 @@ func NewBotHandler(githubClient workflowDispatcher, kubeClient deploymentRestart
 	restartCommands := make(map[string]config.RestartCommandConfig, len(restarts))
 	for _, restart := range restarts {
 		restartCommands[restart.Command] = restart
+	}
+	jobCommands := make(map[string]config.JobCommandConfig, len(jobs))
+	for _, job := range jobs {
+		jobCommands[job.Command] = job
 	}
 	if logger == nil {
 		logger = zap.NewNop()
@@ -61,6 +71,8 @@ func NewBotHandler(githubClient workflowDispatcher, kubeClient deploymentRestart
 		telegramClient: telegramClient,
 		commands:       commands,
 		restarts:       restartCommands,
+		jobClient:      jobClient,
+		jobs:           jobCommands,
 		logger:         logger,
 	}
 }
@@ -88,6 +100,15 @@ func (h *BotHandler) Handle(update tgbotapi.Update) {
 			return
 		}
 		h.restartDeployment(commandName, chatID, restart)
+		return
+	}
+
+	if job, exists := h.jobs[commandName]; exists {
+		if !isAllowed(chatID, job.AllowedChatIDs) {
+			h.handleUnauthorizedCommand(commandName, chatID, username(update.Message))
+			return
+		}
+		h.createJob(commandName, chatID, job)
 		return
 	}
 
@@ -145,6 +166,41 @@ func (h *BotHandler) RunScheduled(workflow config.WorkflowCommandConfig) {
 		return
 	}
 	h.logger.Info("Scheduled workflow dispatched", append(fields, zap.String("result", "dispatched"), zap.String("run_url", runURL))...)
+}
+
+func (h *BotHandler) createJob(commandName, chatID string, job config.JobCommandConfig) {
+	jobName, err := h.RunJob(context.Background(), job)
+	if err != nil {
+		h.logger.Error("Failed to create Kubernetes job", zap.Error(err), zap.String("command", commandName), zap.String("chat_id", chatID))
+		h.sendMessage(chatID, "Failed to create the job. Check the hub logs or try again later.")
+		return
+	}
+	h.sendMessage(chatID, fmt.Sprintf("Job *%s* created from *%s*.", jobName, job.CronJob))
+}
+
+// RunJob creates a Job from the entry's CronJob and returns its name. Like
+// RunWorkflow it does not depend on a chat, so commands and schedules share it.
+func (h *BotHandler) RunJob(ctx context.Context, job config.JobCommandConfig) (string, error) {
+	return h.jobClient.CreateJobFromCronJob(ctx, job.Namespace, job.CronJob)
+}
+
+// RunScheduledJob runs a job command from the scheduler. It logs the outcome.
+// On failure it tells every chat in allowed_chat_ids.
+func (h *BotHandler) RunScheduledJob(job config.JobCommandConfig) {
+	fields := []zap.Field{
+		zap.String("command", job.Command),
+		zap.String("namespace", job.Namespace),
+		zap.String("cronjob", job.CronJob),
+	}
+	jobName, err := h.RunJob(context.Background(), job)
+	if err != nil {
+		h.logger.Error("Scheduled job creation failed", append(fields, zap.String("result", "failed"), zap.Error(err))...)
+		for _, chatID := range job.AllowedChatIDs {
+			h.sendMessage(chatID, fmt.Sprintf("❌ Scheduled run of `%s` failed to create the job. Check the hub logs or try again later.", job.Command))
+		}
+		return
+	}
+	h.logger.Info("Scheduled job created", append(fields, zap.String("result", "created"), zap.String("job", jobName))...)
 }
 
 func (h *BotHandler) restartDeployment(commandName, chatID string, restart config.RestartCommandConfig) {

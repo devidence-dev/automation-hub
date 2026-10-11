@@ -47,6 +47,24 @@ func (f *fakeRestarter) WaitForRollout(_ context.Context, namespace, deployment 
 	return f.rolloutErr
 }
 
+type fakeJobCreator struct {
+	mu         sync.Mutex
+	namespaces []string
+	cronJobs   []string
+	err        error
+}
+
+func (f *fakeJobCreator) CreateJobFromCronJob(_ context.Context, namespace, name string) (string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.namespaces = append(f.namespaces, namespace)
+	f.cronJobs = append(f.cronJobs, name)
+	if f.err != nil {
+		return "", f.err
+	}
+	return name + "-manual-1791763200", nil
+}
+
 type fakeMessenger struct {
 	mu       sync.Mutex
 	chatIDs  []string
@@ -106,7 +124,7 @@ func TestBotHandlerHandle(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			dispatcher := &fakeDispatcher{err: tt.dispatchError, runURL: "https://github.com/devidence-dev/github-runner/actions/runs/999"}
 			messenger := &fakeMessenger{}
-			handler := NewBotHandler(dispatcher, nil, messenger, []config.WorkflowCommandConfig{workflow}, nil, zap.NewNop())
+			handler := NewBotHandler(dispatcher, nil, messenger, []config.WorkflowCommandConfig{workflow}, nil, nil, nil, zap.NewNop())
 			handler.Handle(tt.update)
 			if dispatcher.calls != tt.wantCalls {
 				t.Errorf("dispatch calls = %d, want %d", dispatcher.calls, tt.wantCalls)
@@ -127,7 +145,7 @@ func TestBotHandlerDispatchWorkflowLinksToTheDispatchedRun(t *testing.T) {
 	}
 	dispatcher := &fakeDispatcher{runURL: "https://github.com/devidence-dev/github-runner/actions/runs/999"}
 	messenger := &fakeMessenger{}
-	handler := NewBotHandler(dispatcher, nil, messenger, []config.WorkflowCommandConfig{workflow}, nil, zap.NewNop())
+	handler := NewBotHandler(dispatcher, nil, messenger, []config.WorkflowCommandConfig{workflow}, nil, nil, nil, zap.NewNop())
 
 	handler.Handle(commandUpdate("/run_check_updates", 123))
 
@@ -146,7 +164,7 @@ func TestBotHandlerDispatchWorkflowFallsBackWhenRunURLIsEmpty(t *testing.T) {
 	}
 	dispatcher := &fakeDispatcher{runURL: ""}
 	messenger := &fakeMessenger{}
-	handler := NewBotHandler(dispatcher, nil, messenger, []config.WorkflowCommandConfig{workflow}, nil, zap.NewNop())
+	handler := NewBotHandler(dispatcher, nil, messenger, []config.WorkflowCommandConfig{workflow}, nil, nil, nil, zap.NewNop())
 
 	handler.Handle(commandUpdate("/run_check_updates", 123))
 
@@ -176,7 +194,7 @@ func TestBotHandlerHandleRestart(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			restarter := &fakeRestarter{err: tt.restartErr}
 			messenger := &fakeMessenger{}
-			handler := NewBotHandler(nil, restarter, messenger, nil, []config.RestartCommandConfig{restart}, zap.NewNop())
+			handler := NewBotHandler(nil, restarter, messenger, nil, []config.RestartCommandConfig{restart}, nil, nil, zap.NewNop())
 			handler.Handle(tt.update)
 			if restarter.calls != tt.wantCalls {
 				t.Errorf("restart calls = %d, want %d", restarter.calls, tt.wantCalls)
@@ -197,7 +215,7 @@ func TestBotHandlerRestartConfirmsWhenRolloutBecomesReady(t *testing.T) {
 	}
 	restarter := &fakeRestarter{}
 	messenger := &fakeMessenger{}
-	handler := NewBotHandler(nil, restarter, messenger, nil, []config.RestartCommandConfig{restart}, zap.NewNop())
+	handler := NewBotHandler(nil, restarter, messenger, nil, []config.RestartCommandConfig{restart}, nil, nil, zap.NewNop())
 
 	handler.Handle(commandUpdate("/restart_runner", 123))
 
@@ -216,7 +234,7 @@ func TestBotHandlerRestartReportsTimeoutWhenRolloutNeverBecomesReady(t *testing.
 	}
 	restarter := &fakeRestarter{rolloutErr: context.DeadlineExceeded}
 	messenger := &fakeMessenger{}
-	handler := NewBotHandler(nil, restarter, messenger, nil, []config.RestartCommandConfig{restart}, zap.NewNop())
+	handler := NewBotHandler(nil, restarter, messenger, nil, []config.RestartCommandConfig{restart}, nil, nil, zap.NewNop())
 
 	handler.Handle(commandUpdate("/restart_runner", 123))
 
@@ -254,7 +272,7 @@ func TestRunWorkflow(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dispatcher := &fakeDispatcher{runURL: tt.runURL, err: tt.dispatchErr}
-			handler := NewBotHandler(dispatcher, nil, nil, nil, nil, zap.NewNop())
+			handler := NewBotHandler(dispatcher, nil, nil, nil, nil, nil, nil, zap.NewNop())
 
 			got, err := handler.RunWorkflow(context.Background(), workflow)
 			if (err != nil) != tt.wantErr {
@@ -288,7 +306,7 @@ func TestRunScheduled(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			dispatcher := &fakeDispatcher{runURL: "https://github.com/devidence-dev/workflows/actions/runs/1", err: tt.dispatchErr}
 			messenger := &fakeMessenger{}
-			handler := NewBotHandler(dispatcher, nil, messenger, []config.WorkflowCommandConfig{workflow}, nil, zap.NewNop())
+			handler := NewBotHandler(dispatcher, nil, messenger, []config.WorkflowCommandConfig{workflow}, nil, nil, nil, zap.NewNop())
 
 			handler.RunScheduled(workflow)
 
@@ -308,4 +326,60 @@ func TestRunScheduled(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBotHandlerHandleJob(t *testing.T) {
+	job := config.JobCommandConfig{
+		Command: "run_dependency_report", Namespace: "internal-apps", CronJob: "dependency-report", AllowedChatIDs: []string{"123"},
+	}
+	tests := []struct {
+		name        string
+		update      tgbotapi.Update
+		createErr   error
+		wantCalls   int
+		wantMessage string
+	}{
+		{name: "authorized command creates the job", update: commandUpdate("/run_dependency_report", 123), wantCalls: 1, wantMessage: "Job *dependency-report-manual-1791763200* created from *dependency-report*."},
+		{name: "unauthorized chat is rejected", update: commandUpdate("/run_dependency_report", 999), wantMessage: "not authorized"},
+		{name: "API error is reported", update: commandUpdate("/run_dependency_report", 123), createErr: errors.New("create job: status 403 Forbidden"), wantCalls: 1, wantMessage: "Failed to create the job. Check the hub logs or try again later."},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			creator := &fakeJobCreator{err: tt.createErr}
+			messenger := &fakeMessenger{}
+			handler := NewBotHandler(nil, nil, messenger, nil, nil, creator, []config.JobCommandConfig{job}, zap.NewNop())
+			handler.Handle(tt.update)
+			if len(creator.cronJobs) != tt.wantCalls {
+				t.Errorf("create calls = %d, want %d", len(creator.cronJobs), tt.wantCalls)
+			}
+			if tt.wantCalls > 0 && (creator.namespaces[0] != "internal-apps" || creator.cronJobs[0] != "dependency-report") {
+				t.Errorf("created from %v/%v", creator.namespaces, creator.cronJobs)
+			}
+			messages := messenger.snapshot()
+			if len(messages) != 1 || !strings.Contains(messages[0], tt.wantMessage) {
+				t.Errorf("messages = %#v, want one containing %q", messages, tt.wantMessage)
+			}
+		})
+	}
+}
+
+func TestBotHandlerRunScheduledJob(t *testing.T) {
+	job := config.JobCommandConfig{
+		Command: "run_dependency_report", Namespace: "internal-apps", CronJob: "dependency-report", AllowedChatIDs: []string{"123", "456"},
+	}
+	t.Run("success creates the job and stays silent", func(t *testing.T) {
+		creator, messenger := &fakeJobCreator{}, &fakeMessenger{}
+		NewBotHandler(nil, nil, messenger, nil, nil, creator, []config.JobCommandConfig{job}, zap.NewNop()).RunScheduledJob(job)
+		if len(creator.cronJobs) != 1 || len(messenger.snapshot()) != 0 {
+			t.Errorf("creates = %v, messages = %v", creator.cronJobs, messenger.snapshot())
+		}
+	})
+	t.Run("failure notifies every allowed chat", func(t *testing.T) {
+		creator, messenger := &fakeJobCreator{err: errors.New("boom")}, &fakeMessenger{}
+		NewBotHandler(nil, nil, messenger, nil, nil, creator, []config.JobCommandConfig{job}, zap.NewNop()).RunScheduledJob(job)
+		messages := messenger.snapshot()
+		if len(messages) != 2 || !strings.Contains(messages[0], "run_dependency_report") {
+			t.Errorf("messages = %#v, want one failure per allowed chat naming the command", messages)
+		}
+	})
 }

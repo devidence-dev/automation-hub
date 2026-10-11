@@ -1,0 +1,1181 @@
+{
+  "problems": [
+    {
+      "level": 50,
+      "msg": "Fatal error outside any repo"
+    }
+  ],
+  "repositories": {
+    "devidence-dev/QuantWarden": {
+      "problems": [
+        {
+          "level": 40,
+          "msg": "Warn level problem"
+        },
+        {
+          "level": 50,
+          "msg": "Failed to look up dependency"
+        },
+        {
+          "level": 60,
+          "msg": "Fatal level problem"
+        }
+      ],
+      "branches": [],
+      "packageFiles": {
+        "gomod": [
+          {
+            "packageFile": "go.mod",
+            "deps": [
+              {
+                "depName": "golang.org/x/net",
+                "currentValue": "0.30.0",
+                "currentVersion": "0.30.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "golang.org/x/net",
+                "updates": [
+                  {
+                    "bucket": "major",
+                    "newVersion": "1.0.0",
+                    "newValue": "1.0.0",
+                    "updateType": "major",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "github.com/gorilla/mux",
+                "currentValue": "1.8.0",
+                "currentVersion": "1.8.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "github.com/gorilla/mux",
+                "updates": [
+                  {
+                    "bucket": "major",
+                    "newVersion": "2.0.0",
+                    "newValue": "2.0.0",
+                    "updateType": "major",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 2
+                  },
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.9.0",
+                    "newValue": "1.9.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "go.uber.org/zap",
+                "currentValue": "1.27.0",
+                "currentVersion": "1.27.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "go.uber.org/zap",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.27.1",
+                    "newValue": "1.27.1",
+                    "updateType": "patch",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "github.com/up/to-date",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "github.com/up/to-date",
+                "updates": [],
+                "warnings": []
+              },
+              {
+                "depName": "golang.org/x/net",
+                "currentValue": "0.30.0",
+                "currentVersion": "0.30.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "golang.org/x/net",
+                "updates": [
+                  {
+                    "bucket": "major",
+                    "newVersion": "1.0.0",
+                    "newValue": "1.0.0",
+                    "updateType": "major",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              }
+            ]
+          }
+        ],
+        "dockerfile": [
+          {
+            "packageFile": "Dockerfile",
+            "deps": [
+              {
+                "depName": "golang",
+                "currentValue": "1.26",
+                "currentVersion": "1.26",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "golang",
+                "updates": [
+                  {
+                    "bucket": "digest",
+                    "newVersion": "1.26",
+                    "newValue": "1.26",
+                    "updateType": "digest",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1,
+                    "newDigest": "sha256:abc"
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "debian",
+                "currentValue": "12",
+                "currentVersion": "12",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "debian",
+                "updates": [
+                  {
+                    "bucket": "pin",
+                    "newVersion": "12",
+                    "newValue": "12",
+                    "updateType": "pin",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 12
+                  },
+                  {
+                    "bucket": "lockFileMaintenance",
+                    "newVersion": "12",
+                    "newValue": "12",
+                    "updateType": "lockFileMaintenance",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 12
+                  }
+                ],
+                "warnings": []
+              }
+            ]
+          }
+        ]
+      },
+      "libYearsWithStatus": {
+        "libYears": {
+          "total": 2.345,
+          "managers": {
+            "gomod": 2.345
+          }
+        },
+        "dependencyStatus": {
+          "outdated": 3,
+          "total": 20
+        }
+      }
+    },
+    "devidence-dev/discord-tts-bot": {
+      "problems": [],
+      "branches": [],
+      "packageFiles": {
+        "npm": [
+          {
+            "packageFile": "package.json",
+            "deps": [
+              {
+                "depName": "discord.js",
+                "currentValue": "14.1.0",
+                "currentVersion": "14.1.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "discord.js",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "14.2.0",
+                    "newValue": "14.2.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 14
+                  }
+                ],
+                "warnings": []
+              }
+            ]
+          }
+        ]
+      },
+      "libYearsWithStatus": {
+        "libYears": {
+          "total": 0.04,
+          "managers": {
+            "gomod": 0.04
+          }
+        },
+        "dependencyStatus": {
+          "outdated": 1,
+          "total": 5
+        }
+      }
+    },
+    "devidence-dev/digest-only": {
+      "problems": [],
+      "branches": [],
+      "packageFiles": {
+        "dockerfile": [
+          {
+            "packageFile": "Dockerfile",
+            "deps": [
+              {
+                "depName": "alpine",
+                "currentValue": "3.20",
+                "currentVersion": "3.20",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "alpine",
+                "updates": [
+                  {
+                    "bucket": "digest",
+                    "newVersion": "3.20",
+                    "newValue": "3.20",
+                    "updateType": "digest",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 3
+                  }
+                ],
+                "warnings": []
+              }
+            ]
+          }
+        ]
+      },
+      "libYearsWithStatus": {
+        "libYears": {
+          "total": 0,
+          "managers": {
+            "gomod": 0
+          }
+        },
+        "dependencyStatus": {
+          "outdated": 0,
+          "total": 1
+        }
+      }
+    },
+    "devidence-dev/warn-only": {
+      "problems": [
+        {
+          "level": 40,
+          "msg": "Just a warning"
+        }
+      ],
+      "branches": [],
+      "packageFiles": {
+        "gomod": [
+          {
+            "packageFile": "go.mod",
+            "deps": []
+          }
+        ]
+      }
+    },
+    "devidence-dev/big-monorepo": {
+      "problems": [],
+      "branches": [],
+      "packageFiles": {
+        "npm": [
+          {
+            "packageFile": "package.json",
+            "deps": [
+              {
+                "depName": "pkg-00",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-00",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-01",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-01",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-02",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-02",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-03",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-03",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-04",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-04",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-05",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-05",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-06",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-06",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-07",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-07",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-08",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-08",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-09",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-09",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-10",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-10",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-11",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-11",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-12",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-12",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-13",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-13",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-14",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-14",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-15",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-15",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-16",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-16",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-17",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-17",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-18",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-18",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-19",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-19",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-20",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-20",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-21",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-21",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-22",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-22",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-23",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-23",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-24",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-24",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-25",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-25",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-26",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-26",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-27",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-27",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-28",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-28",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-29",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-29",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-30",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-30",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-31",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-31",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-32",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-32",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-33",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-33",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-34",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-34",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-35",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-35",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-36",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-36",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-37",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-37",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-38",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-38",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-39",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-39",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-40",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-40",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-41",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-41",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-42",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-42",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-43",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-43",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "pkg-44",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "go",
+                "depType": "require",
+                "packageName": "pkg-44",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.1.0",
+                    "newValue": "1.1.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              }
+            ]
+          }
+        ]
+      },
+      "libYearsWithStatus": {
+        "libYears": {
+          "total": 10.0,
+          "managers": {
+            "gomod": 10.0
+          }
+        },
+        "dependencyStatus": {
+          "outdated": 45,
+          "total": 60
+        }
+      }
+    }
+  }
+}

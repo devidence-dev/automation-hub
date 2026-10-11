@@ -209,7 +209,7 @@ secrets/
 credentials/
 
 # 🏗️ Build artifacts
-automation-hub
+/automation-hub
 automation-hub-*
 /bin/
 /dist/
@@ -229,7 +229,7 @@ log/
 # 🤖 CI/CD artifacts
 .github/workflows/tmp/
 
-automation-hub
+/automation-hub
 docker-compose.override.yml
 .DS_Store
 

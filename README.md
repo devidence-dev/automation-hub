@@ -179,6 +179,33 @@ go run cmd/automation-hub/main.go
 go test ./...
 ```
 
+### 🗂️ Run Kubernetes Jobs from Telegram
+
+A `jobs` entry creates a one-off Job from a suspended CronJob template, like `kubectl create job --from=cronjob/<name>`. The Job is named `<cronjob>-manual-<unix seconds>` and copies the template as-is (labels, annotations, spec); the hub does not inject any environment into it. Command names share one namespace with `workflows` and `restarts`, and `schedule` works as it does for workflows. The hub needs an in-cluster ServiceAccount allowed to `get` the CronJob and `create` Jobs in its namespace (RBAC lives in the homelab repo). Example:
+
+```yaml
+jobs:
+  - command: "run_dependency_report"
+    description: "Run the dependency report (Renovate lookup)"
+    namespace: "internal-apps"
+    cronjob: "dependency-report"
+    allowed_chat_ids: ["123456789"]
+    schedule: "0 9 * * 1"
+```
+
+### 📦 Dependency report webhook
+
+When `dependency_report:` is configured, the hub exposes `POST /webhook/dependency-report`. The Job's reporter container posts a `multipart/form-data` body (`exit_code`, `pod`, file `log_tail`, optional file `report`) with header `X-Report-Token`. The hub answers `202` and sends the formatted report (HTML, Spanish) through the notifications bot (`telegram.bot_token`) to `telegram_chat_id`. A wrong token gets `401`, a malformed request `400`, and the body is capped at 10 MiB.
+
+```yaml
+dependency_report:
+  webhook_token: "${DEPENDENCY_REPORT_TOKEN}"   # Infisical reference inside CONFIG_YAML
+  telegram_chat_id: "123456789"
+  # Do not quote this reference. It holds a JSON array, so unquoted YAML reads a
+  # list. A quoted reference is a string and config loading fails.
+  forks: ${DEPENDENCY_REPORT_FORKS}              # e.g. ["devidence-dev/discord-tts-bot"]
+```
+
 ---
 
 ## � API & Webhooks
@@ -188,6 +215,7 @@ go test ./...
 | Endpoint | Method | Description |
 |----------|---------|-------------|
 | `/webhook/qbitorrent` | POST | qBittorrent completion notifications |
+| `/webhook/dependency-report` | POST | Renovate report from the dependency-report Job (only if `dependency_report:` is set) |
 
 ### 📦 qBittorrent Integration
 

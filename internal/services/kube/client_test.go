@@ -183,3 +183,94 @@ func TestNewClientWithBaseURLUsesDefaults(t *testing.T) {
 		t.Errorf("baseURL = %q", client.baseURL)
 	}
 }
+
+func TestCreateJobFromCronJob(t *testing.T) {
+	const cronJobBody = `{
+	  "metadata": {"name": "dependency-report", "uid": "uid-123"},
+	  "spec": {"suspend": true, "jobTemplate": {
+	    "metadata": {"labels": {"app.kubernetes.io/name": "dependency-report"}, "annotations": {"team": "ops"}},
+	    "spec": {"backoffLimit": 0, "futureField": {"x": 1}, "template": {"spec": {"restartPolicy": "Never"}}}
+	  }}
+	}`
+	tests := []struct {
+		name       string
+		postStatus int
+		wantErr    string
+	}{
+		{name: "created", postStatus: http.StatusCreated},
+		{name: "forbidden", postStatus: http.StatusForbidden, wantErr: "403"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var posted map[string]any
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Header.Get("Authorization") != "Bearer test-token" {
+					t.Errorf("Authorization = %q", r.Header.Get("Authorization"))
+				}
+				switch {
+				case r.Method == http.MethodGet && r.URL.Path == "/apis/batch/v1/namespaces/internal-apps/cronjobs/dependency-report":
+					_, _ = io.WriteString(w, cronJobBody)
+				case r.Method == http.MethodPost && r.URL.Path == "/apis/batch/v1/namespaces/internal-apps/jobs":
+					if err := json.NewDecoder(r.Body).Decode(&posted); err != nil {
+						t.Errorf("decode job: %v", err)
+					}
+					w.WriteHeader(tt.postStatus)
+					_, _ = io.WriteString(w, `{"message":"jobs is forbidden"}`)
+				default:
+					t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+				}
+			}))
+			defer server.Close()
+
+			client := NewClientWithBaseURL("test-token", server.URL, server.Client(), zap.NewNop())
+			client.now = func() time.Time { return time.Unix(1791763200, 0) }
+			name, err := client.CreateJobFromCronJob(context.Background(), "internal-apps", "dependency-report")
+
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("error = %v, want it to contain %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("CreateJobFromCronJob() error = %v", err)
+			}
+			if name != "dependency-report-manual-1791763200" {
+				t.Errorf("name = %q", name)
+			}
+			meta := posted["metadata"].(map[string]any)
+			if meta["name"] != name || meta["namespace"] != "internal-apps" {
+				t.Errorf("metadata = %v", meta)
+			}
+			if got := meta["labels"].(map[string]any)["app.kubernetes.io/name"]; got != "dependency-report" {
+				t.Errorf("label = %v", got)
+			}
+			ann := meta["annotations"].(map[string]any)
+			if ann["cronjob.kubernetes.io/instantiate"] != "manual" || ann["team"] != "ops" {
+				t.Errorf("annotations = %v", ann)
+			}
+			owner := meta["ownerReferences"].([]any)[0].(map[string]any)
+			if owner["kind"] != "CronJob" || owner["name"] != "dependency-report" || owner["uid"] != "uid-123" || owner["controller"] != true {
+				t.Errorf("ownerReference = %v", owner)
+			}
+			if _, set := owner["blockOwnerDeletion"]; set {
+				t.Error("blockOwnerDeletion must not be set: kubectl omits it")
+			}
+			spec := posted["spec"].(map[string]any)
+			if spec["backoffLimit"] != float64(0) || spec["futureField"] == nil {
+				t.Errorf("job spec was not copied as-is: %v", spec)
+			}
+		})
+	}
+}
+
+func TestCreateJobFromCronJobGetError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+	client := NewClientWithBaseURL("test-token", server.URL, server.Client(), zap.NewNop())
+	if _, err := client.CreateJobFromCronJob(context.Background(), "internal-apps", "missing"); err == nil || !strings.Contains(err.Error(), "get cronjob") {
+		t.Fatalf("error = %v, want get cronjob failure", err)
+	}
+}

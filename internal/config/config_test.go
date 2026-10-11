@@ -1,8 +1,10 @@
 package config
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
@@ -130,6 +132,7 @@ func TestValidateBotCommands(t *testing.T) {
 		name      string
 		workflows []WorkflowCommandConfig
 		restarts  []RestartCommandConfig
+		jobs      []JobCommandConfig
 		wantErr   bool
 	}{
 		{name: "valid workflow", workflows: []WorkflowCommandConfig{{Command: "run_cleanup"}}},
@@ -142,10 +145,23 @@ func TestValidateBotCommands(t *testing.T) {
 			restarts:  []RestartCommandConfig{{Command: "run_cleanup"}},
 			wantErr:   true,
 		},
+		{name: "valid job", jobs: []JobCommandConfig{{Command: "run_dependency_report"}}},
+		{
+			name:      "duplicate across workflows and jobs",
+			workflows: []WorkflowCommandConfig{{Command: "run_check_updates"}},
+			jobs:      []JobCommandConfig{{Command: "run_check_updates"}},
+			wantErr:   true,
+		},
+		{
+			name:     "duplicate across restarts and jobs",
+			restarts: []RestartCommandConfig{{Command: "restart_runner"}},
+			jobs:     []JobCommandConfig{{Command: "restart_runner"}},
+			wantErr:  true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := validateBotCommands(tt.workflows, tt.restarts); (err != nil) != tt.wantErr {
+			if err := validateBotCommands(tt.workflows, tt.restarts, tt.jobs); (err != nil) != tt.wantErr {
 				t.Errorf("validateBotCommands() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -156,15 +172,18 @@ func TestValidateSchedules(t *testing.T) {
 	tests := []struct {
 		name     string
 		workflow WorkflowCommandConfig
+		job      JobCommandConfig
 		wantErr  []string
 	}{
+		{name: "job schedule accepted", job: JobCommandConfig{Command: "run_dependency_report", Schedule: "0 9 * * 1"}},
+		{name: "job four fields rejected", job: JobCommandConfig{Command: "run_dependency_report", Schedule: "0 9 * *"}, wantErr: []string{"run_dependency_report", "0 9 * *"}},
 		{name: "weekday list accepted", workflow: WorkflowCommandConfig{Command: "run_check_updates", Schedule: "0 9 * * 1,3,5"}},
 		{name: "empty schedule accepted", workflow: WorkflowCommandConfig{Command: "run_cleanup"}},
 		{name: "four fields rejected", workflow: WorkflowCommandConfig{Command: "run_cleanup", Schedule: "0 9 * *"}, wantErr: []string{"run_cleanup", "0 9 * *"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateSchedules([]WorkflowCommandConfig{tt.workflow})
+			err := validateSchedules([]WorkflowCommandConfig{tt.workflow}, []JobCommandConfig{tt.job})
 			if len(tt.wantErr) == 0 {
 				if err != nil {
 					t.Fatalf("validateSchedules() error = %v, want nil", err)
@@ -183,31 +202,106 @@ func TestValidateSchedules(t *testing.T) {
 	}
 }
 
+// loadYAML writes content as config.yaml in a temp dir and loads it.
+func loadYAML(t *testing.T, content string) (*Config, error) {
+	t.Helper()
+	tmpDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), []byte(content), 0600); err != nil { //nolint:gosec // G703 false positive: tmpDir comes from t.TempDir()
+		t.Fatalf("write config: %v", err)
+	}
+	viper.Reset()
+	return loadFrom([]string{tmpDir})
+}
+
+func TestLoadJobsAndDependencyReport(t *testing.T) {
+	const jobsOnly = `
+jobs:
+  - command: "run_dependency_report"
+    namespace: "internal-apps"
+    cronjob: "dependency-report"
+    schedule: "0 9 * * 1"
+    allowed_chat_ids: ["123"]
+`
+	const report = `
+dependency_report:
+  webhook_token: "tok"
+  telegram_chat_id: "456"
+  forks: %s
+`
+	tests := []struct {
+		name      string
+		content   string
+		wantErr   string
+		wantJobs  int
+		wantForks []string
+	}{
+		{name: "jobs-only config accepted", content: jobsOnly, wantJobs: 1},
+		{name: "duplicate across types rejected", wantErr: "run_dependency_report", content: jobsOnly + `
+workflows:
+  - command: "run_dependency_report"
+`},
+		{name: "invalid job schedule rejected", wantErr: "0 9 * *", content: `
+jobs:
+  - {command: "run_dependency_report", namespace: "ns", cronjob: "cj", schedule: "0 9 * *"}
+`},
+		{name: "job without cronjob rejected", wantErr: "namespace and cronjob", content: `
+jobs:
+  - {command: "run_dependency_report", namespace: "ns"}
+`},
+		{name: "unquoted JSON array is a list", content: strings.Replace(report, "%s", `["devidence-dev/a", "devidence-dev/b"]`, 1), wantForks: []string{"devidence-dev/a", "devidence-dev/b"}},
+		{name: "quoted array is rejected", wantErr: "forks", content: strings.Replace(report, "%s", `'["devidence-dev/a", "devidence-dev/b"]'`, 1)},
+		{name: "quoted plain string is rejected", wantErr: "forks", content: strings.Replace(report, "%s", `"devidence-dev/a"`, 1)},
+		{name: "missing token rejected", wantErr: "webhook_token", content: "dependency_report:\n  telegram_chat_id: \"456\"\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := loadYAML(t, tt.content)
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("Load() error = %v, want it to contain %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Load() error = %v", err)
+			}
+			if len(cfg.Jobs) != tt.wantJobs {
+				t.Errorf("jobs = %d, want %d", len(cfg.Jobs), tt.wantJobs)
+			}
+			if tt.wantJobs > 0 && cfg.DependencyReport != nil {
+				t.Errorf("DependencyReport = %+v, want nil when the section is absent", cfg.DependencyReport)
+			}
+			if tt.wantForks != nil && !reflect.DeepEqual(cfg.DependencyReport.Forks, tt.wantForks) {
+				t.Errorf("forks = %v, want %v", cfg.DependencyReport.Forks, tt.wantForks)
+			}
+		})
+	}
+}
+
 // TestLoadExampleConfig keeps configs/config.yaml.example loadable. Its
 // {{PLACEHOLDER}} values are filled with a dummy value first, since they are
-// not valid YAML until replaced.
+// not valid YAML until replaced. The ${INFISICAL_REFERENCE} values are
+// substituted by Infisical in production: the forks one becomes a JSON array.
 func TestLoadExampleConfig(t *testing.T) {
 	example, err := os.ReadFile(filepath.Join("..", "..", "configs", "config.yaml.example"))
 	if err != nil {
 		t.Fatalf("read example config: %v", err)
 	}
 	filled := regexp.MustCompile(`\{\{[A-Z_]+\}\}`).ReplaceAll(example, []byte("123"))
+	filled = bytes.ReplaceAll(filled, []byte("${DEPENDENCY_REPORT_FORKS}"), []byte(`["devidence-dev/discord-tts-bot"]`))
+	filled = regexp.MustCompile(`\$\{[A-Z_]+\}`).ReplaceAll(filled, []byte("123"))
 
-	tmpDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(tmpDir, "config.yaml"), filled, 0600); err != nil { //nolint:gosec // G703 false positive: tmpDir comes from t.TempDir()
-		t.Fatalf("write config: %v", err)
-	}
-
-	viper.Reset()
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(tmpDir)
-
-	cfg, err := Load()
+	cfg, err := loadYAML(t, string(filled))
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
 	if len(cfg.Workflows) != 2 {
 		t.Errorf("workflows = %d, want 2", len(cfg.Workflows))
+	}
+	if len(cfg.Jobs) != 1 || cfg.Jobs[0].Schedule != "0 9 * * 1" {
+		t.Errorf("jobs = %+v, want run_dependency_report with schedule 0 9 * * 1", cfg.Jobs)
+	}
+	if cfg.DependencyReport == nil || len(cfg.DependencyReport.Forks) != 1 {
+		t.Errorf("dependency_report = %+v, want one fork", cfg.DependencyReport)
 	}
 }
