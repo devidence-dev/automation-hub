@@ -36,6 +36,11 @@ type fakeRestarter struct {
 	err          error
 	rolloutCalls int32
 	rolloutErr   error
+
+	// mu guards the wait settings, which the readiness goroutine records.
+	mu           sync.Mutex
+	pollInterval time.Duration
+	timeout      time.Duration // time left on the wait's context when it started
 }
 
 func (f *fakeRestarter) RestartDeployment(_ context.Context, namespace, deployment string) error {
@@ -43,9 +48,22 @@ func (f *fakeRestarter) RestartDeployment(_ context.Context, namespace, deployme
 	return f.err
 }
 
-func (f *fakeRestarter) WaitForRollout(_ context.Context, namespace, deployment string, pollInterval time.Duration) error {
+func (f *fakeRestarter) WaitForRollout(ctx context.Context, namespace, deployment string, pollInterval time.Duration) error {
 	atomic.AddInt32(&f.rolloutCalls, 1)
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.pollInterval = pollInterval
+	if deadline, ok := ctx.Deadline(); ok {
+		f.timeout = time.Until(deadline)
+	}
 	return f.rolloutErr
+}
+
+// waitSettings returns the poll interval and the timeout that the last wait received.
+func (f *fakeRestarter) waitSettings() (time.Duration, time.Duration) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.pollInterval, f.timeout
 }
 
 type fakeJobCreator struct {
@@ -70,6 +88,7 @@ type fakeMessenger struct {
 	mu       sync.Mutex
 	chatIDs  []string
 	messages []string
+	err      error // returned by every send, after the message is recorded
 }
 
 func (f *fakeMessenger) SendMessage(chatID, message string) error {
@@ -77,7 +96,7 @@ func (f *fakeMessenger) SendMessage(chatID, message string) error {
 	defer f.mu.Unlock()
 	f.chatIDs = append(f.chatIDs, chatID)
 	f.messages = append(f.messages, message)
-	return nil
+	return f.err
 }
 
 func (f *fakeMessenger) snapshot() []string {
@@ -125,7 +144,7 @@ func TestBotHandlerHandle(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			dispatcher := &fakeDispatcher{err: tt.dispatchError, runURL: "https://github.com/devidence-dev/github-runner/actions/runs/999"}
 			messenger := &fakeMessenger{}
-			handler := NewBotHandler(BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Workflows: []config.WorkflowCommandConfig{workflow}, Logger: zap.NewNop()})
+			handler := newBotHandler(BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Workflows: []config.WorkflowCommandConfig{workflow}, Logger: zap.NewNop()})
 			handler.Handle(tt.update)
 			if dispatcher.calls != tt.wantCalls {
 				t.Errorf("dispatch calls = %d, want %d", dispatcher.calls, tt.wantCalls)
@@ -146,7 +165,7 @@ func TestBotHandlerDispatchWorkflowLinksToTheDispatchedRun(t *testing.T) {
 	}
 	dispatcher := &fakeDispatcher{runURL: "https://github.com/devidence-dev/github-runner/actions/runs/999"}
 	messenger := &fakeMessenger{}
-	handler := NewBotHandler(BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Workflows: []config.WorkflowCommandConfig{workflow}, Logger: zap.NewNop()})
+	handler := newBotHandler(BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Workflows: []config.WorkflowCommandConfig{workflow}, Logger: zap.NewNop()})
 
 	handler.Handle(commandUpdate("/run_check_updates", 123))
 
@@ -165,7 +184,7 @@ func TestBotHandlerDispatchWorkflowFallsBackWhenRunURLIsEmpty(t *testing.T) {
 	}
 	dispatcher := &fakeDispatcher{runURL: ""}
 	messenger := &fakeMessenger{}
-	handler := NewBotHandler(BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Workflows: []config.WorkflowCommandConfig{workflow}, Logger: zap.NewNop()})
+	handler := newBotHandler(BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Workflows: []config.WorkflowCommandConfig{workflow}, Logger: zap.NewNop()})
 
 	handler.Handle(commandUpdate("/run_check_updates", 123))
 
@@ -195,7 +214,7 @@ func TestBotHandlerHandleRestart(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			restarter := &fakeRestarter{err: tt.restartErr}
 			messenger := &fakeMessenger{}
-			handler := NewBotHandler(BotHandlerDeps{KubeClient: restarter, TelegramClient: messenger, Restarts: []config.RestartCommandConfig{restart}, Logger: zap.NewNop()})
+			handler := newBotHandler(BotHandlerDeps{KubeClient: restarter, TelegramClient: messenger, Restarts: []config.RestartCommandConfig{restart}, Logger: zap.NewNop()})
 			handler.Handle(tt.update)
 			if restarter.calls != tt.wantCalls {
 				t.Errorf("restart calls = %d, want %d", restarter.calls, tt.wantCalls)
@@ -216,7 +235,7 @@ func TestBotHandlerRestartConfirmsWhenRolloutBecomesReady(t *testing.T) {
 	}
 	restarter := &fakeRestarter{}
 	messenger := &fakeMessenger{}
-	handler := NewBotHandler(BotHandlerDeps{KubeClient: restarter, TelegramClient: messenger, Restarts: []config.RestartCommandConfig{restart}, Logger: zap.NewNop()})
+	handler := newBotHandler(BotHandlerDeps{KubeClient: restarter, TelegramClient: messenger, Restarts: []config.RestartCommandConfig{restart}, Logger: zap.NewNop()})
 
 	handler.Handle(commandUpdate("/restart_runner", 123))
 
@@ -235,7 +254,7 @@ func TestBotHandlerRestartReportsTimeoutWhenRolloutNeverBecomesReady(t *testing.
 	}
 	restarter := &fakeRestarter{rolloutErr: context.DeadlineExceeded}
 	messenger := &fakeMessenger{}
-	handler := NewBotHandler(BotHandlerDeps{KubeClient: restarter, TelegramClient: messenger, Restarts: []config.RestartCommandConfig{restart}, Logger: zap.NewNop()})
+	handler := newBotHandler(BotHandlerDeps{KubeClient: restarter, TelegramClient: messenger, Restarts: []config.RestartCommandConfig{restart}, Logger: zap.NewNop()})
 
 	handler.Handle(commandUpdate("/restart_runner", 123))
 
@@ -243,6 +262,11 @@ func TestBotHandlerRestartReportsTimeoutWhenRolloutNeverBecomesReady(t *testing.
 	if !strings.Contains(messages[1], "did not report ready") {
 		t.Errorf("second message = %q, want the timeout notice", messages[1])
 	}
+}
+
+// newBotHandler builds the handler over the specs of deps, as main.go does.
+func newBotHandler(deps BotHandlerDeps) *BotHandler {
+	return NewBotHandler(deps, NewCommandSpecs(deps))
 }
 
 func commandUpdate(command string, chatID int64) tgbotapi.Update {
@@ -274,7 +298,7 @@ func TestBotHandlerHandleWorkflowRunURL(t *testing.T) {
 			core, logs := observer.New(zap.ErrorLevel)
 			dispatcher := &fakeDispatcher{runURL: tt.runURL, err: tt.dispatchErr}
 			messenger := &fakeMessenger{}
-			handler := NewBotHandler(BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Workflows: []config.WorkflowCommandConfig{workflow}, Logger: zap.New(core)})
+			handler := newBotHandler(BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Workflows: []config.WorkflowCommandConfig{workflow}, Logger: zap.New(core)})
 
 			handler.Handle(commandUpdate("/run_check_updates", 123))
 
@@ -367,7 +391,7 @@ func TestBotHandlerHandleJob(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			creator := &fakeJobCreator{err: tt.createErr}
 			messenger := &fakeMessenger{}
-			handler := NewBotHandler(BotHandlerDeps{TelegramClient: messenger, JobClient: creator, Jobs: []config.JobCommandConfig{job}, Logger: zap.NewNop()})
+			handler := newBotHandler(BotHandlerDeps{TelegramClient: messenger, JobClient: creator, Jobs: []config.JobCommandConfig{job}, Logger: zap.NewNop()})
 			handler.Handle(tt.update)
 			if len(creator.cronJobs) != tt.wantCalls {
 				t.Errorf("create calls = %d, want %d", len(creator.cronJobs), tt.wantCalls)

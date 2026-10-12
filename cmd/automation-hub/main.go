@@ -97,10 +97,11 @@ func setupWorkflowBot(cfg *config.Config, loc *time.Location, logger *zap.Logger
 		Catalog:        cfg.Catalog,
 		Logger:         logger,
 	}
-	botHandler := handlers.NewBotHandler(deps)
+	specs := handlers.NewCommandSpecs(deps)
+	botHandler := handlers.NewBotHandler(deps, specs)
 
 	lazy := &lazyScheduler{loc: loc, logger: logger}
-	if err := registerCommands(workflowBotClient, lazy, handlers.NewScheduledRunner(deps), handlers.NewCommandSpecs(deps)); err != nil {
+	if err := registerCommands(workflowBotClient, lazy, handlers.NewScheduledRunner(deps), specs); err != nil {
 		logger.Fatal("Failed to register bot commands", zap.Error(err))
 	}
 	sched := lazy.sched

@@ -209,6 +209,25 @@ func TestRestartCommand(t *testing.T) {
 	}
 }
 
+// TestRestartCommandPassesReadySettings checks that the configured poll interval and timeout reach
+// the readiness wait. The timeout is read from the wait's context deadline.
+func TestRestartCommandPassesReadySettings(t *testing.T) {
+	restart := config.RestartCommandConfig{Command: "restart_runner", Namespace: "infrastructure", Deployment: "github-runner", AllowedChatIDs: []string{"123"}}
+	restarter, messenger := &fakeRestarter{}, &fakeMessenger{}
+	deps := BotHandlerDeps{KubeClient: restarter, TelegramClient: messenger, Restarts: []config.RestartCommandConfig{restart}, RestartReady: config.RestartReadyConfig{Timeout: time.Minute, PollInterval: 2 * time.Second}, Logger: zap.NewNop()}
+
+	NewCommandSpecs(deps)[0].Run(context.Background(), "123")
+	waitForMessageCount(t, messenger, 2, time.Second)
+
+	poll, timeout := restarter.waitSettings()
+	if poll != 2*time.Second {
+		t.Errorf("poll interval = %s, want 2s", poll)
+	}
+	if timeout > time.Minute || timeout < 50*time.Second {
+		t.Errorf("timeout = %s, want about 1m0s", timeout)
+	}
+}
+
 // TestRestartRunDoesNotWaitForRollout checks that a rollout which never finishes does not hold the
 // update loop: Run returns and the next command runs.
 func TestRestartRunDoesNotWaitForRollout(t *testing.T) {
@@ -273,7 +292,7 @@ func assertScheduledNotices(t *testing.T, messenger *fakeMessenger, workflow con
 
 func TestHandleUnknownCommand(t *testing.T) {
 	dispatcher, messenger := &fakeDispatcher{}, &fakeMessenger{}
-	handler := NewBotHandler(BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Logger: zap.NewNop()})
+	handler := newBotHandler(BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Logger: zap.NewNop()})
 
 	handler.Handle(commandUpdate("/deploy_everything", 123))
 
@@ -289,7 +308,7 @@ func TestHandleUnauthorizedLogsWarning(t *testing.T) {
 	core, logs := observer.New(zap.WarnLevel)
 	workflow := config.WorkflowCommandConfig{Command: "run_check_updates", Owner: "devidence-dev", Repo: "workflows", WorkflowFile: "check.yml", AllowedChatIDs: []string{"123"}}
 	dispatcher, messenger := &fakeDispatcher{}, &fakeMessenger{}
-	handler := NewBotHandler(BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Workflows: []config.WorkflowCommandConfig{workflow}, Logger: zap.New(core)})
+	handler := newBotHandler(BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Workflows: []config.WorkflowCommandConfig{workflow}, Logger: zap.New(core)})
 	update := commandUpdate("/run_check_updates", 999)
 	update.Message.From = &tgbotapi.User{UserName: "mallory"}
 
@@ -308,6 +327,37 @@ func TestHandleUnauthorizedLogsWarning(t *testing.T) {
 	fields := warned[0].ContextMap()
 	if fields["command"] != "run_check_updates" || fields["chat_id"] != "999" || fields["username"] != "mallory" {
 		t.Errorf("warning fields = %v, want command, chat_id 999 and username mallory", fields)
+	}
+}
+
+// TestHandleReplyFailureIsLoggedAndRoutingContinues checks that a failed reply is logged with its
+// chat ID, and that the next update is still routed and sent.
+func TestHandleReplyFailureIsLoggedAndRoutingContinues(t *testing.T) {
+	core, logs := observer.New(zap.ErrorLevel)
+	checkUpdates := config.WorkflowCommandConfig{Command: "run_check_updates", Owner: "devidence-dev", Repo: "workflows", WorkflowFile: "check.yml", AllowedChatIDs: []string{"123"}}
+	cleanup := config.WorkflowCommandConfig{Command: "run_cleanup", Owner: "devidence-dev", Repo: "workflows", WorkflowFile: "cleanup.yml", AllowedChatIDs: []string{"123"}}
+	dispatcher := &fakeDispatcher{runURL: "https://github.com/devidence-dev/workflows/actions/runs/1"}
+	messenger := &fakeMessenger{err: errors.New("telegram: 502 Bad Gateway")}
+	handler := newBotHandler(BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Workflows: []config.WorkflowCommandConfig{checkUpdates, cleanup}, Logger: zap.New(core)})
+
+	handler.Handle(commandUpdate("/run_cleanup", 123))
+	handler.Handle(commandUpdate("/run_check_updates", 123))
+
+	if dispatcher.calls != 2 {
+		t.Errorf("dispatch calls = %d, want 2: the failed reply must not stop routing", dispatcher.calls)
+	}
+	messages := messenger.snapshot()
+	if len(messages) != 2 || !strings.Contains(messages[1], "check.yml") {
+		t.Errorf("send attempts = %#v, want two, the second naming check.yml", messages)
+	}
+	failed := logs.FilterMessage("Failed to reply to Telegram command").All()
+	if len(failed) != 2 {
+		t.Fatalf("reply failure logs = %d, want 2", len(failed))
+	}
+	for _, entry := range failed {
+		if chatID := entry.ContextMap()["chat_id"]; chatID != "123" {
+			t.Errorf("reply failure chat_id = %v, want 123", chatID)
+		}
 	}
 }
 

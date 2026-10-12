@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -223,14 +224,15 @@ func TestJobSchedulesUseConfiguredZone(t *testing.T) {
 	}
 }
 
-// fakeMenu records the commands published to Telegram.
+// fakeMenu records the commands published to Telegram, and returns err when it is set.
 type fakeMenu struct {
 	commands []tgbotapi.BotCommand
+	err      error
 }
 
 func (f *fakeMenu) SetMyCommands(commands []tgbotapi.BotCommand) error {
 	f.commands = commands
-	return nil
+	return f.err
 }
 
 // fakeAdder records the names of the schedules registered.
@@ -263,6 +265,17 @@ func TestRegisterCommandsOneLoop(t *testing.T) {
 	}
 	if want := []string{"run_cleanup", "run_dependency_report"}; strings.Join(adder.names, ",") != strings.Join(want, ",") {
 		t.Errorf("schedules = %v, want %v: the restart has no schedule", adder.names, want)
+	}
+}
+
+// TestRegisterCommandsMenuRejectedReturnsError checks that a menu Telegram rejects comes back as an
+// error, so main exits before it starts polling.
+func TestRegisterCommandsMenuRejectedReturnsError(t *testing.T) {
+	rejected := errors.New("telegram: 400 Bad Request")
+	deps := handlers.BotHandlerDeps{Workflows: []config.WorkflowCommandConfig{{Command: "run_cleanup", Description: "Cleanup"}}}
+	err := registerCommands(&fakeMenu{err: rejected}, &fakeAdder{}, handlers.NewScheduledRunner(deps), handlers.NewCommandSpecs(deps))
+	if !errors.Is(err, rejected) {
+		t.Errorf("registerCommands() error = %v, want it to wrap %v", err, rejected)
 	}
 }
 

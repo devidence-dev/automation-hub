@@ -65,15 +65,17 @@ type BotHandler struct {
 	specs map[string]CommandSpec
 }
 
-func NewBotHandler(deps BotHandlerDeps) *BotHandler {
+// NewBotHandler routes updates to specs, which the caller builds once with NewCommandSpecs and shares
+// with the menu and the scheduler. deps supplies only the messenger, catalog and logger.
+func NewBotHandler(deps BotHandlerDeps, specs []CommandSpec) *BotHandler {
 	d := deps.withDefaults()
-	specs := make(map[string]CommandSpec)
-	for _, spec := range NewCommandSpecs(d) {
-		specs[spec.Name()] = spec
+	byName := make(map[string]CommandSpec, len(specs))
+	for _, spec := range specs {
+		byName[spec.Name()] = spec
 	}
 	return &BotHandler{
 		replier: newReplier(d),
-		specs:   specs,
+		specs:   byName,
 	}
 }
 
