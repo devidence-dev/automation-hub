@@ -4,7 +4,7 @@ Every behavior task names the test that proves it. Each touched package keeps ev
 
 ## 1. Baseline
 
-- [ ] 1.1 (user) Archive `add-dependency-report-html` with `openspec archive add-dependency-report-html`. Verify: `openspec list --specs` shows `dependency-report`, and `openspec validate --strict refactor-dependency-report` no longer prints the "MODIFIED failed for header HTML report document" info line.
+- [x] 1.1 (user) Archive `add-dependency-report-html` with `openspec archive add-dependency-report-html`. Verify: `openspec list --specs` shows `dependency-report`, and `openspec validate --strict refactor-dependency-report` no longer prints the "MODIFIED failed for header HTML report document" info line.
 - [x] 1.2 Capture golden outputs from the current code before any change: caption, document, failure message and the all-up-to-date caption for `internal/handlers/testdata/renovate-report.json`, fixed clock `2026-10-12T14:07:00Z`, fork `devidence-dev/discord-tts-bot`. Store them under `internal/handlers/testdata/golden/`. Verify with `TestGoldenBaseline` (new, in `internal/handlers`) passing on the unchanged code.
 
 ## 2. Message catalog loader (`internal/messages`)
@@ -55,9 +55,9 @@ Every behavior task names the test that proves it. Each touched package keeps ev
 
 ## 10. Cross-repo and user steps
 
-- [ ] 10.1 (user) Approve visually the Spanish document labels drafted in `default.yaml` (design D7) before task 3.1 is applied. The fork keys and `lang="es"` were decided on 2026-10-11. Verify: the user replies with approval or changes, and `default.yaml` matches them.
+- [x] 10.1 (user) Approve visually the Spanish document labels drafted in `default.yaml` (design D7) before task 3.1 is applied. The fork keys and `lang="es"` were decided on 2026-10-11. Verify: the user replies with approval or changes, and `default.yaml` matches them.
 - [x] 10.2 (homelab) Confirm the Job still posts to `/webhook/dependency-report` with header `X-Report-Token` and the four field names, so no homelab change is needed. Verify: a grep of `kubernetes/internal-apps/automation-hub/dependency-report.yaml` in `/home/px1/repositories/homelab` shows the same path, header and fields.
-- [ ] 10.3 (user) Deploy the hub with the default config and run `/run_dependency_report`. Verify: one Telegram document named `dependency-report-<today>.html` with the caption header unchanged, the fork line showing ` (fork)`, and the document header in `America/Guayaquil`.
+- [x] 10.3 (user) Deploy the hub with the default config and run `/run_dependency_report`. Verify: one Telegram document named `dependency-report-<today>.html` with the caption header unchanged, the fork line showing ` (fork)`, and the document header in `America/Guayaquil`.
 
 ## 11. Validation
 
