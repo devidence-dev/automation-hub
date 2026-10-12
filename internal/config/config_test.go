@@ -255,26 +255,33 @@ jobs:
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg, err := loadYAML(t, tt.content)
-			if tt.wantErr != "" {
-				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
-					t.Fatalf("Load() error = %v, want it to contain %q", err, tt.wantErr)
-				}
-				return
-			}
-			if err != nil {
-				t.Fatalf("Load() error = %v", err)
-			}
-			if len(cfg.Jobs) != tt.wantJobs {
-				t.Errorf("jobs = %d, want %d", len(cfg.Jobs), tt.wantJobs)
-			}
-			if tt.wantJobs > 0 && cfg.DependencyReport != nil {
-				t.Errorf("DependencyReport = %+v, want nil when the section is absent", cfg.DependencyReport)
-			}
-			if tt.wantForks != nil && !reflect.DeepEqual(cfg.DependencyReport.Forks, tt.wantForks) {
-				t.Errorf("forks = %v, want %v", cfg.DependencyReport.Forks, tt.wantForks)
-			}
+			assertJobsAndReportLoad(t, tt.content, tt.wantErr, tt.wantJobs, tt.wantForks)
 		})
+	}
+}
+
+// assertJobsAndReportLoad loads content and checks either the error it must
+// contain (wantErr) or the number of jobs and the forks of the report section.
+func assertJobsAndReportLoad(t *testing.T, content, wantErr string, wantJobs int, wantForks []string) {
+	t.Helper()
+	cfg, err := loadYAML(t, content)
+	if wantErr != "" {
+		if err == nil || !strings.Contains(err.Error(), wantErr) {
+			t.Fatalf("Load() error = %v, want it to contain %q", err, wantErr)
+		}
+		return
+	}
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if len(cfg.Jobs) != wantJobs {
+		t.Errorf("jobs = %d, want %d", len(cfg.Jobs), wantJobs)
+	}
+	if wantJobs > 0 && cfg.DependencyReport != nil {
+		t.Errorf("DependencyReport = %+v, want nil when the section is absent", cfg.DependencyReport)
+	}
+	if wantForks != nil && !reflect.DeepEqual(cfg.DependencyReport.Forks, wantForks) {
+		t.Errorf("forks = %v, want %v", cfg.DependencyReport.Forks, wantForks)
 	}
 }
 

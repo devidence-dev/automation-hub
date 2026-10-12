@@ -5,8 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Dependency Report - Devidence</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+        crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"
+        integrity="sha384-4LISF5TTJX/fLmGSxO53rV4miRxdg84mZsxmO8Rx5jGtp/LbrixFETvWa5a6sESd"
+        crossorigin="anonymous">
     <style>
         /* Variables */
         :root {
@@ -133,7 +137,7 @@
             border-top: 1px solid var(--border-color);
             vertical-align: middle;
             background: transparent;
-            word-break: break-word;
+            overflow-wrap: anywhere;
         }
 
         .table-devops tbody tr {
@@ -185,19 +189,19 @@
 
         .badge-minor {
             background: rgba(210, 153, 34, 0.2);
-            color: #d29922;
+            color: #e3b341;
             border: 1px solid rgba(210, 153, 34, 0.3);
         }
 
         .badge-major {
             background: rgba(218, 54, 51, 0.2);
-            color: #f85149;
+            color: #ff7b72;
             border: 1px solid rgba(218, 54, 51, 0.3);
         }
 
         .badge-unknown {
             background: rgba(139, 148, 158, 0.2);
-            color: #8b949e;
+            color: #adbac7;
             border: 1px solid rgba(139, 148, 158, 0.3);
         }
 
@@ -641,8 +645,6 @@
 
     <script>
         (() => {
-            const copiedBefore = new WeakSet();
-
             document.querySelectorAll('.copy-btn').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     const text = btn.dataset.copy;
@@ -658,7 +660,7 @@
                         document.body.appendChild(ta);
                         ta.select();
                         document.execCommand('copy');
-                        document.body.removeChild(ta);
+                        ta.remove();
                     }
 
                     const icon = btn.querySelector('i');
@@ -673,7 +675,6 @@
                         btn.classList.add('copied-prev');
                         icon.className = 'bi bi-clipboard-check';
                         btn.title = 'Copy (copied before)';
-                        copiedBefore.add(btn);
                     }, 2000);
                 });
             });

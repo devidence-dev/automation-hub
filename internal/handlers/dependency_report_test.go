@@ -51,9 +51,10 @@ func messageFor(t *testing.T, messages []string, repo string) string {
 	return ""
 }
 
-func TestBuildMessagesFixture(t *testing.T) {
-	messages := buildMessages(loadFixture(t), []string{testForkRepo})
-
+// assertFixtureMessages checks the message count, the size limit and that the
+// digest-only and warn-only repos produced nothing.
+func assertFixtureMessages(t *testing.T, messages []string) {
+	t.Helper()
 	// digest-only and warn-only repos produce nothing: 4 of the 6 repos remain.
 	if len(messages) != 4 {
 		t.Fatalf("messages = %d, want 4: %q", len(messages), messages)
@@ -66,6 +67,24 @@ func TestBuildMessagesFixture(t *testing.T) {
 			t.Errorf("repo without listed deps or errors produced a message: %q", msg)
 		}
 	}
+}
+
+// assertTruncatedMessage checks a message cut at the 40-line cap.
+func assertTruncatedMessage(t *testing.T, got string) {
+	t.Helper()
+	lines := strings.Split(got, "\n")
+	// header, libyears, blank, 40 deps, "… y 5 más"
+	if len(lines) != 3+40+1 || lines[len(lines)-1] != "… y 5 más" {
+		t.Errorf("got %d lines, last %q", len(lines), lines[len(lines)-1])
+	}
+	if lines[1] != "45/60 desactualizadas · 10 libyears" {
+		t.Errorf("libyears line = %q", lines[1])
+	}
+}
+
+func TestBuildMessagesFixture(t *testing.T) {
+	messages := buildMessages(loadFixture(t), []string{testForkRepo})
+	assertFixtureMessages(t, messages)
 
 	t.Run("major update", func(t *testing.T) {
 		want := strings.Join([]string{
@@ -112,15 +131,7 @@ func TestBuildMessagesFixture(t *testing.T) {
 	})
 
 	t.Run("more than 40 lines", func(t *testing.T) {
-		got := messageFor(t, messages, "devidence-dev/big-monorepo")
-		lines := strings.Split(got, "\n")
-		// header, libyears, blank, 40 deps, "… y 5 más"
-		if len(lines) != 3+40+1 || lines[len(lines)-1] != "… y 5 más" {
-			t.Errorf("got %d lines, last %q", len(lines), lines[len(lines)-1])
-		}
-		if lines[1] != "45/60 desactualizadas · 10 libyears" {
-			t.Errorf("libyears line = %q", lines[1])
-		}
+		assertTruncatedMessage(t, messageFor(t, messages, "devidence-dev/big-monorepo"))
 	})
 }
 
@@ -206,6 +217,26 @@ func TestBuildMessagesLongEscapedContentIsCutByWholeLines(t *testing.T) {
 	}
 }
 
+// assertKeepsLastLines checks that a long log keeps its newest lines whole.
+func assertKeepsLastLines(t *testing.T, pod string) {
+	t.Helper()
+	var lines []string
+	for i := 0; i < 400; i++ {
+		lines = append(lines, fmt.Sprintf("line %03d <err> & more text here", i))
+	}
+	got := buildFailureMessage(2, pod, strings.Join(lines, "\n")) // about 12 KB
+	if len(got) > telegramLimit {
+		t.Fatalf("message has %d bytes", len(got))
+	}
+	if !strings.Contains(got, "line 399 &lt;err&gt; &amp; more text here</pre>") || strings.Contains(got, "line 000") {
+		t.Errorf("tail not cut from the front: %q", got[:200])
+	}
+	body := got[strings.Index(got, "<pre>")+5 : len(got)-len("</pre>")]
+	if first := strings.SplitN(body, "\n", 2)[0]; !strings.HasPrefix(first, "line ") {
+		t.Errorf("first kept line is partial: %q", first)
+	}
+}
+
 func TestBuildFailureMessage(t *testing.T) {
 	const pod = "dependency-report-manual-1791763200-x7k2p"
 	t.Run("escapes the tail", func(t *testing.T) {
@@ -216,21 +247,7 @@ func TestBuildFailureMessage(t *testing.T) {
 		}
 	})
 	t.Run("keeps the last lines that fit", func(t *testing.T) {
-		var lines []string
-		for i := 0; i < 400; i++ {
-			lines = append(lines, fmt.Sprintf("line %03d <err> & more text here", i))
-		}
-		got := buildFailureMessage(2, pod, strings.Join(lines, "\n")) // about 12 KB
-		if len(got) > telegramLimit {
-			t.Fatalf("message has %d bytes", len(got))
-		}
-		if !strings.Contains(got, "line 399 &lt;err&gt; &amp; more text here</pre>") || strings.Contains(got, "line 000") {
-			t.Errorf("tail not cut from the front: %q", got[:200])
-		}
-		body := got[strings.Index(got, "<pre>")+5 : len(got)-len("</pre>")]
-		if first := strings.SplitN(body, "\n", 2)[0]; !strings.HasPrefix(first, "line ") {
-			t.Errorf("first kept line is partial: %q", first)
-		}
+		assertKeepsLastLines(t, pod)
 	})
 	t.Run("one huge line is cut without splitting an entity", func(t *testing.T) {
 		got := buildFailureMessage(1, pod, strings.Repeat("<", 10000))
@@ -363,18 +380,51 @@ func newReportHandlerAt(sender reportSender, now time.Time, logger *zap.Logger) 
 	return h
 }
 
+// reportHandlerCase is one request to the dependency report handler and what it must answer and send.
+type reportHandlerCase struct {
+	name         string
+	req          reportRequest
+	wantStatus   int
+	wantMessages int
+	check        func(t *testing.T, messages []string)
+}
+
+// runReportHandlerCase posts the request and checks the status and the messages sent.
+func runReportHandlerCase(t *testing.T, tt reportHandlerCase) {
+	t.Helper()
+	sender := &fakeHTMLSender{}
+	rec := httptest.NewRecorder()
+	newReportHandler(sender).ServeHTTP(rec, tt.req.build(t))
+	if rec.Code != tt.wantStatus {
+		t.Fatalf("status = %d, want %d (%s)", rec.Code, tt.wantStatus, rec.Body.String())
+	}
+	if tt.wantMessages == 0 {
+		time.Sleep(20 * time.Millisecond) // give a wrong background send a chance to show up
+		if got := sender.waitForNone(); len(got) != 0 {
+			t.Fatalf("messages sent = %q, want none", got)
+		}
+		return
+	}
+	messages := sender.waitFor(t, tt.wantMessages)
+	if len(messages) != tt.wantMessages {
+		t.Fatalf("messages = %d, want %d", len(messages), tt.wantMessages)
+	}
+	for _, chatID := range sender.chatIDs {
+		if chatID != "555" {
+			t.Errorf("chat = %q, want the configured one", chatID)
+		}
+	}
+	if tt.check != nil {
+		tt.check(t, messages)
+	}
+}
+
 func TestDependencyReportHandler(t *testing.T) {
 	fixture, err := os.ReadFile("testdata/renovate-report.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	tests := []struct {
-		name         string
-		req          reportRequest
-		wantStatus   int
-		wantMessages int
-		check        func(t *testing.T, messages []string)
-	}{
+	tests := []reportHandlerCase{
 		{name: "missing token", req: reportRequest{fields: map[string]string{"exit_code": "0"}, files: map[string]string{"report": string(fixture)}}, wantStatus: http.StatusUnauthorized},
 		{name: "wrong token", req: reportRequest{token: "nope", fields: map[string]string{"exit_code": "0"}, files: map[string]string{"report": string(fixture)}}, wantStatus: http.StatusUnauthorized},
 		{name: "non-integer exit code", req: reportRequest{token: "secret", fields: map[string]string{"exit_code": "abc"}}, wantStatus: http.StatusBadRequest},
@@ -420,31 +470,7 @@ func TestDependencyReportHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sender := &fakeHTMLSender{}
-			rec := httptest.NewRecorder()
-			newReportHandler(sender).ServeHTTP(rec, tt.req.build(t))
-			if rec.Code != tt.wantStatus {
-				t.Fatalf("status = %d, want %d (%s)", rec.Code, tt.wantStatus, rec.Body.String())
-			}
-			if tt.wantMessages == 0 {
-				time.Sleep(20 * time.Millisecond) // give a wrong background send a chance to show up
-				if got := sender.waitForNone(); len(got) != 0 {
-					t.Fatalf("messages sent = %q, want none", got)
-				}
-				return
-			}
-			messages := sender.waitFor(t, tt.wantMessages)
-			if len(messages) != tt.wantMessages {
-				t.Fatalf("messages = %d, want %d", len(messages), tt.wantMessages)
-			}
-			for _, chatID := range sender.chatIDs {
-				if chatID != "555" {
-					t.Errorf("chat = %q, want the configured one", chatID)
-				}
-			}
-			if tt.check != nil {
-				tt.check(t, messages)
-			}
+			runReportHandlerCase(t, tt)
 		})
 	}
 }
@@ -490,31 +516,32 @@ func TestDependencyReportHandlerTelegramFailureDoesNotPanicOrBlock(t *testing.T)
 	sender.waitFor(t, 1) // the failed send was attempted and only logged
 }
 
+// findDep returns the dep named depName under one package manager of a repository.
+func findDep(t *testing.T, repo repoReport, manager, depName string) reportDep {
+	t.Helper()
+	for _, file := range repo.PackageFiles[manager] {
+		for _, dep := range file.Deps {
+			if dep.DepName != nil && *dep.DepName == depName {
+				return dep
+			}
+		}
+	}
+	t.Fatalf("dep %s not found under %s", depName, manager)
+	return reportDep{}
+}
+
 func TestParseReportDatasource(t *testing.T) {
 	rep := loadFixture(t)
 	homelab := rep.Repositories["devidence-dev/homelab"]
 
-	find := func(t *testing.T, manager, depName string) reportDep {
-		t.Helper()
-		for _, file := range homelab.PackageFiles[manager] {
-			for _, dep := range file.Deps {
-				if dep.DepName != nil && *dep.DepName == depName {
-					return dep
-				}
-			}
-		}
-		t.Fatalf("dep %s not found under %s", depName, manager)
-		return reportDep{}
-	}
-
 	t.Run("docker dep", func(t *testing.T) {
-		dep := find(t, "helm-values", "ghcr.io/immich-app/immich-server")
+		dep := findDep(t, homelab, "helm-values", "ghcr.io/immich-app/immich-server")
 		if dep.Datasource == nil || *dep.Datasource != "docker" {
 			t.Errorf("datasource = %v, want docker", dep.Datasource)
 		}
 	})
 	t.Run("missing datasource is nil", func(t *testing.T) {
-		if dep := find(t, "ansible-galaxy", "legacy-tool"); dep.Datasource != nil {
+		if dep := findDep(t, homelab, "ansible-galaxy", "legacy-tool"); dep.Datasource != nil {
 			t.Errorf("datasource = %q, want nil", *dep.Datasource)
 		}
 	})

@@ -23,6 +23,11 @@ import (
 
 const serviceAccountDir = "/var/run/secrets/kubernetes.io/serviceaccount"
 
+const (
+	bearerPrefix  = "Bearer "
+	mediaTypeJSON = "application/json"
+)
+
 // Client is the small subset of the Kubernetes API needed by automation-hub.
 type Client struct {
 	token      string
@@ -94,9 +99,9 @@ func (c *Client) RestartDeployment(ctx context.Context, namespace, name string) 
 	if err != nil {
 		return fmt.Errorf("create restart deployment request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Authorization", bearerPrefix+c.token)
 	req.Header.Set("Content-Type", "application/strategic-merge-patch+json")
-	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept", mediaTypeJSON)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -133,8 +138,8 @@ func (c *Client) getDeployment(ctx context.Context, namespace, name string) (dep
 	if err != nil {
 		return deploymentStatus{}, fmt.Errorf("create get deployment request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+c.token)
-	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", bearerPrefix+c.token)
+	req.Header.Set("Accept", mediaTypeJSON)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -199,14 +204,20 @@ type cronJob struct {
 		UID  string `json:"uid"`
 	} `json:"metadata"`
 	Spec struct {
-		JobTemplate struct {
-			Metadata struct {
-				Labels      map[string]string `json:"labels"`
-				Annotations map[string]string `json:"annotations"`
-			} `json:"metadata"`
-			Spec json.RawMessage `json:"spec"`
-		} `json:"jobTemplate"`
+		JobTemplate cronJobTemplate `json:"jobTemplate"`
 	} `json:"spec"`
+}
+
+// cronJobTemplate is the job template of a CronJob spec.
+type cronJobTemplate struct {
+	Metadata cronJobTemplateMetadata `json:"metadata"`
+	Spec     json.RawMessage         `json:"spec"`
+}
+
+// cronJobTemplateMetadata holds the labels and annotations copied to the Job.
+type cronJobTemplateMetadata struct {
+	Labels      map[string]string `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
 }
 
 // CreateJobFromCronJob creates a Job from the CronJob's job template and
@@ -269,10 +280,10 @@ func (c *Client) doJSON(ctx context.Context, method, endpoint string, body []byt
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+c.token)
-	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", bearerPrefix+c.token)
+	req.Header.Set("Accept", mediaTypeJSON)
 	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", mediaTypeJSON)
 	}
 
 	resp, err := c.httpClient.Do(req)

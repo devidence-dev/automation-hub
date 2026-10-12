@@ -152,46 +152,55 @@ func buildDocumentData(rep renovateReport, forks []string) documentData {
 		}
 		for _, files := range rep.Repositories[name].PackageFiles {
 			for _, file := range files {
-				for i, dep := range file.Deps {
-					tab := deps
-					if dep.Datasource != nil && *dep.Datasource == dockerDatasource {
-						tab = images
-					}
-					depName := firstNonNil("?", dep.DepName)
-					// Unnamed deps (for example Dockerfile stage refs) are counted one by one.
-					keyName := depName
-					if dep.DepName == nil {
-						keyName = fmt.Sprintf("?#%d", i)
-					}
-					key := depKey{repo: display, file: file.PackageFile, name: keyName}
-					tab.deps[key] = true
-
-					version := firstNonNil("?", dep.CurrentVersion, dep.CurrentValue)
-					for _, u := range dep.Updates {
-						switch u.UpdateType {
-						case "major", "minor", "patch":
-						default:
-							continue
-						}
-						newVersion := firstNonNil("?", u.NewVersion, u.NewValue)
-						tab.addRow(key, docRow{
-							Repo:         display,
-							PackageFile:  file.PackageFile,
-							Name:         depName,
-							Version:      version,
-							NewVersion:   newVersion,
-							CurrentImage: fmt.Sprintf("%s:%s", depName, version),
-							LatestImage:  fmt.Sprintf("%s:%s", depName, newVersion),
-							UpdateType:   u.UpdateType,
-							BadgeClass:   "badge-" + u.UpdateType,
-						})
-					}
-				}
+				addFileDeps(images, deps, display, file)
 			}
 		}
 	}
 
 	return documentData{Images: images.finish(), Deps: deps.finish()}
+}
+
+// addFileDeps adds the deps of one package file to the image tab or the dependency tab.
+func addFileDeps(images, deps *tabBuilder, display string, file packageFile) {
+	for i, dep := range file.Deps {
+		tab := deps
+		if dep.Datasource != nil && *dep.Datasource == dockerDatasource {
+			tab = images
+		}
+		depName := firstNonNil("?", dep.DepName)
+		// Unnamed deps (for example Dockerfile stage refs) are counted one by one.
+		keyName := depName
+		if dep.DepName == nil {
+			keyName = fmt.Sprintf("?#%d", i)
+		}
+		key := depKey{repo: display, file: file.PackageFile, name: keyName}
+		tab.deps[key] = true
+		addDepRows(tab, key, display, file.PackageFile, depName, dep)
+	}
+}
+
+// addDepRows adds one row per major, minor or patch update of a dep.
+func addDepRows(tab *tabBuilder, key depKey, display, pkgFile, depName string, dep reportDep) {
+	version := firstNonNil("?", dep.CurrentVersion, dep.CurrentValue)
+	for _, u := range dep.Updates {
+		switch u.UpdateType {
+		case "major", "minor", "patch":
+		default:
+			continue
+		}
+		newVersion := firstNonNil("?", u.NewVersion, u.NewValue)
+		tab.addRow(key, docRow{
+			Repo:         display,
+			PackageFile:  pkgFile,
+			Name:         depName,
+			Version:      version,
+			NewVersion:   newVersion,
+			CurrentImage: fmt.Sprintf("%s:%s", depName, version),
+			LatestImage:  fmt.Sprintf("%s:%s", depName, newVersion),
+			UpdateType:   u.UpdateType,
+			BadgeClass:   "badge-" + u.UpdateType,
+		})
+	}
 }
 
 // reportView is the data the document template renders.

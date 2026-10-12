@@ -188,11 +188,18 @@ type renovateReport struct {
 type repoReport struct {
 	Problems           []problem                `json:"problems"`
 	PackageFiles       map[string][]packageFile `json:"packageFiles"`
-	LibYearsWithStatus *struct {
-		LibYears         struct{ Total float64 } `json:"libYears"`
-		DependencyStatus struct{ Outdated, Total int }
-	} `json:"libYearsWithStatus"`
+	LibYearsWithStatus *libYearsWithStatus      `json:"libYearsWithStatus"`
 }
+
+// libYearsWithStatus is the libyears summary Renovate adds to a repository.
+type libYearsWithStatus struct {
+	LibYears         libYearsTotal `json:"libYears"`
+	DependencyStatus dependencyStatusCounts
+}
+
+type libYearsTotal struct{ Total float64 }
+
+type dependencyStatusCounts struct{ Outdated, Total int }
 
 type problem struct {
 	Level int    `json:"level"`
@@ -205,15 +212,17 @@ type packageFile struct {
 }
 
 type reportDep struct {
-	DepName        *string `json:"depName"`
-	Datasource     *string `json:"datasource"`
-	CurrentVersion *string `json:"currentVersion"`
-	CurrentValue   *string `json:"currentValue"`
-	Updates        []struct {
-		UpdateType string  `json:"updateType"`
-		NewVersion *string `json:"newVersion"`
-		NewValue   *string `json:"newValue"`
-	} `json:"updates"`
+	DepName        *string        `json:"depName"`
+	Datasource     *string        `json:"datasource"`
+	CurrentVersion *string        `json:"currentVersion"`
+	CurrentValue   *string        `json:"currentValue"`
+	Updates        []reportUpdate `json:"updates"`
+}
+
+type reportUpdate struct {
+	UpdateType string  `json:"updateType"`
+	NewVersion *string `json:"newVersion"`
+	NewValue   *string `json:"newValue"`
 }
 
 func parseReport(data []byte) (renovateReport, error) {
@@ -280,9 +289,19 @@ func buildMessages(rep renovateReport, forks []string) []string {
 }
 
 func buildRepoMessage(name string, repo repoReport, forks []string) string {
+	lines := collectDepLines(repo.PackageFiles)
+	errCount := countErrorProblems(repo.Problems)
+	if len(lines) == 0 && errCount == 0 {
+		return ""
+	}
+	return fitRepoMessage(repoHeadLines(name, repo, forks, errCount), lines)
+}
+
+// collectDepLines returns the unique dependency lines of a repository, sorted.
+func collectDepLines(packageFiles map[string][]packageFile) []string {
 	seen := map[string]struct{}{}
 	var lines []string
-	for _, files := range repo.PackageFiles {
+	for _, files := range packageFiles {
 		for _, file := range files {
 			for _, dep := range file.Deps {
 				line := depLine(dep)
@@ -295,17 +314,22 @@ func buildRepoMessage(name string, repo repoReport, forks []string) string {
 		}
 	}
 	sort.Strings(lines) // like jq's unique; also puts 🔴 before 🟡
+	return lines
+}
 
+// countErrorProblems counts the problems at error level (50 or above).
+func countErrorProblems(problems []problem) int {
 	errCount := 0
-	for _, p := range repo.Problems {
+	for _, p := range problems {
 		if p.Level >= 50 {
 			errCount++
 		}
 	}
-	if len(lines) == 0 && errCount == 0 {
-		return ""
-	}
+	return errCount
+}
 
+// repoHeadLines builds the header lines: the repository name, libyears and scan errors.
+func repoHeadLines(name string, repo repoReport, forks []string, errCount int) []string {
 	head := "<b>📦 " + htmlEscaper.Replace(name) + "</b>"
 	for _, fork := range forks {
 		if fork == name {
@@ -322,7 +346,11 @@ func buildRepoMessage(name string, repo repoReport, forks []string) string {
 	if errCount > 0 {
 		headLines = append(headLines, fmt.Sprintf("⚠️ %d errores en el scan", errCount))
 	}
+	return headLines
+}
 
+// fitRepoMessage joins the header and dependency lines into one message.
+func fitRepoMessage(headLines, lines []string) string {
 	// Cut by whole lines (never inside a tag or entity): start at the 40-line cap
 	// and drop lines until the message fits Telegram's limit.
 	shown := min(len(lines), maxDepLines)

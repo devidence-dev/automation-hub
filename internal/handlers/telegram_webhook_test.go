@@ -124,7 +124,7 @@ func TestBotHandlerHandle(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			dispatcher := &fakeDispatcher{err: tt.dispatchError, runURL: "https://github.com/devidence-dev/github-runner/actions/runs/999"}
 			messenger := &fakeMessenger{}
-			handler := NewBotHandler(dispatcher, nil, messenger, []config.WorkflowCommandConfig{workflow}, nil, nil, nil, zap.NewNop())
+			handler := NewBotHandler(BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Workflows: []config.WorkflowCommandConfig{workflow}, Logger: zap.NewNop()})
 			handler.Handle(tt.update)
 			if dispatcher.calls != tt.wantCalls {
 				t.Errorf("dispatch calls = %d, want %d", dispatcher.calls, tt.wantCalls)
@@ -145,7 +145,7 @@ func TestBotHandlerDispatchWorkflowLinksToTheDispatchedRun(t *testing.T) {
 	}
 	dispatcher := &fakeDispatcher{runURL: "https://github.com/devidence-dev/github-runner/actions/runs/999"}
 	messenger := &fakeMessenger{}
-	handler := NewBotHandler(dispatcher, nil, messenger, []config.WorkflowCommandConfig{workflow}, nil, nil, nil, zap.NewNop())
+	handler := NewBotHandler(BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Workflows: []config.WorkflowCommandConfig{workflow}, Logger: zap.NewNop()})
 
 	handler.Handle(commandUpdate("/run_check_updates", 123))
 
@@ -164,7 +164,7 @@ func TestBotHandlerDispatchWorkflowFallsBackWhenRunURLIsEmpty(t *testing.T) {
 	}
 	dispatcher := &fakeDispatcher{runURL: ""}
 	messenger := &fakeMessenger{}
-	handler := NewBotHandler(dispatcher, nil, messenger, []config.WorkflowCommandConfig{workflow}, nil, nil, nil, zap.NewNop())
+	handler := NewBotHandler(BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Workflows: []config.WorkflowCommandConfig{workflow}, Logger: zap.NewNop()})
 
 	handler.Handle(commandUpdate("/run_check_updates", 123))
 
@@ -194,7 +194,7 @@ func TestBotHandlerHandleRestart(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			restarter := &fakeRestarter{err: tt.restartErr}
 			messenger := &fakeMessenger{}
-			handler := NewBotHandler(nil, restarter, messenger, nil, []config.RestartCommandConfig{restart}, nil, nil, zap.NewNop())
+			handler := NewBotHandler(BotHandlerDeps{KubeClient: restarter, TelegramClient: messenger, Restarts: []config.RestartCommandConfig{restart}, Logger: zap.NewNop()})
 			handler.Handle(tt.update)
 			if restarter.calls != tt.wantCalls {
 				t.Errorf("restart calls = %d, want %d", restarter.calls, tt.wantCalls)
@@ -215,7 +215,7 @@ func TestBotHandlerRestartConfirmsWhenRolloutBecomesReady(t *testing.T) {
 	}
 	restarter := &fakeRestarter{}
 	messenger := &fakeMessenger{}
-	handler := NewBotHandler(nil, restarter, messenger, nil, []config.RestartCommandConfig{restart}, nil, nil, zap.NewNop())
+	handler := NewBotHandler(BotHandlerDeps{KubeClient: restarter, TelegramClient: messenger, Restarts: []config.RestartCommandConfig{restart}, Logger: zap.NewNop()})
 
 	handler.Handle(commandUpdate("/restart_runner", 123))
 
@@ -234,7 +234,7 @@ func TestBotHandlerRestartReportsTimeoutWhenRolloutNeverBecomesReady(t *testing.
 	}
 	restarter := &fakeRestarter{rolloutErr: context.DeadlineExceeded}
 	messenger := &fakeMessenger{}
-	handler := NewBotHandler(nil, restarter, messenger, nil, []config.RestartCommandConfig{restart}, nil, nil, zap.NewNop())
+	handler := NewBotHandler(BotHandlerDeps{KubeClient: restarter, TelegramClient: messenger, Restarts: []config.RestartCommandConfig{restart}, Logger: zap.NewNop()})
 
 	handler.Handle(commandUpdate("/restart_runner", 123))
 
@@ -272,7 +272,7 @@ func TestRunWorkflow(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dispatcher := &fakeDispatcher{runURL: tt.runURL, err: tt.dispatchErr}
-			handler := NewBotHandler(dispatcher, nil, nil, nil, nil, nil, nil, zap.NewNop())
+			handler := NewBotHandler(BotHandlerDeps{GitHubClient: dispatcher, Logger: zap.NewNop()})
 
 			got, err := handler.RunWorkflow(context.Background(), workflow)
 			if (err != nil) != tt.wantErr {
@@ -306,25 +306,32 @@ func TestRunScheduled(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			dispatcher := &fakeDispatcher{runURL: "https://github.com/devidence-dev/workflows/actions/runs/1", err: tt.dispatchErr}
 			messenger := &fakeMessenger{}
-			handler := NewBotHandler(dispatcher, nil, messenger, []config.WorkflowCommandConfig{workflow}, nil, nil, nil, zap.NewNop())
+			handler := NewBotHandler(BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Workflows: []config.WorkflowCommandConfig{workflow}, Logger: zap.NewNop()})
 
 			handler.RunScheduled(workflow)
 
-			if dispatcher.calls != 1 {
-				t.Errorf("dispatch calls = %d, want 1", dispatcher.calls)
-			}
-			if len(messenger.messages) != tt.wantMessages {
-				t.Fatalf("messages = %#v, want %d", messenger.messages, tt.wantMessages)
-			}
-			for i, message := range messenger.messages {
-				if !strings.Contains(message, "run_cleanup") {
-					t.Errorf("message %q does not name the command", message)
-				}
-				if messenger.chatIDs[i] != workflow.AllowedChatIDs[i] {
-					t.Errorf("message %d sent to chat %q, want %q", i, messenger.chatIDs[i], workflow.AllowedChatIDs[i])
-				}
-			}
+			assertScheduledRun(t, dispatcher, messenger, workflow, tt.wantMessages)
 		})
+	}
+}
+
+// assertScheduledRun checks one scheduled run: one dispatch, then wantMessages
+// chat messages, each naming the command and sent to its allowed chat in order.
+func assertScheduledRun(t *testing.T, dispatcher *fakeDispatcher, messenger *fakeMessenger, workflow config.WorkflowCommandConfig, wantMessages int) {
+	t.Helper()
+	if dispatcher.calls != 1 {
+		t.Errorf("dispatch calls = %d, want 1", dispatcher.calls)
+	}
+	if len(messenger.messages) != wantMessages {
+		t.Fatalf("messages = %#v, want %d", messenger.messages, wantMessages)
+	}
+	for i, message := range messenger.messages {
+		if !strings.Contains(message, "run_cleanup") {
+			t.Errorf("message %q does not name the command", message)
+		}
+		if messenger.chatIDs[i] != workflow.AllowedChatIDs[i] {
+			t.Errorf("message %d sent to chat %q, want %q", i, messenger.chatIDs[i], workflow.AllowedChatIDs[i])
+		}
 	}
 }
 
@@ -347,7 +354,7 @@ func TestBotHandlerHandleJob(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			creator := &fakeJobCreator{err: tt.createErr}
 			messenger := &fakeMessenger{}
-			handler := NewBotHandler(nil, nil, messenger, nil, nil, creator, []config.JobCommandConfig{job}, zap.NewNop())
+			handler := NewBotHandler(BotHandlerDeps{TelegramClient: messenger, JobClient: creator, Jobs: []config.JobCommandConfig{job}, Logger: zap.NewNop()})
 			handler.Handle(tt.update)
 			if len(creator.cronJobs) != tt.wantCalls {
 				t.Errorf("create calls = %d, want %d", len(creator.cronJobs), tt.wantCalls)
@@ -369,14 +376,14 @@ func TestBotHandlerRunScheduledJob(t *testing.T) {
 	}
 	t.Run("success creates the job and stays silent", func(t *testing.T) {
 		creator, messenger := &fakeJobCreator{}, &fakeMessenger{}
-		NewBotHandler(nil, nil, messenger, nil, nil, creator, []config.JobCommandConfig{job}, zap.NewNop()).RunScheduledJob(job)
+		NewBotHandler(BotHandlerDeps{TelegramClient: messenger, JobClient: creator, Jobs: []config.JobCommandConfig{job}, Logger: zap.NewNop()}).RunScheduledJob(job)
 		if len(creator.cronJobs) != 1 || len(messenger.snapshot()) != 0 {
 			t.Errorf("creates = %v, messages = %v", creator.cronJobs, messenger.snapshot())
 		}
 	})
 	t.Run("failure notifies every allowed chat", func(t *testing.T) {
 		creator, messenger := &fakeJobCreator{err: errors.New("boom")}, &fakeMessenger{}
-		NewBotHandler(nil, nil, messenger, nil, nil, creator, []config.JobCommandConfig{job}, zap.NewNop()).RunScheduledJob(job)
+		NewBotHandler(BotHandlerDeps{TelegramClient: messenger, JobClient: creator, Jobs: []config.JobCommandConfig{job}, Logger: zap.NewNop()}).RunScheduledJob(job)
 		messages := messenger.snapshot()
 		if len(messages) != 2 || !strings.Contains(messages[0], "run_dependency_report") {
 			t.Errorf("messages = %#v, want one failure per allowed chat naming the command", messages)

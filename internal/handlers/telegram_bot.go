@@ -49,29 +49,43 @@ type BotHandler struct {
 	logger         *zap.Logger
 }
 
-func NewBotHandler(githubClient workflowDispatcher, kubeClient deploymentRestarter, telegramClient telegramMessenger, workflows []config.WorkflowCommandConfig, restarts []config.RestartCommandConfig, jobClient jobCreator, jobs []config.JobCommandConfig, logger *zap.Logger) *BotHandler {
-	commands := make(map[string]config.WorkflowCommandConfig, len(workflows))
-	for _, workflow := range workflows {
+// BotHandlerDeps holds the clients and command configuration of a BotHandler.
+// A client may be nil when no configured command uses it.
+type BotHandlerDeps struct {
+	GitHubClient   workflowDispatcher
+	KubeClient     deploymentRestarter
+	TelegramClient telegramMessenger
+	JobClient      jobCreator
+	Workflows      []config.WorkflowCommandConfig
+	Restarts       []config.RestartCommandConfig
+	Jobs           []config.JobCommandConfig
+	Logger         *zap.Logger
+}
+
+func NewBotHandler(deps BotHandlerDeps) *BotHandler {
+	commands := make(map[string]config.WorkflowCommandConfig, len(deps.Workflows))
+	for _, workflow := range deps.Workflows {
 		commands[workflow.Command] = workflow
 	}
-	restartCommands := make(map[string]config.RestartCommandConfig, len(restarts))
-	for _, restart := range restarts {
+	restartCommands := make(map[string]config.RestartCommandConfig, len(deps.Restarts))
+	for _, restart := range deps.Restarts {
 		restartCommands[restart.Command] = restart
 	}
-	jobCommands := make(map[string]config.JobCommandConfig, len(jobs))
-	for _, job := range jobs {
+	jobCommands := make(map[string]config.JobCommandConfig, len(deps.Jobs))
+	for _, job := range deps.Jobs {
 		jobCommands[job.Command] = job
 	}
+	logger := deps.Logger
 	if logger == nil {
 		logger = zap.NewNop()
 	}
 	return &BotHandler{
-		githubClient:   githubClient,
-		kubeClient:     kubeClient,
-		telegramClient: telegramClient,
+		githubClient:   deps.GitHubClient,
+		kubeClient:     deps.KubeClient,
+		telegramClient: deps.TelegramClient,
 		commands:       commands,
 		restarts:       restartCommands,
-		jobClient:      jobClient,
+		jobClient:      deps.JobClient,
 		jobs:           jobCommands,
 		logger:         logger,
 	}

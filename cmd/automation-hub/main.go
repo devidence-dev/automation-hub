@@ -48,74 +48,7 @@ func main() {
 	// Initialize services
 	telegramClient := telegram.NewClient(cfg.Telegram.BotToken, logger)
 	imapClient := email.NewIMAPClient(cfg.Email, logger)
-	var workflowBotClient *telegram.Client
-	var botHandler *handlers.BotHandler
-	var sched *scheduler.Scheduler
-
-	if len(cfg.Workflows) > 0 || len(cfg.Restarts) > 0 || len(cfg.Jobs) > 0 {
-		if cfg.WorkflowBot.BotToken == "" {
-			logger.Fatal("workflow_bot bot_token is required when workflows, restarts or jobs are configured")
-		}
-		workflowBotClient = telegram.NewClient(cfg.WorkflowBot.BotToken, logger)
-
-		commands := make([]tgbotapi.BotCommand, 0, len(cfg.Workflows)+len(cfg.Restarts)+len(cfg.Jobs))
-		for _, workflow := range cfg.Workflows {
-			commands = append(commands, tgbotapi.BotCommand{Command: workflow.Command, Description: workflow.Description})
-		}
-		for _, restart := range cfg.Restarts {
-			commands = append(commands, tgbotapi.BotCommand{Command: restart.Command, Description: restart.Description})
-		}
-		for _, job := range cfg.Jobs {
-			commands = append(commands, tgbotapi.BotCommand{Command: job.Command, Description: job.Description})
-		}
-		if err := workflowBotClient.SetMyCommands(commands); err != nil {
-			logger.Fatal("Failed to set Telegram commands", zap.Error(err))
-		}
-
-		var githubClient *github.Client
-		if len(cfg.Workflows) > 0 {
-			if cfg.GitHub.Token == "" {
-				logger.Fatal("GitHub token is required when workflows are configured")
-			}
-			githubClient = github.NewClient(cfg.GitHub.Token, logger)
-		}
-
-		var kubeClient *kube.Client
-		if len(cfg.Restarts) > 0 || len(cfg.Jobs) > 0 {
-			kubeClient, err = kube.NewInClusterClient(logger)
-			if err != nil {
-				logger.Fatal("Failed to build Kubernetes client for restarts or jobs", zap.Error(err))
-			}
-		}
-
-		botHandler = handlers.NewBotHandler(githubClient, kubeClient, workflowBotClient, cfg.Workflows, cfg.Restarts, kubeClient, cfg.Jobs, logger)
-
-		for _, workflow := range cfg.Workflows {
-			if workflow.Schedule == "" {
-				continue
-			}
-			if sched == nil {
-				sched = scheduler.New(loc, logger)
-			}
-			if err := sched.Add(workflow.Command, workflow.Schedule, func() { botHandler.RunScheduled(workflow) }); err != nil {
-				logger.Fatal("Failed to register scheduled workflow", zap.Error(err))
-			}
-		}
-		for _, job := range cfg.Jobs {
-			if job.Schedule == "" {
-				continue
-			}
-			if sched == nil {
-				sched = scheduler.New(loc, logger)
-			}
-			if err := sched.Add(job.Command, job.Schedule, func() { botHandler.RunScheduledJob(job) }); err != nil {
-				logger.Fatal("Failed to register scheduled job", zap.Error(err))
-			}
-		}
-		if sched != nil {
-			sched.Start()
-		}
-	}
+	workflowBotClient, botHandler, sched := setupWorkflowBot(cfg, loc, logger)
 
 	// Initialize processor manager with dynamic configuration
 	processorManager := processor.NewProcessorManager(cfg.Email, telegramClient, logger)
@@ -129,32 +62,147 @@ func main() {
 		go workflowBotClient.StartPolling(ctx, botHandler.Handle)
 	}
 
-	// Setup HTTP server for webhooks
-	router := mux.NewRouter()
-	webhookHandler := handlers.NewWebhookHandler(telegramClient, cfg, logger)
-
-	registerRoutes(router, cfg, webhookHandler, telegramClient, logger)
-
-	srv := &http.Server{
-		Addr:         cfg.Server.Address,
-		Handler:      router,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-	}
-
-	// Start server
-	go func() {
-		logger.Info("Starting server", zap.String("address", cfg.Server.Address))
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Fatal("Failed to start server", zap.Error(err))
-		}
-	}()
+	srv := newHTTPServer(cfg, telegramClient, logger)
+	startServer(srv, logger)
 
 	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
+	shutdownServer(srv, sched, logger)
+	logger.Info("Server exited")
+}
+
+// setupWorkflowBot builds the command bot and its handler when any workflow,
+// restart or job is configured, registers their schedules and starts the
+// scheduler. Without commands it returns nil values.
+func setupWorkflowBot(cfg *config.Config, loc *time.Location, logger *zap.Logger) (*telegram.Client, *handlers.BotHandler, *scheduler.Scheduler) {
+	if len(cfg.Workflows) == 0 && len(cfg.Restarts) == 0 && len(cfg.Jobs) == 0 {
+		return nil, nil, nil
+	}
+	if cfg.WorkflowBot.BotToken == "" {
+		logger.Fatal("workflow_bot bot_token is required when workflows, restarts or jobs are configured")
+	}
+	workflowBotClient := telegram.NewClient(cfg.WorkflowBot.BotToken, logger)
+	registerBotCommands(workflowBotClient, cfg, logger)
+
+	githubClient := newGitHubClient(cfg, logger)
+	kubeClient := newKubeClient(cfg, logger)
+	botHandler := handlers.NewBotHandler(handlers.BotHandlerDeps{
+		GitHubClient:   githubClient,
+		KubeClient:     kubeClient,
+		TelegramClient: workflowBotClient,
+		JobClient:      kubeClient,
+		Workflows:      cfg.Workflows,
+		Restarts:       cfg.Restarts,
+		Jobs:           cfg.Jobs,
+		Logger:         logger,
+	})
+
+	sched := registerSchedules(cfg, botHandler, loc, logger)
+	if sched != nil {
+		sched.Start()
+	}
+	return workflowBotClient, botHandler, sched
+}
+
+// registerBotCommands publishes the configured commands to Telegram.
+func registerBotCommands(botClient *telegram.Client, cfg *config.Config, logger *zap.Logger) {
+	commands := make([]tgbotapi.BotCommand, 0, len(cfg.Workflows)+len(cfg.Restarts)+len(cfg.Jobs))
+	for _, workflow := range cfg.Workflows {
+		commands = append(commands, tgbotapi.BotCommand{Command: workflow.Command, Description: workflow.Description})
+	}
+	for _, restart := range cfg.Restarts {
+		commands = append(commands, tgbotapi.BotCommand{Command: restart.Command, Description: restart.Description})
+	}
+	for _, job := range cfg.Jobs {
+		commands = append(commands, tgbotapi.BotCommand{Command: job.Command, Description: job.Description})
+	}
+	if err := botClient.SetMyCommands(commands); err != nil {
+		logger.Fatal("Failed to set Telegram commands", zap.Error(err))
+	}
+}
+
+// newGitHubClient returns nil when no workflow is configured.
+func newGitHubClient(cfg *config.Config, logger *zap.Logger) *github.Client {
+	if len(cfg.Workflows) == 0 {
+		return nil
+	}
+	if cfg.GitHub.Token == "" {
+		logger.Fatal("GitHub token is required when workflows are configured")
+	}
+	return github.NewClient(cfg.GitHub.Token, logger)
+}
+
+// newKubeClient returns nil when no restart or job is configured.
+func newKubeClient(cfg *config.Config, logger *zap.Logger) *kube.Client {
+	if len(cfg.Restarts) == 0 && len(cfg.Jobs) == 0 {
+		return nil
+	}
+	kubeClient, err := kube.NewInClusterClient(logger)
+	if err != nil {
+		logger.Fatal("Failed to build Kubernetes client for restarts or jobs", zap.Error(err))
+	}
+	return kubeClient
+}
+
+// registerSchedules adds the scheduled workflows and jobs. It returns nil when
+// none has a schedule.
+func registerSchedules(cfg *config.Config, botHandler *handlers.BotHandler, loc *time.Location, logger *zap.Logger) *scheduler.Scheduler {
+	var sched *scheduler.Scheduler
+	for _, workflow := range cfg.Workflows {
+		if workflow.Schedule == "" {
+			continue
+		}
+		if sched == nil {
+			sched = scheduler.New(loc, logger)
+		}
+		if err := sched.Add(workflow.Command, workflow.Schedule, func() { botHandler.RunScheduled(workflow) }); err != nil {
+			logger.Fatal("Failed to register scheduled workflow", zap.Error(err))
+		}
+	}
+	for _, job := range cfg.Jobs {
+		if job.Schedule == "" {
+			continue
+		}
+		if sched == nil {
+			sched = scheduler.New(loc, logger)
+		}
+		if err := sched.Add(job.Command, job.Schedule, func() { botHandler.RunScheduledJob(job) }); err != nil {
+			logger.Fatal("Failed to register scheduled job", zap.Error(err))
+		}
+	}
+	return sched
+}
+
+// newHTTPServer wires the webhook routes and returns the server, not yet listening.
+func newHTTPServer(cfg *config.Config, telegramClient *telegram.Client, logger *zap.Logger) *http.Server {
+	router := mux.NewRouter()
+	webhookHandler := handlers.NewWebhookHandler(telegramClient, cfg, logger)
+
+	registerRoutes(router, cfg, webhookHandler, telegramClient, logger)
+
+	return &http.Server{
+		Addr:         cfg.Server.Address,
+		Handler:      router,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+	}
+}
+
+// startServer listens in the background; a listen failure is fatal.
+func startServer(srv *http.Server, logger *zap.Logger) {
+	go func() {
+		logger.Info("Starting server", zap.String("address", srv.Addr))
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Fatal("Failed to start server", zap.Error(err))
+		}
+	}()
+}
+
+// shutdownServer stops the scheduler, then the HTTP server, with a 30 second limit.
+func shutdownServer(srv *http.Server, sched *scheduler.Scheduler, logger *zap.Logger) {
 	if sched != nil {
 		logger.Info("Stopping scheduler...")
 		sched.Stop()
@@ -166,8 +214,6 @@ func main() {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		logger.Fatal("Server forced to shutdown", zap.Error(err))
 	}
-
-	logger.Info("Server exited")
 }
 
 // reportSender is what the dependency-report webhook needs from the notifications bot.
