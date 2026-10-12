@@ -16,7 +16,7 @@ type noopSender struct{}
 
 func (noopSender) SendHTML(string, string) error { return nil }
 
-func (noopSender) SendDocument(string, string, []byte) error { return nil }
+func (noopSender) SendDocument(string, string, string, []byte) error { return nil }
 
 func TestRegisterRoutesDependencyReport(t *testing.T) {
 	tests := []struct {

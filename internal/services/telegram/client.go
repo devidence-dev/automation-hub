@@ -66,8 +66,9 @@ func (c *Client) SendHTML(chatID, message string) error {
 	return c.sendText(chatID, message, tgbotapi.ModeHTML)
 }
 
-// SendDocument sends data as a file named filename.
-func (c *Client) SendDocument(chatID, filename string, data []byte) error {
+// SendDocument sends data as a file named filename, with caption as its HTML caption.
+// The caller must escape variable text in the caption.
+func (c *Client) SendDocument(chatID, filename, caption string, data []byte) error {
 	if c == nil || c.bot == nil {
 		return nil
 	}
@@ -77,7 +78,10 @@ func (c *Client) SendDocument(chatID, filename string, data []byte) error {
 		return fmt.Errorf("invalid chat ID: %w", err)
 	}
 
-	return c.send(chatID, tgbotapi.NewDocument(chatIDInt, tgbotapi.FileBytes{Name: filename, Bytes: data}))
+	doc := tgbotapi.NewDocument(chatIDInt, tgbotapi.FileBytes{Name: filename, Bytes: data})
+	doc.Caption = caption
+	doc.ParseMode = tgbotapi.ModeHTML
+	return c.send(chatID, doc)
 }
 
 func (c *Client) sendText(chatID, message, parseMode string) error {

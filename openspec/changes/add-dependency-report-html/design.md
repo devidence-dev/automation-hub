@@ -2,7 +2,7 @@
 
 ## Context
 
-- `DependencyReportHandler` (`internal/handlers/dependency_report.go`) parses the Renovate report into `renovateReport`, builds Telegram HTML messages with `buildMessages`, answers 202 and sends them from a goroutine with a 2-minute context. Its sender is the consumer-defined interface `htmlSender` (`SendHTML`); `main.go` declares a matching `reportSender`.
+- `DependencyReportHandler` (`internal/handlers/dependency_report.go`) parses the Renovate report into `renovateReport`, builds the caption and the HTML document from it (`buildCaption`, `buildReportDocument`), answers 202 and sends them from a goroutine. Its sender is the consumer-defined interface `reportSender` (`SendHTML` + `SendDocument`); `main.go` declares a matching one.
 - `telegram.Client` has `SendMessage` and `SendHTML`, both going through one private `send` with a 3-attempt retry loop and `tgbotapi.NewMessage`. The library `github.com/go-telegram-bot-api/telegram-bot-api/v5` already provides `tgbotapi.NewDocument(chatID, tgbotapi.FileBytes{Name, Bytes})`, so no new dependency. The HTTP client timeout is 40 s per attempt.
 - `reportDep` today reads `depName`, `currentVersion`, `currentValue` and `updates[]`. It does not read `datasource`, nor the `packageFile` of each package file entry.
 - The synthetic fixture `internal/handlers/testdata/renovate-report.json` has 54 deps, all with `"datasource": "go"`, including the ones in `Dockerfile` files.
@@ -38,26 +38,27 @@ Task 1.2 (run on a read-only mount of `homelab`, `RENOVATE_PLATFORM=local`, `REN
 ## Goals / Non-Goals
 
 **Goals:**
-- One document per successful run, built from the same parsed report as the text messages, so both always agree.
+- One Telegram message per successful run: the document with its caption. Both are built from the same parsed report and the same data model, so they always agree.
 - Look and feel identical to icr's report; all variable text escaped by `html/template`.
-- A Telegram document failure never changes the text messages or other components.
+- A Telegram document failure falls back to the caption as text and never changes other components.
 
 **Non-Goals:**
-- Any change to the text messages or to who triggers the Job.
+- Any change to the failure message or to who triggers the Job.
 - Generating the document in the Job or storing it anywhere. The hub builds it in memory.
 
 ## Decisions
 
 - **Document built by a pure function.** `buildReportDocument(rep renovateReport, forks []string, scannedAt time.Time) ([]byte, error)` returns the HTML bytes, and a small `documentName(scannedAt)` returns the file name. Tests call them without HTTP or Telegram. `scannedAt` comes from an injectable clock on the handler (`now func() time.Time`, default `time.Now`) converted to `America/Guayaquil` with `time.LoadLocation`. Alternative: use a timestamp from the Renovate report. Not used because no timestamp was verified in the report; receipt time is within seconds of the scan end.
+- **Caption.** `buildCaption(rep, forks, scannedAt) (string, error)` calls `buildDocumentData`, the same function the document uses, so the caption and the document share the tab totals, the repo counts with pending updates and the error list. Each repo with pending updates gets one line; a dep with several updates counts once, under its highest type. The caption is HTML with parse mode HTML and must hold at most 1024 runes after escaping, tags included (a conservative bound for Telegram's 1024 visible characters). When it is longer, repo lines are dropped from the end and `… y N repos más (ver reporte)` is added after the last kept one, until it fits; the header, the `✅` lines and the stats are always kept. Alternative: a separate text message for the summary. Rejected: the user decided on one message.
 - **Classification by `datasource`.** `reportDep` gains `Datasource *string`. `docker` goes to the images list; anything else (including nil) goes to the dependencies list. The package file name comes from `packageFiles.<manager>[].packageFile`. Alternative: classify by manager (`dockerfile`, `helm-values`, `kubernetes`, ...). Rejected because `github-actions` and `argocd` mix datasources, and the user decided on `datasource`.
 - **One row per dep and update.** A dep with a `major` and a `minor` update gets two rows, each with its own badge. Rows are deduplicated on (repo, package file, dep, current, new, type) and sorted by repo, package file, dep name, then `major` before `minor` before `patch`. Alternative: one row with several badges. Rejected as it needs a different cell layout than icr's single badge column.
-- **Image strings.** Current image is `<depName>:<current>` and latest is `<depName>:<new>`, using the same fallback order as the text messages (`currentVersion` then `currentValue`; `newVersion` then `newValue`; `?` when absent). `digest` is not shown.
+- **Image strings.** Current image is `<depName>:<current>` and latest is `<depName>:<new>`, with the fallback order `currentVersion` then `currentValue`, and `newVersion` then `newValue`; `?` when absent. `digest` is not shown.
 - **First column shows the package file.** icr shows a service name from Compose; Renovate has none, so the first "Imágenes" column shows the package file in the same style and the repo gets its own column. This follows the user's "service or package file".
 - **Totals per tab.** `total` counts distinct deps (repo, package file, dep name) in the tab, including those without updates; `with updates` counts deps with at least one listed row; `up to date` is the difference; the distribution counts rows by type. icr's three cards map to Total, Pending Updates and Up to Date. The layout is icr's: each tab pane has its sidebar of cards and its content area; the navbar carries the title and the scan timestamp.
 - **Template.** `internal/handlers/assets/dependency_report.html`, embedded with `//go:embed`, parsed once at package init (`template.Must`). It is icr's file with: title and navbar renamed to "Dependency Report", Bootstrap `nav-tabs` + `tab-content` added, the table section duplicated per tab with the columns above, and the errors list kept. Inline `style="color: {{.Color}}"` is replaced by CSS classes (`.dist-patch`, `.dist-minor`, `.dist-major`) so `html/template`'s CSS filter cannot turn a value into `ZgotmplZ`. icr's theme toggle button is dropped because it has no handler in icr (dead UI); the CDN links, SRI hash on the Bootstrap bundle, copy buttons and CSS are unchanged. Tab names are Spanish as decided; other labels stay in icr's English. Alternative: `text/template` or string building. Rejected; auto-escaping is the safety property in the spec.
-- **Telegram client.** Rename the private `send` loop to take a `tgbotapi.Chattable` and add `SendDocument(chatID, filename string, data []byte) error` using `tgbotapi.NewDocument(chatIDInt, tgbotapi.FileBytes{Name: filename, Bytes: data})`. `SendMessage` and `SendHTML` call the same loop. Retry and logging stay as they are. Alternative: a second copy of the loop. Rejected as duplication.
-- **Interfaces.** The handler's consumer-defined interface grows to `SendHTML` + `SendDocument` (still two small methods, one `reportSender` in `main.go`). The fake in `dependency_report_test.go` records both calls in order.
-- **Delivery order and errors.** `deliver` sends the text messages as today, then the document, within the same 2-minute context. A failed message is logged and does not skip the rest. If the context has expired before the document, the document is skipped and logged. The document is built before 202, so a template error is logged and the text messages still go out. The failure path never builds one.
+- **Telegram client.** Rename the private `send` loop to take a `tgbotapi.Chattable` and add `SendDocument(chatID, filename, caption string, data []byte) error`. It builds `tgbotapi.NewDocument(chatIDInt, tgbotapi.FileBytes{Name: filename, Bytes: data})` and sets the document's `Caption` and `ParseMode` to HTML. `SendMessage` and `SendHTML` call the same loop. Retry and logging stay as they are. Alternative: a second copy of the loop. Rejected as duplication.
+- **Interfaces.** The handler's consumer-defined interface is `SendHTML` + `SendDocument` (still two small methods, one `reportSender` in `main.go`). The fake in `dependency_report_test.go` records both kinds of call in order.
+- **Delivery order and errors.** `deliver` sends the document with the caption as its caption. If the document fails after the client's retries, the error is logged and the caption goes as a text message (`SendHTML`), so the summary still arrives. A caption build error sends nothing; a document build error sends the caption as text, and the error is logged. The failure path sends the failure message as text and never builds a document. The build happens before 202. The 2-minute background context is dropped: a request makes one or two sends now, and the client's retry loop bounds them.
 - **Renovate scope.** The Job gets `devidence-dev/homelab` in `DEPENDENCY_REPORT_REPOSITORIES`, plus `RENOVATE_KUBERNETES` and `RENOVATE_ARGOCD` in the CronJob template. Candidates, to be confirmed by task 1.2 against real files: `kubernetes/infrastructure/cloudflared/deployment.yaml` and `kubernetes/internal-apps/automation-hub/dependency-report.yaml` for `kubernetes`, and `kubernetes/**/application.yaml` for `argocd`. `values.yaml` is already read by `helm-values`.
 - **Retiring icr.** The runner workflow, command, mount and host file go in cross-repo tasks. Nothing is lost: the Dockerfiles listed in `extra-images.yml` (discord-tts-bot, devidence-home, github-runner, voraz-bot, automation-hub) are in repos Renovate already scans. The `scheduled-dispatch` and `job-commands` main specs use `run_check_updates` only as an example value, not as a requirement, so they need no delta.
 
@@ -82,11 +83,13 @@ Task 1.2 (run on a read-only mount of `homelab`, `RENOVATE_PLATFORM=local`, `REN
 
 - Labels: icr's English labels stay; only the tab names are Spanish ("Imágenes", "Dependencias").
 - The inert theme toggle is dropped.
-- The Errors section stays. It lists every problem with `level >= 50` of a repo, so `level` 60 problems appear too.
+- The Errors section stays. It lists every problem with `level >= 50` of a repo, so `level` 60 problems appear too, and it lists the report root's problems as `root: <msg>`.
+- One message per successful run (user decision, final): the document with its caption. The per-repository messages and the "todo al día" message are removed. The Renovate failure path is unchanged.
 
 ## Implementation notes
 
 - The handler's consumer-defined interface is `reportSender` (`SendHTML` + `SendDocument`); it replaces `htmlSender`.
+- The caption's repo and error counts come from `buildDocumentData` (`Pending`, `Errors`), not from a second pass over the report, so they match the document.
 - Deps without a `depName` (Renovate's null for Dockerfile stage refs) are keyed by their position in the file, so each one counts once in the totals.
 - Each tab has an `Updates` count (listed rows). The status badge reads "N updates available for M dependencies", or "All dependencies are up to date" when N is 0.
 - `TestLoadExampleConfig` now expects one workflow (`run_cleanup`) instead of two, because `run_check_updates` is removed from the example.

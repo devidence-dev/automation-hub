@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -288,63 +289,85 @@ const maxDocumentBody = 1 << 20
 
 func TestSendDocumentSuccess(t *testing.T) {
 	data := []byte("<html>\n<b>report</b> & more\n</html>")
+	const caption = "<b>📦 Dependency report</b> · 2026-10-12"
 	client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.URL.Path == "/bottest-token/getMe":
 			writeTelegramResponse(w, map[string]interface{}{"id": 1, "is_bot": true, "first_name": "Test"})
 		case strings.HasSuffix(r.URL.Path, "/sendDocument"):
-			r.Body = http.MaxBytesReader(w, r.Body, maxDocumentBody)
-			mr, err := r.MultipartReader()
-			if err != nil {
-				t.Fatal(err)
-			}
-			form, err := mr.ReadForm(maxDocumentBody)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if got := form.Value["chat_id"]; len(got) != 1 || got[0] != "-1001234567890" {
-				t.Errorf("chat_id = %q", got)
-			}
-			files := form.File["document"]
-			if len(files) != 1 || files[0].Filename != "dependency-report-2026-10-12.html" {
-				t.Fatalf("document part = %+v", files)
-			}
-			f, err := files[0].Open()
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer func() { _ = f.Close() }()
-			got, err := io.ReadAll(f)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if string(got) != string(data) {
-				t.Errorf("file bytes = %q, want %q", got, data)
-			}
+			checkDocumentRequest(t, w, r, caption, data)
 			writeTelegramResponse(w, map[string]interface{}{"message_id": 1, "date": 1, "chat": map[string]interface{}{"id": -1001234567890, "type": "supergroup"}})
 		default:
 			t.Errorf("unexpected path %s", r.URL.Path)
 		}
 	})
 
-	if err := client.SendDocument("-1001234567890", "dependency-report-2026-10-12.html", data); err != nil {
+	if err := client.SendDocument("-1001234567890", "dependency-report-2026-10-12.html", caption, data); err != nil {
 		t.Fatalf("SendDocument() error = %v", err)
+	}
+}
+
+// checkDocumentRequest checks the multipart form of a sendDocument request: chat, caption,
+// parse mode, file name and file bytes.
+func checkDocumentRequest(t *testing.T, w http.ResponseWriter, r *http.Request, caption string, data []byte) {
+	t.Helper()
+	r.Body = http.MaxBytesReader(w, r.Body, maxDocumentBody)
+	mr, err := r.MultipartReader()
+	if err != nil {
+		t.Fatal(err)
+	}
+	form, err := mr.ReadForm(maxDocumentBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkFormValue(t, form, "chat_id", "-1001234567890")
+	checkFormValue(t, form, "caption", caption)
+	checkFormValue(t, form, "parse_mode", "HTML")
+	files := form.File["document"]
+	if len(files) != 1 || files[0].Filename != "dependency-report-2026-10-12.html" {
+		t.Fatalf("document part = %+v", files)
+	}
+	checkFileBytes(t, files[0], data)
+}
+
+// checkFormValue checks that a multipart form has exactly one value for key, equal to want.
+func checkFormValue(t *testing.T, form *multipart.Form, key, want string) {
+	t.Helper()
+	if got := form.Value[key]; len(got) != 1 || got[0] != want {
+		t.Errorf("%s = %q, want %q", key, got, want)
+	}
+}
+
+// checkFileBytes checks the content of an uploaded file part.
+func checkFileBytes(t *testing.T, fh *multipart.FileHeader, want []byte) {
+	t.Helper()
+	f, err := fh.Open()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = f.Close() }()
+	got, err := io.ReadAll(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(want) {
+		t.Errorf("file bytes = %q, want %q", got, want)
 	}
 }
 
 func TestSendDocumentInvalidChatID(t *testing.T) {
 	client := &Client{bot: &tgbotapi.BotAPI{Client: failingHTTPClient{}}, logger: zap.NewNop()}
-	if err := client.SendDocument("not-a-number", "r.html", []byte("x")); err == nil {
+	if err := client.SendDocument("not-a-number", "r.html", "c", []byte("x")); err == nil {
 		t.Fatal("SendDocument() error = nil, want an error for an invalid chat ID")
 	}
 }
 
 func TestSendDocumentNilClient(t *testing.T) {
 	var nilClient *Client
-	if err := nilClient.SendDocument("123", "r.html", []byte("x")); err != nil {
+	if err := nilClient.SendDocument("123", "r.html", "c", []byte("x")); err != nil {
 		t.Errorf("SendDocument() on nil client = %v, want nil", err)
 	}
-	if err := (&Client{logger: zap.NewNop()}).SendDocument("123", "r.html", []byte("x")); err != nil {
+	if err := (&Client{logger: zap.NewNop()}).SendDocument("123", "r.html", "c", []byte("x")); err != nil {
 		t.Errorf("SendDocument() on client without bot = %v, want nil", err)
 	}
 }
@@ -363,7 +386,7 @@ func TestSendDocumentReturnsErrorAfterRetries(t *testing.T) {
 		}
 	})
 
-	if err := client.SendDocument("123", "r.html", []byte("x")); err == nil {
+	if err := client.SendDocument("123", "r.html", "c", []byte("x")); err == nil {
 		t.Fatal("SendDocument() error = nil, want an error")
 	}
 	if attempts != 3 {

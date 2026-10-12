@@ -1,0 +1,53 @@
+schema: spec-driven
+
+context: |
+  automation-hub: single Go binary (module `automation-hub`, Go version in .go-version) that is the homelab's
+  ops hub over Telegram. It monitors IMAP mail and forwards extracted codes, receives HTTP webhooks (:8080),
+  and runs a Telegram bot whose commands dispatch GitHub Actions workflows (`workflows:` config) and restart
+  Kubernetes Deployments (`restarts:` config).
+  Layout: cmd/automation-hub/main.go (wiring, startup, SIGINT/SIGTERM), internal/config (viper + YAML,
+  validateBotCommands), internal/handlers (BotHandler, WebhookHandler), internal/services/{email,processor,
+  telegram,github,kube}. The kube client is a minimal in-cluster REST client (no client-go).
+  Deployment: k3s single node, namespace internal-apps, ServiceAccount automation-hub, config delivered from
+  Infisical as CONFIG_YAML (documented in configs/config.yaml.example). NetworkPolicies are default-deny in
+  internal-apps; any new pod-to-pod or pod-to-API traffic needs explicit rules in the homelab repo.
+  Principles: SOLID (single responsibility per type/package: parsing, presentation and delivery are separate;
+  depend on small consumer-defined interfaces); apply established design patterns where they fit (strategy,
+  builder, adapter) without speculative layers; NO hardcoded values: timezones, user-facing texts, limits,
+  paths, owners and URLs come from config with documented defaults (only external protocol limits, such as
+  Telegram's 1024-char caption, may be constants); standard library first, no new dependency without user
+  approval; a failing scan or job must never take down the bot.
+  User-facing bot confirmations are in English; dependency-report message texts are fixed Spanish strings.
+  Code, comments and OpenSpec artifacts are in English.
+  Tooling: Docker-first, never install Go or tools on the host:
+  `docker run --rm -v "$PWD":/app -w /app golang:$(cat .go-version) sh -c 'go vet ./... && go test -race ./...'`
+  (Debian-based image, not -alpine: -race needs cgo).
+  golangci-lint runs in CI (devidence-dev/workflows ci-go.yml), not locally.
+  Git: never commit or push without explicit user confirmation; staging and showing the diff is allowed.
+  Conventional commits. Tests are table-driven Go tests next to the code, using httptest and fakes, never
+  live services. Coverage exclusions follow sonar-project.properties (cmd/automation-hub/main.go).
+  Cross-repo work (homelab manifests, workflows repo, Infisical) is tracked in tasks as user or
+  other-repo steps; this repo's changes only cover automation-hub code, config example and README.
+
+rules:
+  proposal:
+    - Keep proposals under 400 words
+    - Always include a "Non-goals" section
+  specs:
+    - Scenarios use concrete values (cron specs, times in America/Guayaquil, repo names), not placeholders
+    - Cover failure paths (invalid config, API errors, Telegram failures)
+  tasks:
+    - Each task is small enough to finish and test in one sitting
+    - Every behavior task names the test that proves it
+    - Tasks for other repos or for the user are marked "(homelab)", "(workflows)" or "(user)"
+    - End with a validation task that runs go vet and go test -race in Docker
+
+operations:
+  apply:
+    guidance:
+      - Verify every new dependency version against its real source or module proxy, never from memory
+      - Do not commit or push; summarize changed files and propose a commit message
+      - Run `graphify update .` after modifying code
+  archive:
+    guidance:
+      - Do not archive a change unless go vet and go test -race passed in Docker on the current code

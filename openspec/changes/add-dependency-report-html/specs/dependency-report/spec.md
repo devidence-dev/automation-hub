@@ -3,11 +3,11 @@
 ## ADDED Requirements
 
 ### Requirement: HTML report document
-After the per-repository messages (or after `✅ Dependency report: todo al día.`), the system SHALL send exactly one HTML document to the configured chat as a Telegram document. The file name is `dependency-report-<YYYY-MM-DD>.html`, where the date is the day the hub received the report in America/Guayaquil. The document's header SHALL show the scan timestamp, defined as the time the hub received the report, as `YYYY-MM-DD HH:MM America/Guayaquil`. The system MUST NOT send a document on the Renovate failure path (`exit_code` not `0`, or `report` missing).
+The system SHALL send the HTML report of a successful run as one Telegram document to the configured chat, with the summary caption (see "Summary caption") as the document's caption. A successful run sends no other message. The file name is `dependency-report-<YYYY-MM-DD>.html`, where the date is the day the hub received the report in America/Guayaquil. The document's header SHALL show the scan timestamp, defined as the time the hub received the report, as `YYYY-MM-DD HH:MM America/Guayaquil`. The system MUST NOT send a document on the Renovate failure path (`exit_code` not `0`, or `report` missing).
 
 #### Scenario: Successful run
-- **WHEN** a valid request with `exit_code=0` and a report with two repos having updates is received on 2026-10-12 at 09:07 America/Guayaquil
-- **THEN** two repo messages are sent first, then one document named `dependency-report-2026-10-12.html` whose header shows `2026-10-12 09:07 America/Guayaquil`
+- **WHEN** a valid request with `exit_code=0` and a report with `devidence-dev/QuantWarden` having pending updates is received on 2026-10-12 at 09:07 America/Guayaquil
+- **THEN** one document named `dependency-report-2026-10-12.html` is sent, whose header shows `2026-10-12 09:07 America/Guayaquil` and whose caption starts with `📦 <b>Dependency report</b> · 2026-10-12`
 
 #### Scenario: Date near midnight UTC
 - **WHEN** the report is received at 2026-10-13 02:30 UTC, which is 2026-10-12 21:30 in America/Guayaquil
@@ -20,6 +20,34 @@ After the per-repository messages (or after `✅ Dependency report: todo al día
 #### Scenario: Report file missing
 - **WHEN** `exit_code=0` and the `report` file is missing
 - **THEN** the failure message is sent and no document is sent
+
+### Requirement: Summary caption
+The caption SHALL be sent with HTML parse mode. For a report with pending updates it SHALL contain, in this order:
+1. the header `📦 <b>Dependency report</b> · <YYYY-MM-DD>`, with the date of the file name, and a blank line;
+2. one line per repository with at least one `major`, `minor` or `patch` update, in the form `<emoji> <name> — <counts>`;
+3. `✅ <N> repos al día`, where N is the number of repositories with no pending update, omitted when N is 0;
+4. a blank line;
+5. `📊 <X> desactualizadas · <Y> al día`, where X is the number of dependencies with a listed update and Y the number without one, both summed over the two tabs of the document;
+6. `🐳 Imágenes: <a> · 📚 Paquetes: <b>`, where a and b are the dependencies with a listed update in "Imágenes" and in "Dependencias";
+7. `⚠️ <N> errores en el scan`, only when there are problems with `level >= 50` in a repository or at the report root.
+
+The name is the repository without the `devidence-dev/` prefix, followed by ` (fork)` when the repository is in `dependency_report.forks`. The emoji is 🔴 when any of its dependencies has a `major` update, otherwise 🟡. The counts are the non-zero `<N> major`, `<N> minor` and `<N> patch` in that order, joined by ` · `; each dependency counts once, under its highest update type. Repository lines are sorted: repositories with a major first, then by total count descending, then by name. When no dependency has a listed update, the caption has the header, a blank line, `✅ Todo al día`, a blank line and the stats lines (items 5 to 7). All variable text MUST be HTML-escaped.
+
+#### Scenario: Major, minor and patch counts
+- **WHEN** `devidence-dev/QuantWarden` has `github.com/gorilla/mux` with a `major` and a `minor` update, `golang.org/x/net` with a `major` update and `go.uber.org/zap` with a `patch` update
+- **THEN** its line is `🔴 QuantWarden — 2 major · 1 patch`, because `mux` counts once, as major
+
+#### Scenario: Fork and sort order
+- **WHEN** repositories `X` (one `major` and four `minor` deps), `Y` (one `major`), `A` (three `patch`), `B` (three `minor`) and `Z` (two `patch`) have pending updates, and `devidence-dev/discord-tts-bot` is in `dependency_report.forks` with one `minor` update
+- **THEN** the repository lines are, in order, `X`, `Y`, `A`, `B`, `Z`, and then `🟡 discord-tts-bot (fork) — 1 minor`
+
+#### Scenario: Escaped repository name
+- **WHEN** a repository is named `devidence-dev/o<r>` and has a `patch` update
+- **THEN** its line shows `o&lt;r&gt;`, and no raw `<r>` appears in the caption
+
+#### Scenario: Caption over the limit
+- **WHEN** 60 repositories with long names have pending updates and the caption with all its repository lines would exceed 1024 characters
+- **THEN** repository lines are dropped from the end, a line `… y <N> repos más (ver reporte)` follows the last kept one, and the header, the `✅` line and the stats lines are kept, so that the caption has at most 1024 characters
 
 ### Requirement: Document tabs
 The document SHALL have two tabs. "Imágenes" lists every dependency whose Renovate `datasource` is `docker`. "Dependencias" lists every other dependency, including one with no `datasource`. Only updates of type `major`, `minor` or `patch` are listed (`digest` and `pin` are ignored), one row per dependency and update, with exact duplicates removed. A row in "Imágenes" shows the repo, the package file, the current image (`<depName>:<current version>`), the latest image (`<depName>:<new version>`) and the update type badge. A row in "Dependencias" shows the repo, the package file, the dependency name, the current version, the new version and the update type badge. The repo of a fork listed in `dependency_report.forks` carries the tag ` (fork, solo informativo)`. Each tab SHALL show its totals: dependencies in the tab, dependencies with a listed update, dependencies up to date, and the count of `patch`, `minor` and `major` rows.
@@ -53,22 +81,26 @@ The document SHALL have two tabs. "Imágenes" lists every dependency whose Renov
 - **THEN** "Imágenes" shows 3 total, 1 with updates, 2 up to date and `minor` 1; "Dependencias" shows 5 total, 2 with updates, 3 up to date, `patch` 1 and `major` 1
 
 ### Requirement: Scan errors in the document
-When a repo has problems with `level >= 50`, the document SHALL list each of them in an errors section as `<owner/repo>: <msg>`. The section is absent when there are none.
+When a repo or the report root has problems with `level >= 50`, the document SHALL list each of them in an errors section: `<owner/repo>: <msg>` for a repo, and `root: <msg>` for the report root. The caption's error count uses the same problems. The section is absent when there are none.
 
 #### Scenario: Lookup failure
 - **WHEN** `devidence-dev/QuantWarden` has a problem with `level` 50 and `msg` `Failed to look up dependency`
 - **THEN** the document's errors section contains `devidence-dev/QuantWarden: Failed to look up dependency`
+
+#### Scenario: Root problem
+- **WHEN** the report root has a problem with `level` 50 and `msg` `Fatal error outside any repo`
+- **THEN** the document's errors section contains `root: Fatal error outside any repo`, and the caption shows the error count including it
 
 #### Scenario: Warning level only
 - **WHEN** the only problem of a repo has `level` 40
 - **THEN** the document has no errors section
 
 ### Requirement: Nothing pending document
-When no dependency has a listed update, the system SHALL still send the document after `✅ Dependency report: todo al día.`, showing zero updates in both tabs.
+When no dependency has a listed update, the system SHALL still send the document, with `✅ Todo al día` in its caption in place of the repository lines, showing zero updates in both tabs.
 
 #### Scenario: All up to date
 - **WHEN** the report has 12 docker deps and 30 non-docker deps, none with a `major`, `minor` or `patch` update
-- **THEN** `✅ Dependency report: todo al día.` is sent, then the document, whose tabs show `0` updates, 12 and 30 up to date, and no table rows
+- **THEN** one document is sent whose caption contains `✅ Todo al día` and `📊 0 desactualizadas · 42 al día`, and whose tabs show `0` updates, 12 and 30 up to date, and no table rows
 
 ### Requirement: Safe document content
 All variable text in the document (repo, package file, dependency, versions, error messages) MUST be escaped for HTML, so that report content is shown as text and never interpreted as markup or script.
@@ -83,17 +115,38 @@ All variable text in the document (repo, package file, dependency, versions, err
 
 ## MODIFIED Requirements
 
+### Requirement: Safe HTML and size limit
+All variable text in the Renovate failure message and in the caption MUST be HTML-escaped (`&`, `<`, `>`), and both SHALL use HTML parse mode. The failure message MUST NOT exceed 4096 characters, and the caption MUST NOT exceed 1024 characters. Content SHALL be cut by whole lines, so a message or caption never ends inside a tag or entity.
+
+#### Scenario: Long escaped content
+- **WHEN** a failure log tail with lines containing `<` and `&` would exceed 4096 characters after escaping
+- **THEN** the sent message is at most 4096 characters, contains no partial `&lt;` entity or unclosed tag, and Telegram accepts it
+
+#### Scenario: Caption over the limit
+- **WHEN** the caption with all its repository lines would exceed 1024 characters
+- **THEN** the caption is cut by repository lines as described in "Summary caption", and it has at most 1024 characters with no partial entity or unclosed tag
+
 ### Requirement: Delivery
-Messages and the HTML document SHALL be sent to `dependency_report.telegram_chat_id`, the messages first. A failure to send a message, or the document, after retries SHALL be logged as an error. A failed message MUST NOT stop the remaining messages or the document, and a failed document MUST NOT affect the messages already sent. A Telegram failure MUST NOT affect other components.
+The Renovate failure message SHALL be sent as one text message. A successful report SHALL be sent to `dependency_report.telegram_chat_id` as one document, with the caption as its caption. If the document cannot be sent after retries, the caption SHALL be sent as a text message instead. A failure to send after retries SHALL be logged as an error. A failed send MUST NOT affect other components.
 
 #### Scenario: Telegram down
 - **WHEN** Telegram returns errors for every attempt
 - **THEN** the hub logs the failure and keeps serving other webhooks and bot commands
 
 #### Scenario: Document rejected
-- **WHEN** the two repo messages are delivered and Telegram returns an error for every `sendDocument` attempt for `dependency-report-2026-10-12.html`
-- **THEN** the hub logs an error for the document, the two messages stay delivered, and the hub keeps serving other webhooks and bot commands
+- **WHEN** Telegram returns an error for every `sendDocument` attempt for `dependency-report-2026-10-12.html`
+- **THEN** the hub logs an error for the document, sends the caption as a text message so the summary still arrives, and keeps serving other webhooks and bot commands
 
-#### Scenario: Message fails, document still sent
-- **WHEN** the first of two repo messages fails after retries and Telegram accepts the second message and the document
-- **THEN** the failure is logged, and the second message and the document are still sent
+#### Scenario: Renovate failed
+- **WHEN** `exit_code=1` and a `report` file is present
+- **THEN** one text message, the failure message, is sent and no document is sent
+
+## REMOVED Requirements
+
+### Requirement: Per-repository message
+**Reason**: The per-repository text messages are removed. A successful run now sends one document whose caption lists the same repositories with their pending updates.
+**Migration**: Repositories with pending updates appear as lines in the caption (see "Summary caption"). Their dependencies appear in the document's tabs (see "Document tabs").
+
+### Requirement: All up to date
+**Reason**: The `✅ Dependency report: todo al día.` message is removed. The document is still sent, and its caption shows `✅ Todo al día`.
+**Migration**: See "Nothing pending document".
