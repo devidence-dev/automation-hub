@@ -5,7 +5,7 @@ failure:
   title: "❌ Renovate falló (exit {exit}) en el pod {pod}"
 fork:
   tag_caption: " (fork)"
-  tag_document: " (fork, solo informativo)"
+  tag_document: "fork · solo informativo"
 caption:
   header: "📦 <b>Dependency report</b> · {date}"
   all_up_to_date: "✅ Todo al día"
@@ -25,19 +25,52 @@ counts:
   separator: " · "
 document:
   title: "Reporte de dependencias - Devidence"
+  # Unused since batch 3: the eyebrow of each panel replaces the brand line. Kept so that an existing override still validates.
   brand: "Reporte de dependencias"
+  eyebrow:
+    deps: "Reporte de dependencias"
+    images: "Reporte de imágenes"
   tab:
     images: "Imágenes"
     deps: "Dependencias"
+  # Unused since batch 3: the panel shows the sub line instead. Kept so that an existing override still validates.
   total: "Total"
   pending: "Actualizaciones pendientes"
   up_to_date: "Al día"
   distribution: "Distribución de actualizaciones"
+  panel:
+    sub: "pendientes de {total} · {up_to_date} al día"
   status:
-    updates_bold: "{updates} actualizaciones disponibles"
+    updates_bold: "{updates} actualizaciones"
+    updates_bold_one: "{updates} actualización"
     updates_rest: "para {deps} dependencias"
+    updates_rest_one: "para {deps} dependencia"
+    images_rest: "para {deps} imágenes"
+    images_rest_one: "para {deps} imagen"
     up_to_date: "Todas las dependencias están al día"
+    images_up_to_date: "Todas las imágenes están al día"
+  # The update type names of the legend and of the row chips.
+  type:
+    patch: "patch"
+    minor: "minor"
+    major: "major"
+  theme:
+    group: "Tema"
+    system: "Automático"
+    light: "Claro"
+    dark: "Oscuro"
+  # Unused since the copy-button redesign; kept so that an existing override still validates.
   available: "Actualizaciones disponibles"
+  # Unused since batch 3: the repo emoji and the emoji counters are not shown (decision a of the liquid glass port).
+  # Kept so that an existing override still validates.
+  summary:
+    emoji:
+      major: "🚨"
+      minor: "⚠️"
+      patch: "♻️"
+    counter: "{emoji} {count}"
+  # The columns are not rendered as table headers, except current and new, which label the versions for
+  # screen readers. The other keys are unused; they stay so that an existing override of them still passes.
   columns:
     package_file: "Archivo de paquete"
     repository: "Repositorio"
@@ -47,14 +80,21 @@ document:
     current: "Actual"
     new: "Nueva"
     type: "Tipo"
+  # Copy buttons are icon-only; the accessible name and tooltip are these labels. An image entry copies
+  # only its latest reference. current_image is unused; it stays so that an existing override still
+  # passes startup validation.
   copy:
     current_image: "Copiar imagen actual"
     latest_image: "Copiar imagen nueva"
     copied: "¡Copiado!"
     copied_before: "Copiar (copiado antes)"
+    new_version: "Copiar nombre@versión"
   errors:
-    heading: "Errores"
+    heading: "Errores del análisis"
+    count: "{count} errores"
+    count_one: "{count} error"
     root: "raíz"
+    # Unused since batch 3: the errors card shows the repo and the message in two cells.
     item: "{where}: {msg}"
 bot:
   unknown_command: "❓ Unknown command."

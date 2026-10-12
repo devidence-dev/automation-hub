@@ -1,0 +1,38 @@
+package depreport
+
+import "strconv"
+
+// Tabs are the tab list and the two panels, Dependencias first. report.js switches the selected tab,
+// moves the pill and shows the panel; the rendered state is the first tab selected.
+templ Tabs(view documentView) {
+	<div class="glass relative mt-[22px] flex gap-1 rounded-full p-1 [--glass-bg:var(--glass-soft)]" role="tablist" data-pill-group>
+		<span class="pill" aria-hidden="true"></span>
+		for _, t := range view.Tabs {
+			@TabButton(t)
+		}
+	</div>
+	for _, t := range view.Tabs {
+		@TabPanel(t)
+	}
+}
+
+// TabButton is one tab, with its count of listed updates. It is a button: Enter and Space activate it.
+templ TabButton(t TabView) {
+	<button type="button" role="tab" id={ t.ID + "-tab" } aria-controls={ t.ID + "-panel" } aria-selected={ strconv.FormatBool(t.Selected) } tabindex={ tabIndex(t.Selected) } data-tab={ t.ID } class="tab relative z-[1] flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-full border-0 bg-transparent p-2.5 font-medium text-muted transition-colors duration-300 hover:text-ink aria-[selected=true]:font-semibold aria-[selected=true]:text-tab-on-fg">
+		{ t.Label }
+		<span class="tab-count rounded-full bg-count px-[7px] py-0.5 font-mono text-[11px] font-medium tabular-nums transition-colors duration-300">{ strconv.Itoa(t.Count) }</span>
+	</button>
+}
+
+// TabPanel is one tab's panel: its totals, its summary line and its repo cards. Only the selected one is shown.
+templ TabPanel(t TabView) {
+	<section id={ t.ID + "-panel" } role="tabpanel" aria-labelledby={ t.ID + "-tab" } data-panel={ t.ID } hidden?={ !t.Selected }>
+		@StatsPanel(t.Stats)
+		@SummaryText(t.Summary)
+		<div class="mt-2.5 flex flex-col gap-2.5">
+			for _, g := range t.Groups {
+				@RepoGroup(g)
+			}
+		</div>
+	</section>
+}

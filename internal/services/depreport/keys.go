@@ -5,57 +5,79 @@ package depreport
 
 // Catalog keys of the texts this package shows. Each one exists in internal/messages/default.yaml.
 const (
-	KeyLang                 = "lang"
-	KeyFailureTitle         = "failure.title"
-	KeyForkTagCaption       = "fork.tag_caption"
-	KeyForkTagDocument      = "fork.tag_document"
-	KeyCaptionHeader        = "caption.header"
-	KeyCaptionAllUpToDate   = "caption.all_up_to_date"
-	KeyCaptionReposUpToDate = "caption.repos_up_to_date"
-	KeyCaptionMoreRepos     = "caption.more_repos"
-	KeyCaptionRepoLine      = "caption.repo_line"
-	KeyCaptionStats         = "caption.stats"
-	KeyCaptionTabs          = "caption.tabs"
-	KeyCaptionErrors        = "caption.errors"
-	KeyCaptionEmojiMajor    = "caption.emoji.major"
-	KeyCaptionEmojiOther    = "caption.emoji.other"
-	KeyCountMajor           = "counts.major"
-	KeyCountMinor           = "counts.minor"
-	KeyCountPatch           = "counts.patch"
-	KeyCountSeparator       = "counts.separator"
-	KeyDocTitle             = "document.title"
-	KeyDocBrand             = "document.brand"
-	KeyDocTabImages         = "document.tab.images"
-	KeyDocTabDeps           = "document.tab.deps"
-	KeyDocTotal             = "document.total"
-	KeyDocPending           = "document.pending"
-	KeyDocUpToDate          = "document.up_to_date"
-	KeyDocDistribution      = "document.distribution"
-	KeyDocStatusUpdatesBold = "document.status.updates_bold"
-	KeyDocStatusUpdatesRest = "document.status.updates_rest"
-	KeyDocStatusUpToDate    = "document.status.up_to_date"
-	KeyDocAvailable         = "document.available"
-	KeyColPackageFile       = "document.columns.package_file"
-	KeyColRepository        = "document.columns.repository"
-	KeyColCurrentImage      = "document.columns.current_image"
-	KeyColLatestImage       = "document.columns.latest_image"
-	KeyColDependency        = "document.columns.dependency"
-	KeyColCurrent           = "document.columns.current"
-	KeyColNew               = "document.columns.new"
-	KeyColType              = "document.columns.type"
-	KeyCopyCurrentImage     = "document.copy.current_image"
-	KeyCopyLatestImage      = "document.copy.latest_image"
-	KeyCopyCopied           = "document.copy.copied"
-	KeyCopyCopiedBefore     = "document.copy.copied_before"
-	KeyErrorsHeading        = "document.errors.heading"
-	KeyErrorsRoot           = "document.errors.root"
-	KeyErrorsItem           = "document.errors.item"
+	KeyLang                  = "lang"
+	KeyFailureTitle          = "failure.title"
+	KeyForkTagCaption        = "fork.tag_caption"
+	KeyForkTagDocument       = "fork.tag_document"
+	KeyCaptionHeader         = "caption.header"
+	KeyCaptionAllUpToDate    = "caption.all_up_to_date"
+	KeyCaptionReposUpToDate  = "caption.repos_up_to_date"
+	KeyCaptionMoreRepos      = "caption.more_repos"
+	KeyCaptionRepoLine       = "caption.repo_line"
+	KeyCaptionStats          = "caption.stats"
+	KeyCaptionTabs           = "caption.tabs"
+	KeyCaptionErrors         = "caption.errors"
+	KeyCaptionEmojiMajor     = "caption.emoji.major"
+	KeyCaptionEmojiOther     = "caption.emoji.other"
+	KeyCountMajor            = "counts.major"
+	KeyCountMinor            = "counts.minor"
+	KeyCountPatch            = "counts.patch"
+	KeyCountSeparator        = "counts.separator"
+	KeyDocTitle              = "document.title"
+	KeyDocBrand              = "document.brand"
+	KeyDocTabImages          = "document.tab.images"
+	KeyDocTabDeps            = "document.tab.deps"
+	KeyDocTotal              = "document.total"
+	KeyDocPending            = "document.pending"
+	KeyDocUpToDate           = "document.up_to_date"
+	KeyDocDistribution       = "document.distribution"
+	KeyDocStatusUpdatesBold  = "document.status.updates_bold"
+	KeyDocStatusUpdatesRest  = "document.status.updates_rest"
+	KeyDocStatusUpToDate     = "document.status.up_to_date"
+	KeyDocAvailable          = "document.available" // unused, see default.yaml
+	KeyDocSummaryEmojiMajor  = "document.summary.emoji.major"
+	KeyDocSummaryEmojiMinor  = "document.summary.emoji.minor"
+	KeyDocSummaryEmojiPatch  = "document.summary.emoji.patch"
+	KeyDocSummaryCounter     = "document.summary.counter"
+	KeyDocEyebrowDeps        = "document.eyebrow.deps"
+	KeyDocEyebrowImages      = "document.eyebrow.images"
+	KeyDocPanelSub           = "document.panel.sub"
+	KeyDocStatusUpdatesBold1 = "document.status.updates_bold_one"
+	KeyDocStatusUpdatesRest1 = "document.status.updates_rest_one"
+	KeyDocStatusImagesRest   = "document.status.images_rest"
+	KeyDocStatusImagesRest1  = "document.status.images_rest_one"
+	KeyDocStatusImagesUpTo   = "document.status.images_up_to_date"
+	KeyDocTypePatch          = "document.type.patch"
+	KeyDocTypeMinor          = "document.type.minor"
+	KeyDocTypeMajor          = "document.type.major"
+	KeyDocThemeGroup         = "document.theme.group"
+	KeyDocThemeSystem        = "document.theme.system"
+	KeyDocThemeLight         = "document.theme.light"
+	KeyDocThemeDark          = "document.theme.dark"
+	KeyColPackageFile        = "document.columns.package_file"
+	KeyColRepository         = "document.columns.repository"
+	KeyColCurrentImage       = "document.columns.current_image"
+	KeyColLatestImage        = "document.columns.latest_image"
+	KeyColDependency         = "document.columns.dependency"
+	KeyColCurrent            = "document.columns.current"
+	KeyColNew                = "document.columns.new"
+	KeyColType               = "document.columns.type"
+	KeyCopyCurrentImage      = "document.copy.current_image" // unused: kept so that overrides validate
+	KeyCopyLatestImage       = "document.copy.latest_image"
+	KeyCopyCopied            = "document.copy.copied"
+	KeyCopyCopiedBefore      = "document.copy.copied_before"
+	KeyCopyNewVersion        = "document.copy.new_version"
+	KeyErrorsHeading         = "document.errors.heading"
+	KeyErrorsRoot            = "document.errors.root"
+	KeyErrorsItem            = "document.errors.item"
+	KeyErrorsCount           = "document.errors.count"
+	KeyErrorsCountOne        = "document.errors.count_one"
 )
 
 // placeholderNames are the placeholders the code fills. A catalog text may use only these.
 var placeholderNames = []string{
 	"count", "counts", "current", "date", "deps", "emoji", "exit", "images", "msg",
-	"name", "packages", "pod", "updated", "updates", "where",
+	"name", "packages", "pod", "total", "up_to_date", "updated", "updates", "where",
 }
 
 // allKeys lists every key constant above; tests check it against the default catalog.
@@ -67,8 +89,13 @@ var allKeys = []string{
 	KeyCountMajor, KeyCountMinor, KeyCountPatch, KeyCountSeparator,
 	KeyDocTitle, KeyDocBrand, KeyDocTabImages, KeyDocTabDeps, KeyDocTotal, KeyDocPending,
 	KeyDocUpToDate, KeyDocDistribution, KeyDocStatusUpdatesBold, KeyDocStatusUpdatesRest, KeyDocStatusUpToDate, KeyDocAvailable,
+	KeyDocSummaryEmojiMajor, KeyDocSummaryEmojiMinor, KeyDocSummaryEmojiPatch, KeyDocSummaryCounter,
 	KeyColPackageFile, KeyColRepository, KeyColCurrentImage, KeyColLatestImage, KeyColDependency,
 	KeyColCurrent, KeyColNew, KeyColType,
-	KeyCopyCurrentImage, KeyCopyLatestImage, KeyCopyCopied, KeyCopyCopiedBefore,
-	KeyErrorsHeading, KeyErrorsRoot, KeyErrorsItem,
+	KeyCopyCurrentImage, KeyCopyLatestImage, KeyCopyCopied, KeyCopyCopiedBefore, KeyCopyNewVersion,
+	KeyErrorsHeading, KeyErrorsRoot, KeyErrorsItem, KeyErrorsCount, KeyErrorsCountOne,
+	KeyDocEyebrowDeps, KeyDocEyebrowImages, KeyDocPanelSub,
+	KeyDocStatusUpdatesBold1, KeyDocStatusUpdatesRest1, KeyDocStatusImagesRest, KeyDocStatusImagesRest1, KeyDocStatusImagesUpTo,
+	KeyDocTypePatch, KeyDocTypeMinor, KeyDocTypeMajor,
+	KeyDocThemeGroup, KeyDocThemeSystem, KeyDocThemeLight, KeyDocThemeDark,
 }

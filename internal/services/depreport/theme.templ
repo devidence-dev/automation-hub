@@ -1,0 +1,22 @@
+package depreport
+
+import "strconv"
+
+// ThemeControl is the segmented control of the theme: Automático (the system choice), Claro and Oscuro.
+// report.js moves the pill and sets data-theme for the page view only; nothing is stored. Automático is
+// pressed on every open.
+templ ThemeControl(labels labelSet) {
+	<div class="glass relative flex gap-0.5 rounded-full p-[3px] [--pill-inset:3px]" role="group" aria-label={ labels.ThemeGroup } data-pill-group>
+		<span class="pill" aria-hidden="true"></span>
+		@ThemeButton("system", labels.ThemeSystem, true)
+		@ThemeButton("light", labels.ThemeLight, false)
+		@ThemeButton("dark", labels.ThemeDark, false)
+	</div>
+}
+
+// ThemeButton is one choice of the theme control. set is the value report.js reads from data-theme-set.
+templ ThemeButton(set, label string, pressed bool) {
+	<button type="button" class="theme-btn relative z-[1] grid h-7 w-[30px] cursor-pointer place-items-center rounded-full border-0 bg-transparent text-muted transition-colors duration-300 hover:text-ink aria-[pressed=true]:text-tab-on-fg" data-theme-set={ set } title={ label } aria-label={ label } aria-pressed={ strconv.FormatBool(pressed) }>
+		@Icon(set, "size-3.5")
+	</button>
+}

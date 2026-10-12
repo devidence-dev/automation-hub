@@ -1,0 +1,21 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+	"formatter": {
+		"enabled": true
+	},
+	"linter": {
+		"enabled": true
+	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
+	},
+	"files": {
+		"includes": [
+			"internal/services/depreport/assets/**/*.css",
+			"internal/services/depreport/assets/**/*.js",
+			"!internal/services/depreport/assets/depreport.min.css"
+		]
+	}
+}

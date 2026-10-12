@@ -1,0 +1,23 @@
+package depreport
+
+// ErrorsCard lists the scan errors at the bottom of the document. It is rendered only when there are
+// errors. Each row has the repo or the report root, and the message.
+templ ErrorsCard(view documentView) {
+	<section class="glass mt-[22px] overflow-hidden rounded-[20px]" aria-labelledby="errors-heading">
+		<div class="flex items-center gap-3 px-[18px] py-3.5">
+			@ToneDot(toneError)
+			<h2 id="errors-heading" class="m-0 text-[15px] font-semibold">{ view.Labels.ErrorsHeading }</h2>
+			<span class="ml-auto">
+				@ToneChip(toneError, view.ErrorsChip)
+			</span>
+		</div>
+		<div class="border-t border-line px-[18px] pb-3.5">
+			for _, e := range view.Errors {
+				<div class="grid grid-cols-1 gap-0.5 border-t border-line py-2.5 font-mono text-[13px] first:border-t-0 min-[601px]:grid-cols-[200px_minmax(0,1fr)] min-[601px]:gap-3.5">
+					<span class="text-muted">{ e.Where }</span>
+					<span>{ e.Msg }</span>
+				</div>
+			}
+		</div>
+	</section>
+}

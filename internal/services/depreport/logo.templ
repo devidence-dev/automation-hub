@@ -1,0 +1,9 @@
+package depreport
+
+// Logo is the devidence logo, inline, 30px high. The SVG takes its colors from the logo tokens, so it
+// follows the theme.
+templ Logo() {
+	<div class="h-[30px] w-[120.8px] [&>svg]:size-full">
+		@templ.Raw(logoSVG)
+	</div>
+}

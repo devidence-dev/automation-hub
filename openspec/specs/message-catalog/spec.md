@@ -6,7 +6,7 @@ Holds the user-facing texts of the hub's Telegram and HTML output in one embedde
 ## Requirements
 
 ### Requirement: Embedded default catalog
-The system SHALL embed one default message catalog in the binary, holding every user-facing text of the dependency report: the caption, the failure message, the fork tags, the document labels, the tab labels, the emoji and `lang`. Each default SHALL keep the text the hub sends today, so the report texts are Spanish and the caption header keeps `Dependency report`; the document labels are Spanish and `lang` is `es`. The catalog MUST NOT be read from the host filesystem. Without a `messages:` section, the rendered texts SHALL equal the texts stated in the `dependency-report` requirements. Protocol limits (Telegram's 4096 and 1024 characters) are not catalog entries. Update-type names (`major`, `minor`, `patch`) are Renovate's names and are not catalog entries.
+The system SHALL embed one default message catalog in the binary, holding every user-facing report text (see "Catalog contents"). Each default SHALL keep today's text. The catalog MUST NOT be read from the host filesystem. Without a `messages:` section, rendered texts SHALL equal the texts in the `dependency-report` requirements. Protocol limits (Telegram's 4096 and 1024 characters) and update-type names are not catalog entries.
 
 #### Scenario: Defaults render today's caption
 - **WHEN** the config has no `messages:` section and the report has no pending update on 2026-10-12 with 42 up-to-date dependencies and no images or packages listed
@@ -15,6 +15,10 @@ The system SHALL embed one default message catalog in the binary, holding every 
 #### Scenario: Default language
 - **WHEN** the config has no `messages:` section
 - **THEN** the document's `<html>` element has `lang="es"`
+
+#### Scenario: Catalog contents
+- **WHEN** the default catalog is loaded
+- **THEN** it holds the caption, the failure message, the fork tags, the document and tab labels, the caption emoji and `lang`; the report texts are Spanish and the caption header is `📦 <b>Dependency report</b> · {date}`
 
 ### Requirement: Configured overrides
 The `messages:` section SHALL use the same nested keys as the default catalog. Each key it sets SHALL replace the default text of that key only; every other key keeps its default.

@@ -17,7 +17,7 @@ The system SHALL accept `jobs:` entries with `command`, `description`, `namespac
 - **THEN** the bot starts, registers the command and can create the Job
 
 ### Requirement: Create a Job from a CronJob
-When an allowed chat sends a job command, the system SHALL read the configured CronJob and create a Job in the same namespace from its job template. The Job SHALL be named `<cronjob>-manual-<unix seconds>`, keep the template's labels and annotations, and carry the annotation `cronjob.kubernetes.io/instantiate: manual`. The reply SHALL be the bot text `bot.job_created` from the message catalog, whose default is `🚀 Job *<name>* created from *<cronjob>*.` A failed creation SHALL get the bot text `bot.job_failed`, whose default is `❌ Failed to create the job. Check the hub logs or try again later.`
+When an allowed chat sends a job command, the system SHALL read the configured CronJob and create a Job in the same namespace from its job template. The Job SHALL be named `<cronjob>-manual-<unix seconds>`, keep the template's labels and annotations, and carry the annotation `cronjob.kubernetes.io/instantiate: manual`. The reply SHALL be the catalog text `bot.job_created`, and a failed creation SHALL get `bot.job_failed`; their default texts are in the scenarios below.
 
 #### Scenario: Successful creation
 - **WHEN** an allowed chat sends `/run_dependency_report` at Unix time 1791763200 and the entry points to CronJob `dependency-report` in `internal-apps`

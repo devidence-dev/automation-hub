@@ -3,6 +3,7 @@ package depreport
 import (
 	"cmp"
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
 	"strings"
@@ -32,11 +33,12 @@ type Row struct {
 
 // Tab is one of the two tabs of the document.
 type Tab struct {
-	Rows        []Row // sorted by repo, package file, dep, update type and versions
-	Updates     int   // listed rows, one per dep and update
-	Total       int   // distinct deps in the tab, with or without listed updates
-	WithUpdates int   // distinct deps with at least one listed row
-	UpToDate    int   // Total minus WithUpdates
+	Rows        []Row         // sorted by repo, package file, dep, update type and versions
+	Pending     []RepoPending // repos of this tab with a listed update, in caption order
+	Updates     int           // listed rows, one per dep and update
+	Total       int           // distinct deps in the tab, with or without listed updates
+	WithUpdates int           // distinct deps with at least one listed row
+	UpToDate    int           // Total minus WithUpdates
 	Counts      map[UpdateType]int
 }
 
@@ -128,7 +130,7 @@ func (b *tabBuilder) addRow(key depKey, row Row) {
 	}
 }
 
-// finish sorts the rows and computes the totals of the tab.
+// finish sorts the rows and computes the totals and the pending repos of the tab.
 func (b *tabBuilder) finish() Tab {
 	slices.SortStableFunc(b.rows, compareRows)
 	tab := Tab{
@@ -139,9 +141,12 @@ func (b *tabBuilder) finish() Tab {
 		Counts:      map[UpdateType]int{},
 	}
 	tab.UpToDate = tab.Total - tab.WithUpdates
+	fork := map[string]bool{}
 	for _, row := range b.rows {
 		tab.Counts[row.Type]++
+		fork[row.Repo] = row.Fork
 	}
+	tab.Pending = pendingOf(b.highest, fork)
 	return tab
 }
 
@@ -197,25 +202,37 @@ func (b *tabBuilder) addDepRows(key depKey, base Row, dep Dep) {
 	}
 }
 
-// pendingByRepo counts, per repo, the deps with a listed update under their highest type.
-// The result is in caption order.
+// pendingByRepo counts, per repo over both tabs, the deps with a listed update under their highest
+// type. The result is in caption order.
 func pendingByRepo(forks []string, tabs ...*tabBuilder) []RepoPending {
-	byRepo := map[string]*RepoPending{}
+	highest := map[depKey]UpdateType{}
 	for _, tab := range tabs {
-		for key, typ := range tab.highest {
-			p := byRepo[key.repo]
-			if p == nil {
-				p = &RepoPending{Repo: key.repo, Fork: slices.Contains(forks, key.repo)}
-				byRepo[key.repo] = p
-			}
-			switch typ {
-			case UpdateMajor:
-				p.Major++
-			case UpdateMinor:
-				p.Minor++
-			case UpdatePatch:
-				p.Patch++
-			}
+		maps.Copy(highest, tab.highest)
+	}
+	fork := map[string]bool{}
+	for _, name := range forks {
+		fork[name] = true
+	}
+	return pendingOf(highest, fork)
+}
+
+// pendingOf counts, per repo, the deps with a listed update under their highest type. fork tells
+// which repos are forks. The result is in caption order.
+func pendingOf(highest map[depKey]UpdateType, fork map[string]bool) []RepoPending {
+	byRepo := map[string]*RepoPending{}
+	for key, typ := range highest {
+		p := byRepo[key.repo]
+		if p == nil {
+			p = &RepoPending{Repo: key.repo, Fork: fork[key.repo]}
+			byRepo[key.repo] = p
+		}
+		switch typ {
+		case UpdateMajor:
+			p.Major++
+		case UpdateMinor:
+			p.Minor++
+		case UpdatePatch:
+			p.Patch++
 		}
 	}
 	pending := make([]RepoPending, 0, len(byRepo))
@@ -226,7 +243,8 @@ func pendingByRepo(forks []string, tabs ...*tabBuilder) []RepoPending {
 	return pending
 }
 
-// pendingLess orders the caption lines: a repo with a major first, then the larger total, then the name.
+// pendingLess orders the caption lines: a repo with a major first, then the larger total, then the
+// short name, then the full name, so that two repos with one short name keep a fixed order.
 func pendingLess(a, b RepoPending) bool {
 	if (a.Major > 0) != (b.Major > 0) {
 		return a.Major > 0
@@ -234,7 +252,10 @@ func pendingLess(a, b RepoPending) bool {
 	if a.Total() != b.Total() {
 		return a.Total() > b.Total()
 	}
-	return ShortName(a.Repo) < ShortName(b.Repo)
+	if ShortName(a.Repo) != ShortName(b.Repo) {
+		return ShortName(a.Repo) < ShortName(b.Repo)
+	}
+	return a.Repo < b.Repo
 }
 
 // scanErrors lists each problem of level 50 or more: the report root's first, then each repo's, repos sorted.

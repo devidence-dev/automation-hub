@@ -2,6 +2,7 @@ package depreport
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -33,21 +34,70 @@ func documentViewOf(t *testing.T, s Summary) documentView {
 // panes splits the document at the two tab panes.
 func panes(t *testing.T, out string) (images, deps string) {
 	t.Helper()
-	imagesAt := strings.Index(out, `id="images" role="tabpanel"`)
-	depsAt := strings.Index(out, `id="deps" role="tabpanel"`)
-	if imagesAt < 0 || depsAt < imagesAt {
-		t.Fatal("tab panes not found in document")
+	depsAt := strings.Index(out, `data-panel="deps"`)
+	imagesAt := strings.Index(out, `data-panel="images"`)
+	if depsAt < 0 || imagesAt < depsAt {
+		t.Fatal("tab panes not found in document, or not in Dependencias-then-Imágenes order") //nolint:misspell // Spanish text fixed by the spec
 	}
-	return out[imagesAt:depsAt], out[depsAt:]
+	return out[imagesAt:], out[depsAt:imagesAt]
 }
 
-func TestDocumentTabColumns(t *testing.T) {
-	view := documentViewOf(t, summaryAt(loadFixtureReport(t)))
-	if n := len(view.Tabs[0].Columns); n != 5 {
-		t.Errorf("images columns = %d, want 5", n)
+// TestDocumentPresenterPresent checks that the presenter renders the ReportDocument component: an HTML5
+// document in Spanish.
+func TestDocumentPresenterPresent(t *testing.T) {
+	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
+	if !strings.HasPrefix(out, "<!doctype html>") { // templ writes the doctype in lower case
+		t.Errorf("document starts with %.20q, want <!doctype html>", out)
 	}
-	if n := len(view.Tabs[1].Columns); n != 6 {
-		t.Errorf("dependencies columns = %d, want 6", n)
+	if !strings.Contains(out, `<html lang="es">`) {
+		t.Error(`document lacks <html lang="es">`)
+	}
+}
+
+// TestDocumentStartsOnAutomatic checks that the page carries no stored theme: the html tag has no
+// data-theme, and the Automático button is the pressed one.
+func TestDocumentStartsOnAutomatic(t *testing.T) {
+	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
+	htmlTag := out[strings.Index(out, "<html"):]
+	htmlTag = htmlTag[:strings.Index(htmlTag, ">")]
+	if strings.Contains(htmlTag, "data-theme") {
+		t.Errorf("html tag %q sets data-theme", htmlTag)
+	}
+	if !strings.Contains(out, `data-theme-set="system" title="Automático" aria-label="Automático" aria-pressed="true"`) {
+		t.Error("the Automático button is not pressed on load")
+	}
+}
+
+// TestDocumentStaticBehavior checks what the document keeps without a framework: one inline script (the
+// report script), one stylesheet link (the Google Fonts link), no network file, and repo
+// cards that are collapsed and have no name.
+func TestDocumentStaticBehavior(t *testing.T) {
+	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
+	if n := strings.Count(out, "<script"); n != 1 {
+		t.Errorf("script elements = %d, want 1", n)
+	}
+	if strings.Contains(out, "<script src") || strings.Contains(out, "<img") {
+		t.Error("document loads a script or an image file")
+	}
+	if !strings.Contains(out, `<meta name="color-scheme" content="light dark">`) || !strings.Contains(out, `<meta name="viewport" content="width=device-width, initial-scale=1">`) {
+		t.Error("document lacks the color-scheme or viewport meta")
+	}
+	links := regexp.MustCompile(`<link rel="stylesheet"[^>]*>`).FindAllString(out, -1)
+	if len(links) != 1 || !strings.HasPrefix(links[0], `<link rel="stylesheet" href="https://fonts.googleapis.com/`) {
+		t.Errorf("stylesheet links = %q, want only the Google Fonts link", links)
+	}
+	if strings.Contains(out, "cdn.jsdelivr.net") || strings.Contains(out, "bootstrap") {
+		t.Error("document loads a file from a CDN or uses the old framework")
+	}
+	details := regexp.MustCompile(`<details[^>]*>`).FindAllString(out, -1)
+	if len(details) == 0 {
+		t.Fatal("fixture document has no repo sections")
+	}
+	openOrNamed := regexp.MustCompile(`\s(open|name)\b`)
+	for _, tag := range details {
+		if openOrNamed.MatchString(tag) {
+			t.Errorf("repo section tag %s has an open or name attribute", tag)
+		}
 	}
 }
 
@@ -79,22 +129,25 @@ func TestDocumentQuoteInVersionNoAttribute(t *testing.T) {
 		{"depName":"nginx","currentValue":"1.0.0\" onmouseover=\"alert(1)","currentVersion":"1.0.0\" onmouseover=\"alert(1)","datasource":"docker","updates":[{"updateType":"patch","newVersion":"1.0.1","newValue":"1.0.1"}]}
 	]}]}}`)
 	out := presentDocument(t, nil, summaryAt(rep))
-	if !strings.Contains(out, `data-copy="nginx:1.0.0&#34; onmouseover=&#34;alert(1)"`) {
-		t.Error("copy value not escaped inside its attribute")
+	if !strings.Contains(out, `1.0.0&#34; onmouseover=&#34;alert(1)`) {
+		t.Error("current version not escaped as text")
 	}
-	if strings.Contains(out, `" onmouseover=`) || strings.Contains(out, ` onmouseover="`) {
+	if !strings.Contains(out, `data-copy="nginx:1.0.1"`) {
+		t.Error("copy button does not copy the new reference")
+	}
+	if strings.Contains(out, `" onmouseover`) {
 		t.Error("version created an onmouseover attribute")
 	}
 }
 
 func TestDocumentErrorsSection(t *testing.T) {
 	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
-	if !strings.Contains(out, "devidence-dev/QuantWarden: Failed to look up dependency") {
-		t.Error("lookup failure missing from the errors section")
+	if !strings.Contains(out, "Failed to look up dependency") || !strings.Contains(out, "Errores del análisis") {
+		t.Error("lookup failure missing from the errors card")
 	}
 	warn := reportOf(t, `"devidence-dev/warn-only":{"problems":[{"level":40,"msg":"Just a warning"}]}`)
-	if out := presentDocument(t, nil, summaryAt(warn)); strings.Contains(out, "<h5>Errores</h5>") {
-		t.Error("errors section shown for a level 40 problem")
+	if out := presentDocument(t, nil, summaryAt(warn)); strings.Contains(out, `id="errors-heading"`) {
+		t.Error("errors card shown for a level 40 problem")
 	}
 }
 
@@ -109,17 +162,17 @@ func TestDocumentNothingPending(t *testing.T) {
 	rep := reportOf(t, `"devidence-dev/QuantWarden":{"packageFiles":{"dockerfile":[{"packageFile":"Dockerfile","deps":[`+strings.Join(docker, ",")+`]},{"packageFile":"go.mod","deps":[`+strings.Join(others, ",")+`]}]}}`)
 	out := presentDocument(t, nil, summaryAt(rep))
 	for _, want := range []string{
-		`<div class="metric-value" style="color: var(--accent-yellow);">0</div>`,
-		`<div class="metric-value" style="color: var(--accent-green);">12</div>`,
-		`<div class="metric-value" style="color: var(--accent-green);">30</div>`,
+		`>0</span>`,
+		"pendientes de 30 · 30 al día",        //nolint:misspell // Spanish text fixed by the spec
 		"Todas las dependencias están al día", //nolint:misspell // Spanish text fixed by the spec
+		"Todas las imágenes están al día",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("document lacks %q", want)
 		}
 	}
-	if strings.Contains(out, "<table") {
-		t.Error("table rendered without rows")
+	if strings.Contains(out, "<details") || strings.Contains(out, `class="bar-seg`) {
+		t.Error("repo cards or bar segments rendered without pending updates")
 	}
 }
 
@@ -128,7 +181,7 @@ func TestDocumentLangOverride(t *testing.T) {
 	if !strings.Contains(out, `<html lang="en">`) {
 		t.Error(`document lacks <html lang="en">`)
 	}
-	if !strings.Contains(out, "Actualizaciones pendientes") {
+	if !strings.Contains(out, "pendientes de") {
 		t.Error("labels are not Spanish after a lang override")
 	}
 }
@@ -152,12 +205,15 @@ func TestDocumentDefaultsHaveNoEnglishLabels(t *testing.T) {
 
 func TestDocumentForkTag(t *testing.T) {
 	s := summaryAt(loadFixtureReport(t))
-	if out := presentDocument(t, nil, s); !strings.Contains(out, "discord-tts-bot (fork, solo informativo)") { //nolint:misspell // Spanish text fixed by the spec
-		t.Error("default document fork tag missing")
+	if out := presentDocument(t, nil, s); !strings.Contains(out, "fork · solo informativo") { //nolint:misspell // Spanish text fixed by the spec
+		t.Error("default document fork note missing from the summary row")
 	}
-	out := presentDocument(t, map[string]any{"fork": map[string]any{"tag_document": " (fork)"}}, s)
-	if !strings.Contains(out, "devidence-dev/discord-tts-bot (fork)<") || strings.Contains(out, "solo informativo") { //nolint:misspell // Spanish text fixed by the spec
-		t.Error("overridden fork tag missing")
+	out := presentDocument(t, map[string]any{"fork": map[string]any{"tag_document": "fork"}}, s)
+	if !strings.Contains(out, ">fork</span>") || strings.Contains(out, "solo informativo") { //nolint:misspell // Spanish text fixed by the spec
+		t.Error("overridden fork note missing from the summary row")
+	}
+	if !strings.Contains(out, "devidence-dev/discord-tts-bot</p>") {
+		t.Error("expanded section lacks the full repo name without the fork tag")
 	}
 }
 
@@ -205,7 +261,7 @@ func TestPresentersShareSummary(t *testing.T) {
 		t.Errorf("caption lacks %q", wantStats)
 	}
 	view := documentViewOf(t, s)
-	if total := view.Tabs[0].Total + view.Tabs[1].Total; total != s.Images.Total+s.Deps.Total {
-		t.Errorf("document totals = %d, summary = %d", total, s.Images.Total+s.Deps.Total)
+	if n := view.Tabs[0].Count + view.Tabs[1].Count; n != s.Images.Updates+s.Deps.Updates {
+		t.Errorf("document badges = %d, summary = %d", n, s.Images.Updates+s.Deps.Updates)
 	}
 }

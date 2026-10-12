@@ -21,7 +21,7 @@ The system SHALL poll the IMAP inbox every `email.polling_interval` seconds. Whe
 - **THEN** config loading fails with an error that names `email.polling_interval`
 
 ### Requirement: Unread email search
-Each poll SHALL search the INBOX for unread emails whose From address contains each configured service's `email_from`, and process the union of the results. When no service is configured, the poll SHALL search all unread emails. A failed search for one sender MUST be logged with that sender, and the remaining senders MUST still be searched. A failed connection, login or INBOX select MUST be logged with the IMAP host and error, and the poll MUST end without processing anything. The next poll retries. Every email service MUST have a non-empty `email_from`, because an empty value would match every sender; config loading MUST fail otherwise, with an error that names the service.
+Each poll SHALL search the INBOX for unread emails whose From contains each service's `email_from` and process the union; with no service configured, it SHALL search all unread emails. A failed search for one sender MUST be logged with that sender, and the other senders MUST still be searched. A failed connection, login or INBOX select MUST be logged with the IMAP host and error, and the poll MUST end without processing anything.
 
 #### Scenario: Two services, one unrelated email
 - **WHEN** service `cloudflare` has `email_from: "noreply@notify.cloudflare.com"`, service `openai` has `email_from: "noreply@tm.openai.com"`, and the inbox holds one unread email from each sender plus one unread email from `news@example.org`
@@ -34,6 +34,13 @@ Each poll SHALL search the INBOX for unread emails whose From address contains e
 #### Scenario: Login fails
 - **WHEN** the IMAP server rejects the login for `imap.gmail.com` at 09:00:00 America/Guayaquil
 - **THEN** an error naming host `imap.gmail.com` is logged, no email is processed, and the next poll at 09:00:20 retries
+
+#### Scenario: No service configured
+- **WHEN** no service is configured and the inbox holds one unread email from `noreply@notify.cloudflare.com` and one from `news@example.org`
+- **THEN** both unread emails are fetched and offered to the processors
+
+### Requirement: Email from configuration
+Every email service MUST have a non-empty `email_from`, or config loading MUST fail with an error that names the service. An empty value would match every sender.
 
 #### Scenario: Service without email_from
 - **WHEN** service `github` has no `email_from` key, or an empty one
@@ -85,7 +92,7 @@ A service with `extractor: pattern`, which is the default, SHALL extract the fir
 - **THEN** config loading fails with an error that names service `github`
 
 ### Requirement: Marker extraction
-A service with `extractor: marker` SHALL find the first entry of `code_markers`, in configured order, that occurs in the prepared text, compared case-insensitively. It SHALL then try each entry of `code_candidates`, in order, on the text after that marker; the first candidate that matches gives the code from its first capture group. If no candidate matches, `code_pattern` (when set) is the last fallback. `extractor: marker` with an empty `code_markers` MUST fail config loading. An `extractor` value other than `pattern` or `marker` MUST fail config loading.
+A service with `extractor: marker` SHALL find the first `code_markers` entry, in configured order, that occurs in the prepared text (case-insensitive). It SHALL then try each `code_candidates` entry in order on the text after that marker; the first candidate that matches gives the code from its first capture group. If no candidate matches, `code_pattern`, when set, is the last fallback. An empty `code_markers`, or an `extractor` other than `pattern` or `marker`, MUST fail config loading.
 
 #### Scenario: Numeric code after a Spanish marker
 - **WHEN** service `perplexity` has `code_markers: ["directly:", "directamente:"]` and the text is `Inicie sesión directamente:\n123456`
@@ -116,7 +123,7 @@ A service with `extractor: marker` SHALL find the first entry of `code_markers`,
 - **THEN** config loading fails with an error that names the value `regex`
 
 ### Requirement: Not-found text
-When no code is found, the service SHALL send its `not_found_text` through its `telegram_message` instead of a code. `not_found_text` defaults to `Not found`. The processor MUST log a warning with a preview of at most `email.log_preview_length` characters (default 200) of the text it searched. A negative `email.log_preview_length` MUST fail config loading with an error that names `email.log_preview_length`; zero or absent means 200. A not-found result is a successful processing run, so the mark-as-read policy applies.
+When no code is found, the service SHALL send its `not_found_text` (default `Not found`) through its `telegram_message` instead of a code. The processor MUST log a warning with a preview of at most `email.log_preview_length` characters (default 200) of the text it searched. A negative `email.log_preview_length` MUST fail config loading with an error that names that key; zero or absent means 200. A not-found result is a successful processing run, so the mark-as-read policy applies.
 
 #### Scenario: Configured not-found text
 - **WHEN** service `openai` has `not_found_text: "No code in email"`, its template is `🤖 ChatGPT Code: ` followed by a code block holding `%s`, and the text contains no code

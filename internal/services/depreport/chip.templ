@@ -1,0 +1,21 @@
+package depreport
+
+// ToneChip is a text chip in a tone: its text and its colors come from the tone class.
+templ ToneChip(tone, text string) {
+	<span class={ "inline-flex items-center rounded-full px-2 py-[3px] text-[11px] font-medium whitespace-nowrap text-[var(--tone-fg)] bg-[var(--tone-bg)] " + tone }>{ text }</span>
+}
+
+// TypeChip is a chip of an update type, colored by the type.
+templ TypeChip(t UpdateType, text string) {
+	@ToneChip(toneOf(t), text)
+}
+
+// ToneDot is the small dot in a tone, with the glow of the dark scheme from the dot ring token.
+templ ToneDot(tone string) {
+	<span aria-hidden="true" class={ "size-2 shrink-0 rounded-full bg-[var(--tone)] text-[var(--tone)] shadow-[var(--dot-ring)] " + tone }></span>
+}
+
+// TypeDot is the dot of a repo card, colored by the update type.
+templ TypeDot(t UpdateType) {
+	@ToneDot(toneOf(t))
+}

@@ -77,11 +77,15 @@ The Renovate failure message SHALL be sent as one text message. A successful rep
 - **THEN** one text message, the failure message, is sent and no document is sent
 
 ### Requirement: HTML report document
-The system SHALL send the HTML report of a successful run as one Telegram document to the configured chat, with the summary caption (see "Summary caption") as the document's caption. A successful run sends no other message. The file name is the `dependency_report.document_name` pattern with `{date}` replaced by the day the hub received the report in the configured `timezone` (default `America/Guayaquil`), formatted with `dependency_report.date_layout`. The document's header SHALL show the scan timestamp, defined as the time the hub received the report, as `YYYY-MM-DD HH:MM <timezone>`. The document's `lang` attribute and all its labels SHALL come from the message catalog, which is Spanish by default. The system MUST NOT send a document on the Renovate failure path (`exit_code` not `0`, or `report` missing). Update-type names (`major`, `minor`, `patch`) are Renovate's names and are not catalog entries.
+The system SHALL send the HTML report of a successful run as one Telegram document to the configured chat, captioned with the summary caption (see "Summary caption"), and no other message. The file name and the header timestamp SHALL follow the "Defaults for file name, header and labels" scenario. The `lang` and all labels SHALL come from the message catalog. The system MUST NOT send a document on the Renovate failure path.
 
 #### Scenario: Successful run
 - **WHEN** a valid request with `exit_code=0` and a report with `devidence-dev/QuantWarden` having pending updates is received on 2026-10-12 at 09:07 America/Guayaquil
 - **THEN** one document named `dependency-report-2026-10-12.html` is sent, whose header shows `2026-10-12 09:07 America/Guayaquil`, whose `lang` is `es`, and whose caption starts with `📦 <b>Dependency report</b> · 2026-10-12`
+
+#### Scenario: Defaults for file name, header and labels
+- **WHEN** the config has no `timezone` and no `messages:` section, and a report with a `major` update is received at 2026-10-13 02:30 UTC, which is 2026-10-12 21:30 in America/Guayaquil
+- **THEN** the document is named `dependency-report-2026-10-12.html`, where `{date}` is the day the hub received the report in the configured `timezone`, formatted with `dependency_report.date_layout`; its header shows the time the hub received it in the form `YYYY-MM-DD HH:MM <timezone>`, here `2026-10-12 21:30 America/Guayaquil`; its `lang` is `es` and its labels are Spanish; and its update badges use Renovate's names `major`, `minor` and `patch`, which are not catalog entries
 
 #### Scenario: Date near midnight UTC
 - **WHEN** the report is received at 2026-10-13 02:30 UTC, which is 2026-10-12 21:30 in America/Guayaquil
@@ -100,16 +104,26 @@ The system SHALL send the HTML report of a successful run as one Telegram docume
 - **THEN** the failure message is sent and no document is sent
 
 ### Requirement: Summary caption
-The caption SHALL be sent with HTML parse mode. For a report with pending updates it SHALL contain, in this order:
-1. the header `caption.header`, which by default is `📦 <b>Dependency report</b> · {date}`, with `{date}` as the date of the file name, and a blank line;
-2. one line per repository with at least one `major`, `minor` or `patch` update, in the form `<emoji> <name> — <counts>`;
-3. `✅ <N> repos al día`, where N is the number of repositories with no pending update, omitted when N is 0;
-4. a blank line;
-5. `📊 <X> desactualizadas · <Y> al día`, where X is the number of dependencies with a listed update and Y the number without one, both summed over the two tabs of the document;
-6. `🐳 Imágenes: <a> · 📚 Paquetes: <b>`, where a and b are the dependencies with a listed update in "Imágenes" and in "Dependencias";
-7. `⚠️ <N> errores en el scan`, only when there are problems with `level >= 50` in a repository or at the report root.
+The caption SHALL be sent with HTML parse mode and SHALL contain, in this order: the header `caption.header`, a blank line, one line per repository with a listed update (see "Caption repository lines"), `✅ <N> repos al día` (N = repositories with no pending update) omitted when N is 0, a blank line, the stats lines `📊 <X> desactualizadas · <Y> al día` and `🐳 Imágenes: <a> · 📚 Paquetes: <b>`, and `⚠️ <N> errores en el scan` only when a repository or the report root has a `level >= 50` problem.
 
-The name is the last path segment of the repository name, for example `payments-api` for `acme-corp/payments-api`, followed by the catalog text `fork.tag_caption` (default ` (fork)`) when the repository is in `dependency_report.forks`. The emoji is 🔴 when any of its dependencies has a `major` update, otherwise 🟡. The counts are the non-zero `<N> major`, `<N> minor` and `<N> patch` in that order, joined by ` · `; each dependency counts once, under its highest update type. Repository lines are sorted: repositories with a major first, then by total count descending, then by name. When no dependency has a listed update, the caption has the header, a blank line, `✅ Todo al día`, a blank line and the stats lines (items 5 to 7). All variable text MUST be HTML-escaped.
+#### Scenario: No listed update
+- **WHEN** no dependency has a listed update
+- **THEN** the caption is the header, a blank line, `✅ Todo al día`, a blank line and the stats lines, with no repository line and no `✅ <N> repos al día` line
+
+#### Scenario: Stats lines across both tabs
+- **WHEN** the report of 2026-10-12 has 3 docker deps, one with a `minor` update, and 5 non-docker deps, two of them with a `patch` and a `major` update, and 2 repositories have no pending update
+- **THEN** the caption header is the default `📦 <b>Dependency report</b> · {date}` with `{date}` the file-name date, so `📦 <b>Dependency report</b> · 2026-10-12`; the caption has `✅ 2 repos al día` followed by a blank line; the stats count both tabs, so `📊 3 desactualizadas · 5 al día` (1 + 2 with a listed update, 2 + 3 without) and `🐳 Imágenes: 1 · 📚 Paquetes: 2` (1 in "Imágenes", 2 in "Dependencias")
+
+#### Scenario: Error count line
+- **WHEN** `devidence-dev/QuantWarden` has a problem with `level` 50, the report root has a problem with `level` 50, and another repository has only a problem with `level` 40
+- **THEN** the caption's last line is `⚠️ 2 errores en el scan`, and the `level` 40 problem adds nothing to the caption
+
+#### Scenario: Caption over the limit
+- **WHEN** 60 repositories with long names have pending updates and the caption with all its repository lines would exceed 1024 characters
+- **THEN** repository lines are dropped from the end, a line `… y <N> repos más (ver reporte)` follows the last kept one, and the header, the `✅` line and the stats lines are kept, so that the caption has at most 1024 characters
+
+### Requirement: Caption repository lines
+Each repository line SHALL be `<emoji> <name><fork tag> — <counts>`. The name is the last path segment, and the fork tag is `fork.tag_caption` for a repository in `dependency_report.forks`. The emoji is 🔴 when any dependency has a `major` update, otherwise 🟡. The counts are the non-zero `<N> major`, `<N> minor` and `<N> patch`, joined by ` · `, each dependency counted once under its highest update type. Lines are sorted by `major` presence, then total count descending, then name.
 
 #### Scenario: Major, minor and patch counts
 - **WHEN** `devidence-dev/QuantWarden` has `github.com/gorilla/mux` with a `major` and a `minor` update, `golang.org/x/net` with a `major` update and `go.uber.org/zap` with a `patch` update
@@ -127,12 +141,8 @@ The name is the last path segment of the repository name, for example `payments-
 - **WHEN** a repository is named `devidence-dev/o<r>` and has a `patch` update
 - **THEN** its line shows `o&lt;r&gt;`, and no raw `<r>` appears in the caption
 
-#### Scenario: Caption over the limit
-- **WHEN** 60 repositories with long names have pending updates and the caption with all its repository lines would exceed 1024 characters
-- **THEN** repository lines are dropped from the end, a line `… y <N> repos más (ver reporte)` follows the last kept one, and the header, the `✅` line and the stats lines are kept, so that the caption has at most 1024 characters
-
 ### Requirement: Document tabs
-The document SHALL have two tabs. "Imágenes" lists every dependency whose Renovate `datasource` is `docker`. "Dependencias" lists every other dependency, including one with no `datasource`. Only updates of type `major`, `minor` or `patch` are listed (`digest` and `pin` are ignored), one row per dependency and update, with exact duplicates removed. A row in "Imágenes" shows the repo, the package file, the current image (`<depName>:<current version>`), the latest image (`<depName>:<new version>`) and the update type badge. A row in "Dependencias" shows the repo, the package file, the dependency name, the current version, the new version and the update type badge. The repo of a fork listed in `dependency_report.forks` carries the catalog text `fork.tag_document` (default ` (fork, solo informativo)`). Each tab SHALL show its totals: dependencies in the tab, dependencies with a listed update, dependencies up to date, and the count of `patch`, `minor` and `major` rows.
+The document SHALL have two tabs: "Imágenes" lists every dependency whose Renovate `datasource` is `docker`, and "Dependencias" lists every other one. Only `major`, `minor` or `patch` updates are listed, one row per dependency and update, as the update-type scenarios show. Rows show the repo, package file, values and badge. The repo of a fork listed in `dependency_report.forks` carries the catalog text `fork.tag_document`. Each tab SHALL show its totals, as in the "Tab totals" scenario.
 
 #### Scenario: Image dependency
 - **WHEN** `devidence-dev/homelab` has the file `kubernetes/apps/media/immich/values.yaml` with dep `ghcr.io/immich-app/immich-server`, datasource `docker`, current `v1.118.0` and a `minor` update to `v1.119.0`
@@ -147,12 +157,16 @@ The document SHALL have two tabs. "Imágenes" lists every dependency whose Renov
 - **THEN** `golang` is listed in "Imágenes" and the other dep is listed in "Dependencias"
 
 #### Scenario: Digest only
-- **WHEN** a dep's only update is of type `digest`
+- **WHEN** a dep's only update is of type `digest` or `pin`
 - **THEN** it has no row in either tab
 
 #### Scenario: Several updates for one dep
 - **WHEN** `github.com/gorilla/mux` at `1.8.0` has a `major` update to `2.0.0` and a `minor` update to `1.9.0`
 - **THEN** "Dependencias" has two rows for it, one with a `major` badge and one with a `minor` badge
+
+#### Scenario: Exact duplicates
+- **WHEN** `go.uber.org/zap` at `1.27.0` has the same `patch` update to `1.27.1` listed twice
+- **THEN** "Dependencias" has one row for it
 
 #### Scenario: Fork tag
 - **WHEN** `devidence-dev/discord-tts-bot` is in `dependency_report.forks` and has a listed update
@@ -200,11 +214,11 @@ All variable text in the document (repo, package file, dependency, versions, err
 - **THEN** the copy-button attribute that holds it stays inside its quotes and no `onmouseover` attribute is created
 
 ### Requirement: Webhook settings
-The `dependency_report:` section SHALL accept `path` (default `/webhook/dependency-report`), `token_header` (default `X-Report-Token`), `max_body_bytes` (default `10485760`, which is 10 MiB), `document_name` (default `dependency-report-{date}.html`) and `date_layout` (default `2006-01-02`). Config loading MUST fail when `path` does not start with `/`, when `token_header` is empty or contains a space, when `max_body_bytes` is not a positive integer, or when `document_name` does not contain `{date}` or contains `/` or `\`. The error SHALL name the setting.
+The `dependency_report:` section SHALL accept `path`, `token_header`, `max_body_bytes`, `document_name` and `date_layout`, with the defaults in the "Defaults" scenario. Config loading MUST fail when `path` does not start with `/`, when `token_header` is empty or contains a space, when `max_body_bytes` is not a positive integer, or when `document_name` lacks `{date}` or contains `/` or `\`. The error SHALL name the setting.
 
 #### Scenario: Defaults
 - **WHEN** `dependency_report:` sets only `webhook_token`, `telegram_chat_id` and `forks`
-- **THEN** the route is `/webhook/dependency-report`, the token header is `X-Report-Token`, the body limit is 10485760 bytes, and a report received on 2026-10-12 is named `dependency-report-2026-10-12.html`
+- **THEN** the route is `/webhook/dependency-report`, the token header is `X-Report-Token`, the body limit is 10485760 bytes (10 MiB), the date layout is `2006-01-02`, and a report received on 2026-10-12 is named `dependency-report-2026-10-12.html`
 
 #### Scenario: Invalid path
 - **WHEN** the config has `path: "webhook/deps"`

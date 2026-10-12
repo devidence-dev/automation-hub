@@ -102,8 +102,8 @@ jobs:
 # goes to telegram_chat_id through the "telegram" bot above as ONE message: the HTML
 # document dependency-report-<YYYY-MM-DD>.html with a short summary as its caption.
 # The caption is kept under Telegram's 1024 characters; if the document cannot be
-# sent, the caption is sent as a text message. The document loads Bootstrap from
-# cdn.jsdelivr.net when opened in a browser.
+# sent, the caption is sent as a text message. The document loads its Geist font from
+# Google Fonts when opened in a browser; the system font is the fallback.
 # Values are Infisical references resolved inside CONFIG_YAML (shown here as ${...} placeholders).
 # Do NOT quote the forks reference: it holds a JSON array, so unquoted YAML reads a
 # list. Quoting it turns the array into a string and config loading fails.

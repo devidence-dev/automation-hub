@@ -1,0 +1,313 @@
+/*
+ * Source of the dependency report styles: the liquid glass design (liquid-glass-report, openspec design D8).
+ * scripts/generate-depreport-assets.sh compiles it, minified, to depreport.min.css.
+ */
+@import "tailwindcss" source(none);
+@source "../*.templ";
+
+/* Tokens, with the names of the design. Light on :root; dark for the system choice (when no light choice is
+   stored) and for a stored dark choice. The three blocks are written out, as the design requires. */
+:root {
+	--bg: #edf3f8;
+	--mesh:
+		radial-gradient(
+			520px 380px at 0% 0%,
+			rgba(22, 203, 231, 0.42),
+			transparent 70%
+		),
+		radial-gradient(
+			520px 420px at 100% 12%,
+			rgba(10, 132, 255, 0.32),
+			transparent 70%
+		),
+		radial-gradient(
+			640px 420px at 35% 60%,
+			rgba(0, 91, 152, 0.14),
+			transparent 70%
+		);
+	--ink: #0b1b25;
+	--ink-2: #33475a;
+	--muted: #56697a;
+	--accent: #0a63c2;
+	--file: #0a63c2;
+	--glass: rgba(255, 255, 255, 0.55);
+	--glass-strong: rgba(255, 255, 255, 0.52);
+	--glass-soft: rgba(255, 255, 255, 0.38);
+	--edge: rgba(255, 255, 255, 0.8);
+	--hi: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+	--shadow: 0 12px 30px -18px rgba(0, 70, 130, 0.3);
+	--shadow-lg: 0 20px 44px -24px rgba(0, 70, 130, 0.35);
+	--line: rgba(11, 27, 37, 0.06);
+	--sat: 180%;
+	--tab-on-bg: rgba(255, 255, 255, 0.92);
+	--tab-on-fg: #0b1b25;
+	--tab-on-shadow: inset 0 1px 0 #fff, 0 4px 14px -4px rgba(0, 70, 130, 0.25);
+	--count-bg: rgba(11, 27, 37, 0.07);
+	--on-minor: #ffffff;
+	--btn-bg: rgba(255, 255, 255, 0.7);
+	--btn-edge: rgba(255, 255, 255, 0.9);
+	--btn-hover: #fff;
+	--dot-ring: 0 0 0 4px rgba(255, 255, 255, 0.8);
+	--major: #ff6b57;
+	--major-fg: #b93a24;
+	--major-bg: rgba(255, 99, 71, 0.13);
+	--minor: #0a84ff;
+	--minor-fg: #0a63c2;
+	--minor-bg: rgba(10, 132, 255, 0.12);
+	--patch: #16cbe7;
+	--patch-fg: #07707f;
+	--patch-bg: rgba(22, 203, 231, 0.16);
+	--err: #ff3b30;
+	--err-fg: #c4141f;
+	--err-bg: rgba(255, 59, 48, 0.12);
+	--ok: #07707f;
+	--logo-main: #0b1b25;
+	--logo-sub: #334c5a;
+	--ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme="light"]) {
+		--bg: #04101a;
+		--mesh:
+			radial-gradient(
+				520px 360px at 0% 0%,
+				rgba(22, 203, 231, 0.34),
+				transparent 70%
+			),
+			radial-gradient(
+				540px 420px at 100% 14%,
+				rgba(10, 132, 255, 0.4),
+				transparent 70%
+			),
+			radial-gradient(
+				560px 420px at 30% 62%,
+				rgba(0, 91, 152, 0.32),
+				transparent 70%
+			);
+		--ink: #eaf2f8;
+		--ink-2: #c9d8e2;
+		--muted: #9fb6c6;
+		--accent: #7fd9ea;
+		--file: #7fd9ea;
+		--glass: rgba(255, 255, 255, 0.05);
+		--glass-strong: rgba(255, 255, 255, 0.06);
+		--glass-soft: rgba(255, 255, 255, 0.06);
+		--edge: rgba(255, 255, 255, 0.1);
+		--hi: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+		--shadow: none;
+		--shadow-lg: 0 24px 50px -24px rgba(0, 0, 0, 0.7);
+		--line: rgba(255, 255, 255, 0.07);
+		--sat: 160%;
+		--tab-on-bg: rgba(255, 255, 255, 0.14);
+		--tab-on-fg: #fff;
+		--tab-on-shadow:
+			inset 0 1px 0 rgba(255, 255, 255, 0.22),
+			0 6px 18px -6px rgba(0, 0, 0, 0.6);
+		--count-bg: rgba(255, 255, 255, 0.08);
+		--btn-bg: rgba(255, 255, 255, 0.06);
+		--btn-edge: rgba(255, 255, 255, 0.1);
+		--btn-hover: rgba(255, 255, 255, 0.12);
+		--dot-ring: 0 0 12px currentColor;
+		--major-fg: #ffa391;
+		--major-bg: rgba(255, 110, 90, 0.18);
+		--minor-fg: #8cc8ff;
+		--minor-bg: rgba(10, 132, 255, 0.22);
+		--patch-fg: #7af2ff;
+		--patch-bg: rgba(22, 203, 231, 0.18);
+		--err: #ff453a;
+		--err-fg: #ff8a82;
+		--err-bg: rgba(255, 69, 58, 0.16);
+		--ok: #6cf5ff;
+		--logo-main: #f2f7fb;
+		--logo-sub: #9fb6c6;
+	}
+}
+:root[data-theme="dark"] {
+	--bg: #04101a;
+	--mesh:
+		radial-gradient(
+			520px 360px at 0% 0%,
+			rgba(22, 203, 231, 0.34),
+			transparent 70%
+		),
+		radial-gradient(
+			540px 420px at 100% 14%,
+			rgba(10, 132, 255, 0.4),
+			transparent 70%
+		),
+		radial-gradient(
+			560px 420px at 30% 62%,
+			rgba(0, 91, 152, 0.32),
+			transparent 70%
+		);
+	--ink: #eaf2f8;
+	--ink-2: #c9d8e2;
+	--muted: #9fb6c6;
+	--accent: #7fd9ea;
+	--file: #7fd9ea;
+	--glass: rgba(255, 255, 255, 0.05);
+	--glass-strong: rgba(255, 255, 255, 0.06);
+	--glass-soft: rgba(255, 255, 255, 0.06);
+	--edge: rgba(255, 255, 255, 0.1);
+	--hi: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+	--shadow: none;
+	--shadow-lg: 0 24px 50px -24px rgba(0, 0, 0, 0.7);
+	--line: rgba(255, 255, 255, 0.07);
+	--sat: 160%;
+	--tab-on-bg: rgba(255, 255, 255, 0.14);
+	--tab-on-fg: #fff;
+	--tab-on-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 6px 18px -6px rgba(0, 0, 0, 0.6);
+	--count-bg: rgba(255, 255, 255, 0.08);
+	--btn-bg: rgba(255, 255, 255, 0.06);
+	--btn-edge: rgba(255, 255, 255, 0.1);
+	--btn-hover: rgba(255, 255, 255, 0.12);
+	--dot-ring: 0 0 12px currentColor;
+	--major-fg: #ffa391;
+	--major-bg: rgba(255, 110, 90, 0.18);
+	--minor-fg: #8cc8ff;
+	--minor-bg: rgba(10, 132, 255, 0.22);
+	--patch-fg: #7af2ff;
+	--patch-bg: rgba(22, 203, 231, 0.18);
+	--err: #ff453a;
+	--err-fg: #ff8a82;
+	--err-bg: rgba(255, 69, 58, 0.16);
+	--ok: #6cf5ff;
+	--logo-main: #f2f7fb;
+	--logo-sub: #9fb6c6;
+}
+
+/* Utilities map to the tokens, so one stylesheet serves all three schemes without dark: variants. */
+@theme inline {
+	--color-ink: var(--ink);
+	--color-ink-2: var(--ink-2);
+	--color-muted: var(--muted);
+	--color-accent: var(--accent);
+	--color-file: var(--file);
+	--color-line: var(--line);
+	--color-count: var(--count-bg);
+	--color-patch: var(--patch);
+	--color-ok: var(--ok);
+	--color-tab-on-fg: var(--tab-on-fg);
+	--color-btn-bg: var(--btn-bg);
+	--color-btn-edge: var(--btn-edge);
+	--color-btn-hover: var(--btn-hover);
+	--font-sans:
+		"Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* A translucent card: blur and saturation over the mesh, an edge and an inset highlight. The panel
+   changes the background and the shadow through --glass-bg and --glass-shadow. */
+@utility glass {
+	background: var(--glass-bg, var(--glass));
+	backdrop-filter: blur(24px) saturate(var(--sat));
+	-webkit-backdrop-filter: blur(24px) saturate(var(--sat));
+	border: 1px solid var(--edge);
+	box-shadow: var(--hi), var(--glass-shadow, var(--shadow));
+}
+
+/* The sliding pill of a tab list or of the theme control. report.js sets its width and position. */
+@utility pill {
+	position: absolute;
+	top: var(--pill-inset, 4px);
+	bottom: var(--pill-inset, 4px);
+	left: 0;
+	width: 0;
+	border-radius: 999px;
+	background: var(--tab-on-bg);
+	box-shadow: var(--tab-on-shadow);
+	transition:
+		transform 0.45s var(--ease),
+		width 0.45s var(--ease);
+	pointer-events: none;
+}
+
+/* The page: the mesh over the background, fixed as in the design. */
+@utility app-bg {
+	min-height: 100vh;
+	background: var(--mesh), var(--bg);
+	background-attachment: fixed;
+	color: var(--ink);
+}
+
+@layer components {
+	/* Tones of the update types and of the errors. A component adds one class; the dot, the chips and the
+	   bar segments read the tokens from it. */
+	.tone-major {
+		--tone: var(--major);
+		--tone-fg: var(--major-fg);
+		--tone-bg: var(--major-bg);
+	}
+	.tone-minor {
+		--tone: var(--minor);
+		--tone-fg: var(--minor-fg);
+		--tone-bg: var(--minor-bg);
+	}
+	.tone-patch {
+		--tone: var(--patch);
+		--tone-fg: var(--patch-fg);
+		--tone-bg: var(--patch-bg);
+	}
+	.tone-err {
+		--tone: var(--err);
+		--tone-fg: var(--err-fg);
+		--tone-bg: var(--err-bg);
+	}
+
+	.bar-seg {
+		min-width: 6px;
+		background: var(--tone);
+	}
+	.swatch {
+		background: var(--tone);
+	}
+
+	/* The selected tab: its count takes the minor color, and the tab itself the bold weight. */
+	.tab[aria-selected="true"] .tab-count {
+		background: var(--minor);
+		color: var(--on-minor);
+	}
+
+	/* The chevron of an open card turns; the card needs no script for it. */
+	.chev {
+		transition: transform 0.2s;
+	}
+	details[open] > summary .chev {
+		transform: rotate(180deg);
+	}
+}
+
+/* Unlayered rules beat the utility layer, so the motion switches below need no !important. The pills and
+   the color changes do not animate while report.js places them on load and on resize. */
+.no-anim .pill,
+.no-anim .theme-btn,
+.no-anim .tab,
+.no-anim .tab-count {
+	transition: none;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: 0.45s;
+	animation-timing-function: var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.pill,
+	.chev,
+	.theme-btn,
+	.tab,
+	.tab-count {
+		transition: none;
+	}
+	::view-transition-old(root),
+	::view-transition-new(root) {
+		animation: none;
+	}
+}
+
+/* The hidden attribute always hides: unlayered, so no utility class overrides it. */
+[hidden] {
+	display: none;
+}

@@ -255,10 +255,10 @@ When `dependency_report:` is configured, the hub exposes `POST` on `dependency_r
 
 The document has two tabs:
 
-- **Imágenes** lists dependencies whose Renovate `datasource` is `docker` (container images), with the current and latest image.
-- **Dependencias** lists every other dependency, including those without a `datasource`, with the current and new version.
+- **Imágenes** lists dependencies whose Renovate `datasource` is `docker` (container images), with the current and latest image and a copy button for the latest image reference.
+- **Dependencias** lists every other dependency, including those without a `datasource`, with the current and new version and a copy button for `name@new version`.
 
-Each tab shows its totals and a count per update type (`patch`, `minor`, `major`). Only those three update types are listed (`digest` and `pin` are not), and a fork in `dependency_report.forks` is tagged in its rows. Problems with level 50 or more appear in an Errors section at the bottom (report-level problems as `raíz: <msg>`). The document is one self-contained file that loads Bootstrap 5.3.2 and bootstrap-icons from `cdn.jsdelivr.net`, so it needs internet access when opened, and its tabs need JavaScript. The template is `internal/services/depreport/assets/dependency_report.html`, embedded in the binary and rendered with `html/template`, so report text is always escaped. Its `lang` and every label are Spanish by default (`lang="es"`), from the message catalog.
+Each tab shows its totals and a count per update type (`patch`, `minor`, `major`). Only those three update types are listed (`digest` and `pin` are not), and a fork in `dependency_report.forks` is tagged in its rows. Problems with level 50 or more appear in an Errors section at the bottom (report-level problems as `raíz: <msg>`). The document is one self-contained HTML file: inline Tailwind CSS, one copy script, and the Geist fonts from Google Fonts as its only external request (the system font is the fallback). Its tabs and repo sections need no JavaScript for switching. It is built from the templ components in `internal/services/depreport` (`*.templ`, generated `*_templ.go`), so report text is always escaped. Its `lang` and every label are Spanish by default (`lang="es"`), from the message catalog.
 
 Caption and document texts come from one catalog: the embedded defaults are in `internal/messages/default.yaml`. Override single keys under `messages:` with the same nested keys; an unknown key, a map where a text is expected, or a changed placeholder (such as `{date}` or `{count}`) stops startup. The two fork tags are catalog keys too: `fork.tag_caption` (default ` (fork)`) for caption lines and `fork.tag_document` (default ` (fork, solo informativo)`) for document rows. Protocol limits (1024 characters for captions, 4096 for messages) are not configurable.
 
@@ -285,6 +285,25 @@ messages:                                        # optional: override single tex
 Changing `timezone` moves the schedules and the report date. Without a `messages:` section, the texts are the defaults.
 
 ---
+
+### 🧱 Report assets and the local gate
+
+The report components (`*.templ`, generated into `*_templ.go`) and the compiled stylesheet `internal/services/depreport/assets/depreport.min.css` are committed generated files. After changing a `.templ` file or `assets/input.css`, regenerate them:
+
+```sh
+scripts/generate-depreport-assets.sh
+```
+
+The script runs in an ephemeral `golang:<.go-version>` container, so nothing is installed on the host. It downloads templ v0.3.1070 and Tailwind CSS v4.3.3 for the container architecture, checks each one against its release's checksum file, and stops on a mismatch. A second run changes nothing.
+
+Before pushing, run the local gate. It needs only Docker and runs the CI checks in containers:
+
+```sh
+scripts/verify.sh          # gofmt, golangci-lint, go test -race with 80% coverage, gocognit, asset drift, biome ci, openspec validate
+scripts/verify.sh --fix    # first runs gofmt -w, biome check --write and the asset generation
+```
+
+Pinned tools: golangci-lint v2.14.0, gocognit v1.2.0, Biome 2.5.15 (standalone binary, checked by SHA-256 before it runs), OpenSpec 1.14.1 and the two generation tools above. The shared CI runs the same drift check as the `generated-drift` step (the `generate_command` input of `ci-go.yml`), which fails on a diff or on an untracked generated file. That step is switched on in this repo's `ci.yml` after the workflows release.
 
 ## � API & Webhooks
 

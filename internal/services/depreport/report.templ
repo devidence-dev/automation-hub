@@ -1,0 +1,47 @@
+package depreport
+
+// ReportDocument is the whole document: the head with the inline stylesheet and the favicon, the header,
+// the tabs, the errors card, the live region that announces copies and the report script (openspec
+// design D2, D20). The document has no data-theme on <html>: the theme starts on Automático. Every script and style is inline, so the file needs no other file.
+templ ReportDocument(view documentView) {
+	<!doctype html>
+	<html lang={ view.Lang }>
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<meta name="color-scheme" content="light dark"/>
+			<title>{ view.Title }</title>
+			<link rel="icon" href={ templ.SafeURL(faviconHref()) }/>
+			<link rel="preconnect" href="https://fonts.googleapis.com"/>
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+			<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap"/>
+			@templ.Raw("<style>" + ReportCSS + "</style>")
+		</head>
+		<body class="app-bg font-sans text-sm leading-[1.4] antialiased">
+			<div class="mx-auto max-w-[760px] px-5 pt-7 pb-12">
+				<h1 class="sr-only">{ view.Title }</h1>
+				@Header(view)
+				@Tabs(view)
+				if view.ErrorsChip != "" {
+					@ErrorsCard(view)
+				}
+			</div>
+			<p id="copy-status" role="status" aria-live="polite" class="sr-only"></p>
+			@templ.Raw("<script>" + reportScript + "</script>")
+		</body>
+	</html>
+}
+
+// Header is the logo, the scan stamp and the theme control.
+templ Header(view documentView) {
+	<header class="flex items-center justify-between gap-4 px-1 pt-1">
+		@Logo()
+		<div class="flex items-center gap-2">
+			<span class="glass flex items-center gap-2 rounded-full px-3 py-[7px] font-mono text-xs text-muted">
+				<i aria-hidden="true" class="size-1.5 rounded-full bg-patch shadow-[0_0_8px_var(--patch)]"></i>
+				{ view.ScanTimestamp }
+			</span>
+			@ThemeControl(view.Labels)
+		</div>
+	</header>
+}

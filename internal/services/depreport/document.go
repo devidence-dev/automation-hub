@@ -2,20 +2,14 @@ package depreport
 
 import (
 	"bytes"
-	_ "embed" // dependency_report.html
+	"context"
 	"fmt"
-	"html/template"
 	"strconv"
 	"strings"
 	"time"
 
 	"automation-hub/internal/messages"
 )
-
-//go:embed assets/dependency_report.html
-var documentHTML string
-
-var documentTemplate = template.Must(template.New("dependency_report").Parse(documentHTML))
 
 // scanLayout is the header time of the document. It is a Go layout, not a catalog text.
 const scanLayout = "2006-01-02 15:04"
@@ -37,7 +31,8 @@ func NewDocumentPresenter(cat *messages.Catalog, loc *time.Location) *DocumentPr
 	return &DocumentPresenter{cat: cat, loc: loc}
 }
 
-// Present returns the HTML document of the summary.
+// Present returns the HTML document of the summary: the view built from the catalog, rendered by the
+// ReportDocument component.
 func (p *DocumentPresenter) Present(s Summary) ([]byte, error) {
 	r := &renderer{cat: p.cat}
 	view := buildDocumentView(r, p.loc, s)
@@ -45,236 +40,202 @@ func (p *DocumentPresenter) Present(s Summary) ([]byte, error) {
 		return nil, r.err
 	}
 	var buf bytes.Buffer
-	if err := documentTemplate.Execute(&buf, view); err != nil {
+	if err := ReportDocument(view).Render(context.Background(), &buf); err != nil {
 		return nil, fmt.Errorf("render dependency report: %w", err)
 	}
 	return buf.Bytes(), nil
 }
 
-// documentView is the data the template renders.
+// documentView is the data the document components render.
 type documentView struct {
 	Lang          string
 	Title         string
-	Brand         string
 	ScanTimestamp string
 	Labels        labelSet
 	Tabs          []TabView
-	Errors        []string
+	Errors        []ErrorView
+	ErrorsChip    string // the count of the errors card, empty when there are none
 }
 
 // labelSet holds the texts of the document that are not per tab.
 type labelSet struct {
-	Total         string
-	Pending       string
-	UpToDate      string
-	Distribution  string
-	Available     string
-	ErrorsHeading string
-	Copied        string
-	CopiedBefore  string
-	CopyCurrent   string
-	CopyLatest    string
+	ErrorsHeading  string
+	CopyLatest     string
+	CopyNewVersion string
+	Copied         string
+	CopiedBefore   string
+	Current        string
+	New            string
+	ThemeGroup     string
+	ThemeSystem    string
+	ThemeLight     string
+	ThemeDark      string
+	TypePatch      string
+	TypeMinor      string
+	TypeMajor      string
 }
 
-// TabView is one tab of the document: its label, totals, status, columns and rows.
+// TabView is one tab of the document: its label and count badge, its panel and its repo cards.
 type TabView struct {
-	ID           string
-	Label        string
-	Total        int
-	Updates      int
-	UpToDate     int
-	Distribution []distItem
-	StatusBold   string // bold part of the status line
-	StatusRest   string // the rest of the status line, after the bold part
-	Columns      []columnView
-	Rows         []rowView
+	ID       string
+	Label    string
+	Count    int // listed updates, the badge of the tab
+	Selected bool
+	Stats    StatsView
+	Summary  SummaryLine
+	Groups   []RepoGroupView
 }
 
-// distItem counts the rows of one update type.
-type distItem struct {
-	Label string
-	Count int
-	Class string
+// SummaryLine is the line under the panel: a bold part and the rest of it. The rest is empty when
+// the whole line is the bold part.
+type SummaryLine struct {
+	Bold string
+	Rest string
 }
 
-// columnView is one header of the table.
-type columnView struct {
-	Header string
-	Width  string
+// ErrorView is one scan error of the errors card: the repo or the report root, and the message.
+type ErrorView struct {
+	Where string
+	Msg   string
 }
 
-// rowView is one table row: one cell per column.
-type rowView struct {
-	Cells []cell
-}
-
-// cell is one table cell. Kind tells the template how to show it.
-type cell struct {
-	Kind  string // file, repo, copy, badge or code
-	Text  string
-	Class string // badge class
-	Title string // copy button title
+// tabSpec is what the builder needs to know about one tab before it reads its totals.
+type tabSpec struct {
+	ID         string
+	LabelKey   string
+	EyebrowKey string
+	Images     bool
+	Selected   bool
 }
 
 // docBuilder builds the view of the document. It reads the catalog through r.
 type docBuilder struct {
-	r       *renderer
-	forkTag string
-	labels  labelSet
+	r      *renderer
+	labels labelSet
 }
 
-// columnSpec defines one table column: its header key, its width and how its cell is built.
-type columnSpec struct {
-	key   string
-	width string
-	value func(b *docBuilder, row Row) cell
-}
-
-// imageColumns is the table of the images tab.
-var imageColumns = []columnSpec{
-	{key: KeyColPackageFile, width: "15%", value: fileCell},
-	{key: KeyColRepository, width: "15%", value: repoCell},
-	{key: KeyColCurrentImage, width: "30%", value: currentImageCell},
-	{key: KeyColLatestImage, width: "30%", value: latestImageCell},
-	{key: KeyColType, width: "10%", value: typeCell},
-}
-
-// depColumns is the table of the dependencies tab.
-var depColumns = []columnSpec{
-	{key: KeyColPackageFile, width: "15%", value: fileCell},
-	{key: KeyColRepository, width: "15%", value: repoCell},
-	{key: KeyColDependency, width: "20%", value: nameCell},
-	{key: KeyColCurrent, width: "15%", value: currentCell},
-	{key: KeyColNew, width: "15%", value: newCell},
-	{key: KeyColType, width: "10%", value: typeCell},
-}
-
+// buildDocumentView builds the view. The dependencies tab comes first and is selected; the images
+// tab is second, as the liquid glass design requires.
 func buildDocumentView(r *renderer, loc *time.Location, s Summary) documentView {
-	b := &docBuilder{r: r, forkTag: r.text(KeyForkTagDocument, nil), labels: newLabels(r)}
+	b := &docBuilder{r: r, labels: newLabels(r)}
 	return documentView{
 		Lang:          r.text(KeyLang, nil),
 		Title:         r.text(KeyDocTitle, nil),
-		Brand:         r.text(KeyDocBrand, nil),
 		ScanTimestamp: s.ReceivedAt.In(loc).Format(scanLayout) + " " + loc.String(),
 		Labels:        b.labels,
 		Tabs: []TabView{
-			b.tab("images", KeyDocTabImages, s.Images, imageColumns),
-			b.tab("deps", KeyDocTabDeps, s.Deps, depColumns),
+			b.tab(tabSpec{ID: "deps", LabelKey: KeyDocTabDeps, EyebrowKey: KeyDocEyebrowDeps, Selected: true}, s.Deps),
+			b.tab(tabSpec{ID: "images", LabelKey: KeyDocTabImages, EyebrowKey: KeyDocEyebrowImages, Images: true}, s.Images),
 		},
-		Errors: b.errorLines(s.Errors),
+		Errors:     b.errorRows(s.Errors),
+		ErrorsChip: b.errorsChip(len(s.Errors)),
 	}
 }
 
 func newLabels(r *renderer) labelSet {
 	return labelSet{
-		Total:         r.text(KeyDocTotal, nil),
-		Pending:       r.text(KeyDocPending, nil),
-		UpToDate:      r.text(KeyDocUpToDate, nil),
-		Distribution:  r.text(KeyDocDistribution, nil),
-		Available:     r.text(KeyDocAvailable, nil),
-		ErrorsHeading: r.text(KeyErrorsHeading, nil),
-		Copied:        r.text(KeyCopyCopied, nil),
-		CopiedBefore:  r.text(KeyCopyCopiedBefore, nil),
-		CopyCurrent:   r.text(KeyCopyCurrentImage, nil),
-		CopyLatest:    r.text(KeyCopyLatestImage, nil),
+		ErrorsHeading:  r.text(KeyErrorsHeading, nil),
+		CopyLatest:     r.text(KeyCopyLatestImage, nil),
+		CopyNewVersion: r.text(KeyCopyNewVersion, nil),
+		Copied:         r.text(KeyCopyCopied, nil),
+		CopiedBefore:   r.text(KeyCopyCopiedBefore, nil),
+		Current:        r.text(KeyColCurrent, nil),
+		New:            r.text(KeyColNew, nil),
+		ThemeGroup:     r.text(KeyDocThemeGroup, nil),
+		ThemeSystem:    r.text(KeyDocThemeSystem, nil),
+		ThemeLight:     r.text(KeyDocThemeLight, nil),
+		ThemeDark:      r.text(KeyDocThemeDark, nil),
+		TypePatch:      r.text(KeyDocTypePatch, nil),
+		TypeMinor:      r.text(KeyDocTypeMinor, nil),
+		TypeMajor:      r.text(KeyDocTypeMajor, nil),
 	}
 }
 
-// tab builds one tab from its totals and its rows, which are already sorted.
-func (b *docBuilder) tab(id, labelKey string, tab Tab, columns []columnSpec) TabView {
-	bold, rest := b.status(tab)
-	view := TabView{
-		ID:           id,
-		Label:        b.r.text(labelKey, nil),
-		Total:        tab.Total,
-		Updates:      tab.Updates,
-		UpToDate:     tab.UpToDate,
-		Distribution: distribution(tab),
-		StatusBold:   bold,
-		StatusRest:   rest,
+// typeName is the catalog name of an update type, as the legend and the row chips show it.
+func (l labelSet) typeName(t UpdateType) string {
+	switch t {
+	case UpdateMajor:
+		return l.TypeMajor
+	case UpdateMinor:
+		return l.TypeMinor
+	case UpdatePatch:
+		return l.TypePatch
+	default:
+		return ""
 	}
-	for _, c := range columns {
-		view.Columns = append(view.Columns, columnView{Header: b.r.text(c.key, nil), Width: c.width})
-	}
-	for _, row := range tab.Rows {
-		cells := make([]cell, 0, len(columns))
-		for _, c := range columns {
-			cells = append(cells, c.value(b, row))
-		}
-		view.Rows = append(view.Rows, rowView{Cells: cells})
-	}
-	return view
 }
 
-// status is the line under the tab's title, as a bold part and a rest. With pending updates the
-// bold part holds the count and the rest names the dependencies; when everything is up to date the
-// whole line is the bold part.
-func (b *docBuilder) status(tab Tab) (bold, rest string) {
+// tab builds one tab from its spec and its totals. The rows are already sorted.
+func (b *docBuilder) tab(spec tabSpec, tab Tab) TabView {
+	return TabView{
+		ID:       spec.ID,
+		Label:    b.r.text(spec.LabelKey, nil),
+		Count:    tab.Updates,
+		Selected: spec.Selected,
+		Stats:    b.stats(spec, tab),
+		Summary:  b.summary(spec, tab),
+		Groups:   groupTab(b.r, tab, b.labels, spec.Images),
+	}
+}
+
+// stats builds the panel of a tab: its eyebrow, the listed updates, the sub line, the bar and the legend.
+func (b *docBuilder) stats(spec tabSpec, tab Tab) StatsView {
+	return StatsView{
+		Eyebrow:  b.r.text(spec.EyebrowKey, nil),
+		Big:      strconv.Itoa(tab.Updates),
+		Sub:      b.r.text(KeyDocPanelSub, map[string]string{"total": strconv.Itoa(tab.Total), "up_to_date": strconv.Itoa(tab.UpToDate)}),
+		Segments: segmentsOf(tab),
+		Legend:   legendOf(tab, b.labels),
+	}
+}
+
+// summary is the line under the panel. With listed updates the bold part holds the count of updates
+// and the rest the count of dependencies (or images); when everything is up to date the bold part is
+// the up-to-date text of the tab.
+func (b *docBuilder) summary(spec tabSpec, tab Tab) SummaryLine {
 	if tab.Updates == 0 {
-		return b.r.text(KeyDocStatusUpToDate, nil), ""
+		key := KeyDocStatusUpToDate
+		if spec.Images {
+			key = KeyDocStatusImagesUpTo
+		}
+		return SummaryLine{Bold: b.r.text(key, nil)}
 	}
-	vars := map[string]string{
-		"updates": strconv.Itoa(tab.Updates),
-		"deps":    strconv.Itoa(tab.WithUpdates),
+	vars := map[string]string{"updates": strconv.Itoa(tab.Updates), "deps": strconv.Itoa(tab.WithUpdates)}
+	bold := pick(tab.Updates == 1, KeyDocStatusUpdatesBold1, KeyDocStatusUpdatesBold)
+	rest := pick(tab.WithUpdates == 1, KeyDocStatusUpdatesRest1, KeyDocStatusUpdatesRest)
+	if spec.Images {
+		rest = pick(tab.WithUpdates == 1, KeyDocStatusImagesRest1, KeyDocStatusImagesRest)
 	}
-	return b.r.text(KeyDocStatusUpdatesBold, vars), b.r.text(KeyDocStatusUpdatesRest, vars)
+	return SummaryLine{Bold: b.r.text(bold, vars), Rest: b.r.text(rest, vars)}
 }
 
-// errorLines lists the scan errors. The report root is named by its own catalog text.
-func (b *docBuilder) errorLines(errs []ScanError) []string {
+// pick returns one of two catalog keys: one when the count is 1, the other otherwise.
+func pick(one bool, oneKey, manyKey string) string {
+	if one {
+		return oneKey
+	}
+	return manyKey
+}
+
+// errorRows lists the scan errors. The report root is named by its own catalog text.
+func (b *docBuilder) errorRows(errs []ScanError) []ErrorView {
 	root := b.r.text(KeyErrorsRoot, nil)
-	lines := make([]string, 0, len(errs))
+	rows := make([]ErrorView, 0, len(errs))
 	for _, e := range errs {
 		where := e.Repo
 		if where == "" {
 			where = root
 		}
-		lines = append(lines, b.r.text(KeyErrorsItem, map[string]string{"where": where, "msg": e.Msg}))
+		rows = append(rows, ErrorView{Where: where, Msg: e.Msg})
 	}
-	return lines
+	return rows
 }
 
-// distribution counts the rows of each update type, patch first.
-func distribution(tab Tab) []distItem {
-	var items []distItem
-	for _, typ := range []UpdateType{UpdatePatch, UpdateMinor, UpdateMajor} {
-		items = append(items, distItem{Label: typ.String(), Count: tab.Counts[typ], Class: "dist-" + typ.String()})
+// errorsChip is the count of the errors card, or empty when there are no errors.
+func (b *docBuilder) errorsChip(n int) string {
+	if n == 0 {
+		return ""
 	}
-	return items
-}
-
-func fileCell(_ *docBuilder, row Row) cell {
-	return cell{Kind: "file", Text: row.PackageFile}
-}
-
-func repoCell(b *docBuilder, row Row) cell {
-	text := row.Repo
-	if row.Fork {
-		text += b.forkTag
-	}
-	return cell{Kind: "repo", Text: text}
-}
-
-func currentImageCell(b *docBuilder, row Row) cell {
-	return cell{Kind: "copy", Text: row.Name + ":" + row.Version, Title: b.labels.CopyCurrent}
-}
-
-func latestImageCell(b *docBuilder, row Row) cell {
-	return cell{Kind: "copy", Text: row.Name + ":" + row.NewVersion, Title: b.labels.CopyLatest}
-}
-
-func nameCell(_ *docBuilder, row Row) cell {
-	return cell{Kind: "code", Text: row.Name}
-}
-
-func currentCell(_ *docBuilder, row Row) cell {
-	return cell{Kind: "code", Text: row.Version}
-}
-
-func newCell(_ *docBuilder, row Row) cell {
-	return cell{Kind: "code", Text: row.NewVersion}
-}
-
-func typeCell(_ *docBuilder, row Row) cell {
-	return cell{Kind: "badge", Text: row.Type.String(), Class: "badge-" + row.Type.String()}
+	key := pick(n == 1, KeyErrorsCountOne, KeyErrorsCount)
+	return b.r.text(key, map[string]string{"count": strconv.Itoa(n)})
 }

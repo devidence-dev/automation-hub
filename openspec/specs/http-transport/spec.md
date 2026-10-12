@@ -28,7 +28,11 @@ Every duration key of this change, and `restart_ready.timeout` and `restart_read
 - **THEN** startup fails with an error naming `server.read_timeout` and stating that a unit is required
 
 ### Requirement: Shared outbound HTTP settings
-The Telegram, GitHub and Kubernetes clients SHALL build their HTTP transport and client from the same settings: `timeout` (whole request), `dial_timeout`, `tls_handshake_timeout`, `keep_alive`, `max_idle_conns` and `idle_conn_timeout`. Each client has its own section (`telegram.http`, `github.http`, `kubernetes.http`). Defaults: `timeout` 30s for GitHub and 15s for Kubernetes; `dial_timeout` 30s for GitHub (today's Go default transport) and 10s for Telegram and Kubernetes; `tls_handshake_timeout` 10s, `keep_alive` 30s, `max_idle_conns` 100 and `idle_conn_timeout` 90s for all three. Config loading MUST fail on a zero or negative duration or count.
+The Telegram, GitHub and Kubernetes clients SHALL build their HTTP transport and client from the same settings, each in its own section (`telegram.http`, `github.http`, `kubernetes.http`): `timeout` (whole request), `dial_timeout`, `tls_handshake_timeout`, `keep_alive`, `max_idle_conns` and `idle_conn_timeout`, with the defaults in the "Defaults for each client" scenario. Config loading MUST fail on a zero or negative duration or count.
+
+#### Scenario: Defaults for each client
+- **WHEN** the config sets none of the `http` keys
+- **THEN** GitHub uses a 30s request timeout and a 30s dial timeout (today's Go default transport), Kubernetes uses a 15s request timeout and a 10s dial timeout, Telegram uses a 10s dial timeout and its request timeout follows the long-poll rules, and all three use a 10s TLS handshake timeout, 30s keep-alive, 100 idle connections and a 90s idle connection timeout
 
 #### Scenario: Kubernetes timeout raised
 - **WHEN** the config sets `kubernetes.http.timeout: 20s` and omits every other key
@@ -39,7 +43,7 @@ The Telegram, GitHub and Kubernetes clients SHALL build their HTTP transport and
 - **THEN** startup fails with an error naming `github.http.max_idle_conns`
 
 ### Requirement: Telegram long-poll timeouts
-The Telegram client SHALL use `telegram.http.poll_timeout` (default 30s) as the long-polling window sent to Telegram. The request `timeout` MUST be greater than `poll_timeout` and defaults to `poll_timeout + 10s`. `response_header_timeout` MUST be greater than `poll_timeout` and defaults to `poll_timeout + 5s`. `expect_continue_timeout` defaults to 1s and MUST be positive. Config loading MUST fail when either bound is not greater than `poll_timeout`, and when `expect_continue_timeout` is zero or negative.
+The Telegram client SHALL use `telegram.http.poll_timeout` (default 30s) as the long-poll window sent to Telegram. `timeout` MUST be greater than `poll_timeout` and defaults to `poll_timeout + 10s`; `response_header_timeout` MUST be greater than `poll_timeout` and defaults to `poll_timeout + 5s`; `expect_continue_timeout` defaults to 1s and MUST be positive. Config loading MUST fail when either bound is not greater than `poll_timeout`, or when `expect_continue_timeout` is zero or negative.
 
 #### Scenario: Poll timeout raised without explicit bounds
 - **WHEN** the config sets `telegram.http.poll_timeout: 50s` and omits `timeout` and `response_header_timeout`
@@ -50,7 +54,7 @@ The Telegram client SHALL use `telegram.http.poll_timeout` (default 30s) as the 
 - **THEN** startup fails with an error naming `telegram.http.timeout`
 
 ### Requirement: Telegram retry policy
-The Telegram client SHALL retry a failed send only when the failure is a network or transport error, an answer with status 5xx, or an answer with status 429. It SHALL NOT retry any other 4xx answer. The number of attempts is `telegram.http.max_attempts` (default 3, minimum 1). Between attempts it SHALL wait `telegram.http.retry_backoff` (default 1s) doubled after each failed attempt, and never longer than `telegram.http.max_retry_after` (default 30s). When a 429 answer carries `retry_after`, the wait SHALL be that many seconds instead of the backoff. If that wait is longer than `telegram.http.max_retry_after`, the client SHALL stop and return the error without waiting. `retry_backoff` and `max_retry_after` MUST be positive; config loading MUST fail otherwise.
+The Telegram client SHALL retry a failed send only on a network or transport error, a 5xx answer or a 429 answer, and SHALL NOT retry any other 4xx answer. The number of attempts is `telegram.http.max_attempts` (default 3, minimum 1). Between attempts it SHALL wait `telegram.http.retry_backoff` (default 1s), doubled after each failed attempt and capped at `telegram.http.max_retry_after` (default 30s). `retry_backoff` and `max_retry_after` MUST be positive; config loading MUST fail otherwise.
 
 #### Scenario: Bad request is not retried
 - **WHEN** Telegram answers `sendDocument` with 400 `Bad Request: can't parse entities`
@@ -68,14 +72,6 @@ The Telegram client SHALL retry a failed send only when the failure is a network
 - **WHEN** Telegram answers every `sendMessage` attempt with 502 and `max_attempts` is 3
 - **THEN** exactly three attempts are made and the error reads `failed to send message after 3 attempts`
 
-#### Scenario: Rate limit with retry_after
-- **WHEN** Telegram answers `sendMessage` with 429 and `parameters.retry_after: 5`, then 200
-- **THEN** the second attempt is made after a 5s wait, not the 1s backoff, and the send succeeds
-
-#### Scenario: Rate limit beyond the retry ceiling
-- **WHEN** Telegram answers with 429 and `retry_after: 120`
-- **THEN** no further attempt is made, the error is returned, and the wait is 0s
-
 #### Scenario: Network failure
 - **WHEN** the connection to Telegram is reset on the first attempt and succeeds on the second
 - **THEN** two attempts are made with a 1s wait between them
@@ -87,6 +83,17 @@ The Telegram client SHALL retry a failed send only when the failure is a network
 #### Scenario: Zero attempts rejected
 - **WHEN** the config sets `telegram.http.max_attempts: 0`
 - **THEN** startup fails with an error naming `telegram.http.max_attempts`
+
+### Requirement: Telegram rate limit wait
+When a 429 answer carries `retry_after`, the wait before the next attempt SHALL be that many seconds instead of the backoff. If that wait is longer than `telegram.http.max_retry_after`, the client SHALL stop and return the error without waiting.
+
+#### Scenario: Rate limit with retry_after
+- **WHEN** Telegram answers `sendMessage` with 429 and `parameters.retry_after: 5`, then 200
+- **THEN** the second attempt is made after a 5s wait, not the 1s backoff, and the send succeeds
+
+#### Scenario: Rate limit beyond the retry ceiling
+- **WHEN** Telegram answers with 429 and `retry_after: 120`
+- **THEN** no further attempt is made, the error is returned, and the wait is 0s
 
 ### Requirement: Configurable GitHub API base URL
 The GitHub client SHALL send its requests to `github.api_url`, default `https://api.github.com`. A trailing slash is ignored. The value MUST be an absolute `https` URL; config loading MUST fail otherwise.

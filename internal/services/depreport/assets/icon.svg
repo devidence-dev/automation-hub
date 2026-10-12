@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="devidence.dev" width="192" height="192" viewBox="0 0 192 192"><defs>
+  <linearGradient id="icon-gradient" x1="13" y1="178" x2="179" y2="9" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#005B98"></stop>
+    <stop offset="0.52" stop-color="#0087D4"></stop>
+    <stop offset="1" stop-color="#16CBE7"></stop>
+  </linearGradient>
+  <radialGradient id="accent-dot" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(151 38) rotate(35) scale(15)">
+    <stop offset="0" stop-color="#6CF5FF"></stop>
+    <stop offset="0.6" stop-color="#26D3EC"></stop>
+    <stop offset="1" stop-color="#1A91FF"></stop>
+  </radialGradient>
+</defs>
+<rect width="192" height="192" rx="46" fill="url(#icon-gradient)"></rect>
+<path fill="#FFFFFF" d="M87.77 172.96C100.12 172.96 110.16 167.53 115.58 156.6H115.67V171H141.44V38.59H115.32V90.13H115.23C109.18 80 99.76 75.2 87.59 75.2C63.59 75.2 47.15 95.2 47.15 123.99C47.15 153.4 63.24 172.96 87.77 172.96ZM94.52 151.63C81.81 151.63 73.55 141.58 73.55 123.99C73.55 106.39 81.81 96.35 94.52 96.35C107.76 96.35 116.56 107.28 116.56 123.99C116.56 140.79 107.76 151.63 94.52 151.63Z"></path>
+<circle cx="155" cy="42" r="8" fill="url(#accent-dot)"></circle>
+</svg>

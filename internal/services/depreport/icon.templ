@@ -1,0 +1,8 @@
+package depreport
+
+// Icon is one of the 14px icons of the liquid glass design, from iconMarkup. It carries no text.
+templ Icon(name, class string) {
+	<svg class={ class } width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+		@templ.Raw(iconMarkup[name])
+	</svg>
+}
