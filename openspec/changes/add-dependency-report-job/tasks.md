@@ -15,7 +15,7 @@
 ## 3. Job commands
 
 - [x] 3.1 Implement `CreateJobFromCronJob` in `internal/services/kube`. Verify with an `httptest` test: the GET and POST paths, the Job name `<cronjob>-manual-<unix>`, the labels and annotations copied, the manual annotation present, and an error returned on 403.
-- [x] 3.2 Add the job command type to `BotHandler` and to the scheduler registration, with the replies `Job *<name>* created from *<cronjob>*.` and `Failed to create the job. Check the hub logs or try again later.`. Verify with bot handler tests for success, API error and unauthorized chat, and a scheduler registration test with a fake creator.
+- [x] 3.2 Add the job command type to `BotHandler` and to the scheduler registration, with the replies `🚀 Job *<name>* created from *<cronjob>*.` and `❌ Failed to create the job. Check the hub logs or try again later.`. Verify with bot handler tests for success, API error and unauthorized chat, and a scheduler registration test with a fake creator.
 
 ## 4. Dependency report
 
@@ -27,13 +27,13 @@
 
 ## 5. Cross-repo
 
-- [ ] 5.1 (user) Create the PAT and, in automation-hub's Infisical folder (next to `CONFIG_YAML`), add `RENOVATE_TOKEN`, `DEPENDENCY_REPORT_REPOSITORIES`, `DEPENDENCY_REPORT_FORKS` and `DEPENDENCY_REPORT_TOKEN`. Verify that both ExternalSecrets sync.
-- [ ] 5.2 (homelab) In `kubernetes/internal-apps/automation-hub/`, add `dependency-report.yaml` with the ExternalSecret (store `infisical-automation-hub`) and the CronJob `dependency-report` (`RENOVATE_REPOSITORIES` from `DEPENDENCY_REPORT_REPOSITORIES`, `suspend: true`, label `app.kubernetes.io/name: dependency-report`, Renovate initContainer that always exits 0, a pinned reporter image, `automountServiceAccountToken: false`, emptyDir `/out`, limits from the ChangePlan), and add it to `directory.include` in `application.yaml`. Verify with `kubectl apply --dry-run=server` and that Argo shows it under the automation-hub app.
-- [ ] 5.3 (homelab) Add both NetworkPolicies (egress from `dependency-report` to automation-hub:8080, and ingress on automation-hub from `dependency-report`:8080). Verify on the first run that the reporter's curl gets 202.
-- [ ] 5.4 (homelab) Add Role `dependency-report-trigger` (cronjobs `get` with `resourceNames: [dependency-report]`, jobs `create`) and a RoleBinding to the automation-hub ServiceAccount. Verify with `kubectl auth can-i create jobs -n internal-apps --as=system:serviceaccount:internal-apps:automation-hub`.
+- [x] 5.1 (user) Create the PAT and, in automation-hub's Infisical folder (next to `CONFIG_YAML`), add `RENOVATE_TOKEN`, `DEPENDENCY_REPORT_REPOSITORIES`, `DEPENDENCY_REPORT_FORKS` and `DEPENDENCY_REPORT_TOKEN`. Verify that both ExternalSecrets sync.
+- [x] 5.2 (homelab) In `kubernetes/internal-apps/automation-hub/`, add `dependency-report.yaml` with the ExternalSecret (store `infisical-automation-hub`) and the CronJob `dependency-report` (`RENOVATE_REPOSITORIES` from `DEPENDENCY_REPORT_REPOSITORIES`, `suspend: true`, label `app.kubernetes.io/name: dependency-report`, Renovate initContainer that always exits 0, a pinned reporter image, `automountServiceAccountToken: false`, emptyDir `/out`, limits from the ChangePlan), and add it to `directory.include` in `application.yaml`. Verify with `kubectl apply --dry-run=server` and that Argo shows it under the automation-hub app.
+- [x] 5.3 (homelab) Add both NetworkPolicies (egress from `dependency-report` to automation-hub:8080, and ingress on automation-hub from `dependency-report`:8080). Verify on the first run that the reporter's curl gets 202.
+- [x] 5.4 (homelab) Add Role `dependency-report-trigger` (cronjobs `get` with `resourceNames: [dependency-report]`, jobs `create`) and a RoleBinding to the automation-hub ServiceAccount. Verify with `kubectl auth can-i create jobs -n internal-apps --as=system:serviceaccount:internal-apps:automation-hub`.
 - [ ] 5.5 (user) Add `dependency_report:` and the `jobs:` entry to `CONFIG_YAML`, deploy, and run `/run_dependency_report`. Verify that the Telegram messages match the format, and that the API shows no new issues, PRs or branches in the scanned repos.
 - [ ] 5.6 (user) Test the failure path with a non-existent repo in `DEPENDENCY_REPORT_REPOSITORIES`, then revert. Verify that the `❌ Renovate falló` message arrives.
-- [ ] 5.7 (workflows) Delete `ops-dependency-report.yml` and its README row and section. Verify with `actionlint` on the remaining workflows.
+- [x] 5.7 (workflows) Delete `ops-dependency-report.yml` and its README row and section. Verify with `actionlint` on the remaining workflows.
 
 ## 6. Validation
 

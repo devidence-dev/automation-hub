@@ -172,10 +172,10 @@ func (h *BotHandler) createJob(commandName, chatID string, job config.JobCommand
 	jobName, err := h.RunJob(context.Background(), job)
 	if err != nil {
 		h.logger.Error("Failed to create Kubernetes job", zap.Error(err), zap.String("command", commandName), zap.String("chat_id", chatID))
-		h.sendMessage(chatID, "Failed to create the job. Check the hub logs or try again later.")
+		h.sendMessage(chatID, "❌ Failed to create the job. Check the hub logs or try again later.")
 		return
 	}
-	h.sendMessage(chatID, fmt.Sprintf("Job *%s* created from *%s*.", jobName, job.CronJob))
+	h.sendMessage(chatID, fmt.Sprintf("🚀 Job *%s* created from *%s*.", jobName, job.CronJob))
 }
 
 // RunJob creates a Job from the entry's CronJob and returns its name. Like

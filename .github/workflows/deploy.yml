@@ -28,7 +28,7 @@ jobs:
   # GO_VERSION (read from .go-version) has to be resolved in a separate job first.
   resolve-build-args:
     name: 🔧 Resolve build args
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     outputs:

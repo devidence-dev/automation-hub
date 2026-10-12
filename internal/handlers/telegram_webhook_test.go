@@ -339,9 +339,9 @@ func TestBotHandlerHandleJob(t *testing.T) {
 		wantCalls   int
 		wantMessage string
 	}{
-		{name: "authorized command creates the job", update: commandUpdate("/run_dependency_report", 123), wantCalls: 1, wantMessage: "Job *dependency-report-manual-1791763200* created from *dependency-report*."},
+		{name: "authorized command creates the job", update: commandUpdate("/run_dependency_report", 123), wantCalls: 1, wantMessage: "🚀 Job *dependency-report-manual-1791763200* created from *dependency-report*."},
 		{name: "unauthorized chat is rejected", update: commandUpdate("/run_dependency_report", 999), wantMessage: "not authorized"},
-		{name: "API error is reported", update: commandUpdate("/run_dependency_report", 123), createErr: errors.New("create job: status 403 Forbidden"), wantCalls: 1, wantMessage: "Failed to create the job. Check the hub logs or try again later."},
+		{name: "API error is reported", update: commandUpdate("/run_dependency_report", 123), createErr: errors.New("create job: status 403 Forbidden"), wantCalls: 1, wantMessage: "❌ Failed to create the job. Check the hub logs or try again later."},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
