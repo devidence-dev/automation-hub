@@ -9,11 +9,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 )
 
 type failingHTTPClient struct{}
@@ -22,17 +24,52 @@ func (failingHTTPClient) Do(*http.Request) (*http.Response, error) {
 	return nil, errors.New("network unavailable")
 }
 
+// testConfig is a Config with the production defaults, for tests that do not change them.
+func testConfig() Config {
+	return Config{
+		Token:         "test-token",
+		Logger:        zap.NewNop(),
+		PollTimeout:   30 * time.Second,
+		MaxAttempts:   3,
+		RetryBackoff:  time.Second,
+		MaxRetryAfter: 30 * time.Second,
+	}
+}
+
+func noSleep(time.Duration) {}
+
 func newTestClient(t *testing.T, handler http.HandlerFunc) *Client {
+	t.Helper()
+	return newTestClientWithSleep(t, handler, noSleep)
+}
+
+func newTestClientWithSleep(t *testing.T, handler http.HandlerFunc, sleep func(time.Duration)) *Client {
 	t.Helper()
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
 
-	return newClient("test-token", zap.NewNop(), server.Client(), server.URL+"/bot%s/%s")
+	return newClient(testConfig(), server.Client(), server.URL+"/bot%s/%s", sleep)
 }
 
 func writeTelegramResponse(w http.ResponseWriter, result interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "result": result})
+}
+
+// writeTelegramError answers with an HTTP status and a Telegram error body.
+func writeTelegramError(w http.ResponseWriter, status, code int, description string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{"ok": false, "error_code": code, "description": description})
+}
+
+// sleepRecorder records the waits instead of sleeping.
+type sleepRecorder struct {
+	waits []time.Duration
+}
+
+func (s *sleepRecorder) sleep(d time.Duration) {
+	s.waits = append(s.waits, d)
 }
 
 func TestParseInt64(t *testing.T) {
@@ -82,32 +119,48 @@ func TestParseInt64(t *testing.T) {
 	}
 }
 
-func TestSendMessageInvalidChatID(t *testing.T) {
-	logger := zap.NewNop()
-	client := &Client{
-		bot:    &tgbotapi.BotAPI{},
-		logger: logger,
-	}
+func TestSendRejectsInvalidChatIDWithoutRequest(t *testing.T) {
+	var requests atomic.Int32
+	client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		writeTelegramResponse(w, map[string]interface{}{"id": 1, "is_bot": true, "first_name": "Test"})
+	})
+	before := requests.Load()
 
-	err := client.SendMessage("invalid_chat_id", "Hello World")
-	if err == nil {
-		t.Error("Expected error when sending message with invalid chat ID, got nil")
+	tests := map[string]func() error{
+		"SendMessage":  func() error { return client.SendMessage("dependency-report", "x") },
+		"SendHTML":     func() error { return client.SendHTML("dependency-report", "x") },
+		"SendDocument": func() error { return client.SendDocument("dependency-report", "r.html", "c", []byte("x")) },
+	}
+	for name, send := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := send()
+			if err == nil || !strings.HasPrefix(err.Error(), "invalid chat ID") {
+				t.Errorf("error = %v, want one beginning with \"invalid chat ID\"", err)
+			}
+		})
+	}
+	if got := requests.Load(); got != before {
+		t.Errorf("requests after invalid chat ID = %d, want %d", got, before)
 	}
 }
 
-func TestSendMessageNilClientOrBot(t *testing.T) {
-	logger := zap.NewNop()
+func TestNilClientSendsNothing(t *testing.T) {
 	var nilClient *Client
-	if err := nilClient.SendMessage("123456", "Hello"); err != nil {
-		t.Errorf("Expected nil error for nil client, got %v", err)
-	}
+	withoutBot := &Client{logger: zap.NewNop()}
 
-	clientWithNilBot := &Client{
-		bot:    nil,
-		logger: logger,
-	}
-	if err := clientWithNilBot.SendMessage("123456", "Hello"); err != nil {
-		t.Errorf("Expected nil error for client with nil bot, got %v", err)
+	for name, client := range map[string]*Client{"nil client": nilClient, "client without bot": withoutBot} {
+		t.Run(name, func(t *testing.T) {
+			if err := client.SendMessage("123456", "Hello"); err != nil {
+				t.Errorf("SendMessage() = %v, want nil", err)
+			}
+			if err := client.SendHTML("123456", "Hello"); err != nil {
+				t.Errorf("SendHTML() = %v, want nil", err)
+			}
+			if err := client.SendDocument("123456", "r.html", "c", []byte("x")); err != nil {
+				t.Errorf("SendDocument() = %v, want nil", err)
+			}
+		})
 	}
 }
 
@@ -188,17 +241,109 @@ func TestNewClient(t *testing.T) {
 	telegramAPIEndpoint = server.URL + "/bot%s/%s"
 	t.Cleanup(func() { telegramAPIEndpoint = previousEndpoint })
 
-	client := NewClient("test-token", zap.NewNop())
-	if client == nil || client.bot == nil {
+	client := NewClient(testConfig())
+	if client == nil || client.bot == nil || client.retrier == nil {
 		t.Fatal("NewClient() returned an uninitialized client")
 	}
 }
 
+func TestNewClientUsesConfiguredPollTimeout(t *testing.T) {
+	timeouts := make(chan string, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/getUpdates") {
+			writeTelegramResponse(w, map[string]interface{}{"id": 1, "is_bot": true, "first_name": "Test"})
+			return
+		}
+		if err := r.ParseForm(); err != nil {
+			t.Error(err)
+		}
+		select {
+		case timeouts <- r.Form.Get("timeout"):
+		default:
+		}
+		writeTelegramResponse(w, []interface{}{})
+	}))
+	t.Cleanup(server.Close)
+
+	cfg := testConfig()
+	cfg.PollTimeout = 50 * time.Second
+	client := newClient(cfg, server.Client(), server.URL+"/bot%s/%s", noSleep)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan struct{})
+	go func() {
+		client.StartPolling(ctx, func(tgbotapi.Update) {})
+		close(done)
+	}()
+
+	select {
+	case got := <-timeouts:
+		if got != "50" {
+			t.Errorf("getUpdates timeout = %q, want \"50\"", got)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("polling did not send getUpdates")
+	}
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("polling did not stop after context cancellation")
+	}
+}
+
 func TestSendMessageReturnsErrorAfterRetries(t *testing.T) {
-	client := &Client{bot: &tgbotapi.BotAPI{Client: failingHTTPClient{}}, logger: zap.NewNop()}
+	client := newClientWithBot(testConfig(), &tgbotapi.BotAPI{Client: failingHTTPClient{}}, noSleep)
 
 	if err := client.SendMessage("123", "Hello"); err == nil {
 		t.Fatal("SendMessage() error = nil, want an error")
+	}
+}
+
+func TestSendMessageRetriesGatewayError(t *testing.T) {
+	var attempts atomic.Int32
+	rec := &sleepRecorder{}
+	client := newTestClientWithSleep(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/bottest-token/getMe":
+			writeTelegramResponse(w, map[string]interface{}{"id": 1, "is_bot": true, "first_name": "Test"})
+		case "/bottest-token/sendMessage":
+			if attempts.Add(1) == 1 {
+				writeTelegramError(w, http.StatusBadGateway, http.StatusBadGateway, "Bad Gateway")
+				return
+			}
+			writeTelegramResponse(w, map[string]interface{}{"message_id": 1, "date": 1, "chat": map[string]interface{}{"id": 123, "type": "private"}})
+		default:
+			t.Errorf("unexpected path %s", r.URL.Path)
+		}
+	}, rec.sleep)
+
+	if err := client.SendMessage("123", "Hello"); err != nil {
+		t.Fatalf("SendMessage() error = %v, want success on the second attempt", err)
+	}
+	if got := attempts.Load(); got != 2 {
+		t.Errorf("sendMessage attempts = %d, want 2", got)
+	}
+	if len(rec.waits) != 1 || rec.waits[0] != time.Second {
+		t.Errorf("waits = %v, want [1s]", rec.waits)
+	}
+}
+
+func TestSendMessageLogsChatIDOnEachAttempt(t *testing.T) {
+	core, logs := observer.New(zap.WarnLevel)
+	cfg := testConfig()
+	cfg.Logger = zap.New(core)
+	client := newClientWithBot(cfg, &tgbotapi.BotAPI{Client: failingHTTPClient{}}, noSleep)
+
+	_ = client.SendMessage("123", "Hello")
+
+	warnings := logs.FilterLevelExact(zap.WarnLevel).FilterMessage("Failed to send Telegram message")
+	if got := warnings.Len(); got != cfg.MaxAttempts {
+		t.Fatalf("per-attempt warnings = %d, want %d", got, cfg.MaxAttempts)
+	}
+	if got := warnings.FilterField(zap.String("chatID", "123")).Len(); got != cfg.MaxAttempts {
+		t.Errorf("%d of %d per-attempt warnings carry chatID 123", got, cfg.MaxAttempts)
 	}
 }
 
@@ -360,41 +505,28 @@ func checkFileBytes(t *testing.T, fh *multipart.FileHeader, want []byte) {
 	}
 }
 
-func TestSendDocumentInvalidChatID(t *testing.T) {
-	client := &Client{bot: &tgbotapi.BotAPI{Client: failingHTTPClient{}}, logger: zap.NewNop()}
-	if err := client.SendDocument("not-a-number", "r.html", "c", []byte("x")); err == nil {
-		t.Fatal("SendDocument() error = nil, want an error for an invalid chat ID")
-	}
-}
-
-func TestSendDocumentNilClient(t *testing.T) {
-	var nilClient *Client
-	if err := nilClient.SendDocument("123", "r.html", "c", []byte("x")); err != nil {
-		t.Errorf("SendDocument() on nil client = %v, want nil", err)
-	}
-	if err := (&Client{logger: zap.NewNop()}).SendDocument("123", "r.html", "c", []byte("x")); err != nil {
-		t.Errorf("SendDocument() on client without bot = %v, want nil", err)
-	}
-}
-
-func TestSendDocumentReturnsErrorAfterRetries(t *testing.T) {
-	attempts := 0
-	client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+func TestSendDocumentDoesNotRetryBadRequest(t *testing.T) {
+	var attempts atomic.Int32
+	rec := &sleepRecorder{}
+	client := newTestClientWithSleep(t, func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.URL.Path == "/bottest-token/getMe":
 			writeTelegramResponse(w, map[string]interface{}{"id": 1, "is_bot": true, "first_name": "Test"})
 		case strings.HasSuffix(r.URL.Path, "/sendDocument"):
-			attempts++
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{"ok": false, "description": "Bad Request"})
+			attempts.Add(1)
+			writeTelegramError(w, http.StatusBadRequest, http.StatusBadRequest, "Bad Request: can't parse entities")
 		default:
 			t.Errorf("unexpected path %s", r.URL.Path)
 		}
-	})
+	}, rec.sleep)
 
 	if err := client.SendDocument("123", "r.html", "c", []byte("x")); err == nil {
 		t.Fatal("SendDocument() error = nil, want an error")
 	}
-	if attempts != 3 {
-		t.Errorf("sendDocument attempts = %d, want 3", attempts)
+	if got := attempts.Load(); got != 1 {
+		t.Errorf("sendDocument attempts = %d, want 1", got)
+	}
+	if len(rec.waits) != 0 {
+		t.Errorf("waits = %v, want none", rec.waits)
 	}
 }

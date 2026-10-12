@@ -2,7 +2,9 @@ package kube
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"io"
 	"net/http"
@@ -12,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"automation-hub/internal/httpx"
+
 	"go.uber.org/zap"
 )
 
@@ -19,6 +23,11 @@ type failingRoundTripper struct{}
 
 func (failingRoundTripper) RoundTrip(*http.Request) (*http.Response, error) {
 	return nil, errors.New("network unavailable")
+}
+
+// fixedClock is 2026-10-11 09:07:00 UTC, which is 1791709620 in Unix seconds.
+func fixedClock() time.Time {
+	return time.Date(2026, time.October, 11, 9, 7, 0, 0, time.UTC)
 }
 
 func assertRestartDeploymentRequest(t *testing.T, r *http.Request) {
@@ -33,7 +42,7 @@ func assertRestartDeploymentRequest(t *testing.T, r *http.Request) {
 	if r.Header.Get("Authorization") != "Bearer test-token" {
 		t.Errorf("Authorization header = %q", r.Header.Get("Authorization"))
 	}
-	if ct := r.Header.Get("Content-Type"); ct != "application/strategic-merge-patch+json" {
+	if ct := r.Header.Get("Content-Type"); ct != mediaTypeStrategicMergePatch {
 		t.Errorf("Content-Type = %q", ct)
 	}
 
@@ -50,20 +59,32 @@ func assertRestartDeploymentRequest(t *testing.T, r *http.Request) {
 	if err := json.Unmarshal(body, &patch); err != nil {
 		t.Fatalf("invalid patch body: %v", err)
 	}
-	if _, ok := patch.Spec.Template.Metadata.Annotations["kubectl.kubernetes.io/restartedAt"]; !ok {
-		t.Errorf("patch body missing restartedAt annotation: %s", body)
+	if got := patch.Spec.Template.Metadata.Annotations["kubectl.kubernetes.io/restartedAt"]; got != "2026-10-11T09:07:00Z" {
+		t.Errorf("restartedAt = %q, want 2026-10-11T09:07:00Z (body %s)", got, body)
 	}
 }
 
 func TestRestartDeployment(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertRestartDeploymentRequest(t, r)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := NewClientWithBaseURL("test-token", server.URL, server.Client(), zap.NewNop())
+	client.now = fixedClock
+	if err := client.RestartDeployment(context.Background(), "infrastructure", "github-runner"); err != nil {
+		t.Fatalf("RestartDeployment() error = %v", err)
+	}
+}
+
+func TestRestartDeploymentErrorStatus(t *testing.T) {
 	tests := []struct {
 		name       string
 		statusCode int
-		wantErr    bool
 	}{
-		{name: "success", statusCode: http.StatusOK},
-		{name: "forbidden", statusCode: http.StatusForbidden, wantErr: true},
-		{name: "not found", statusCode: http.StatusNotFound, wantErr: true},
+		{name: "forbidden", statusCode: http.StatusForbidden},
+		{name: "not found", statusCode: http.StatusNotFound},
 	}
 
 	for _, tt := range tests {
@@ -75,9 +96,9 @@ func TestRestartDeployment(t *testing.T) {
 			defer server.Close()
 
 			client := NewClientWithBaseURL("test-token", server.URL, server.Client(), zap.NewNop())
-			err := client.RestartDeployment(context.Background(), "infrastructure", "github-runner")
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("RestartDeployment() error = %v, wantErr %v", err, tt.wantErr)
+			client.now = fixedClock
+			if err := client.RestartDeployment(context.Background(), "infrastructure", "github-runner"); err == nil {
+				t.Fatal("RestartDeployment() error = nil, want error")
 			}
 		})
 	}
@@ -94,8 +115,74 @@ func TestRestartDeploymentNetworkError(t *testing.T) {
 func TestNewInClusterClientOutsideCluster(t *testing.T) {
 	t.Setenv("KUBERNETES_SERVICE_HOST", "")
 	t.Setenv("KUBERNETES_SERVICE_PORT", "")
-	if _, err := NewInClusterClient(zap.NewNop()); err == nil {
+	if _, err := NewInClusterClient(zap.NewNop(), httpx.Settings{}, httpx.DefaultMaxResponseBytes); err == nil {
 		t.Fatal("NewInClusterClient() error = nil, want error when not running in a cluster")
+	}
+}
+
+func TestInClusterSettingsUseCA(t *testing.T) {
+	server := httptest.NewTLSServer(http.NotFoundHandler())
+	defer server.Close()
+	caPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: server.Certificate().Raw})
+
+	got, err := withServiceAccountCA(httpx.Settings{Timeout: 20 * time.Second, MaxIdleConns: 7}, caPEM)
+	if err != nil {
+		t.Fatalf("withServiceAccountCA() error = %v", err)
+	}
+	if got.Timeout != 20*time.Second || got.MaxIdleConns != 7 {
+		t.Errorf("settings not kept: timeout %v, max idle %d", got.Timeout, got.MaxIdleConns)
+	}
+	if got.TLSConfig == nil || got.TLSConfig.RootCAs == nil {
+		t.Fatal("TLSConfig.RootCAs not set")
+	}
+	opts := x509.VerifyOptions{Roots: got.TLSConfig.RootCAs, KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}}
+	if _, err := server.Certificate().Verify(opts); err != nil {
+		t.Errorf("CA pool does not trust the service account CA: %v", err)
+	}
+
+	if _, err := withServiceAccountCA(httpx.Settings{}, []byte("not a certificate")); err == nil {
+		t.Error("withServiceAccountCA() accepted a non-PEM CA")
+	}
+}
+
+func TestDoJSONCapsErrorBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = io.WriteString(w, strings.Repeat("x", 4096))
+	}))
+	defer server.Close()
+
+	client := NewClientWithBaseURL("test-token", server.URL, server.Client(), zap.NewNop())
+	client.maxBytes = 1024
+	err := client.doJSON(context.Background(), apiCall{method: http.MethodGet, endpoint: server.URL, wantStatus: http.StatusOK})
+	if err == nil {
+		t.Fatal("doJSON() error = nil, want status error")
+	}
+	if got := strings.Count(err.Error(), "x"); got != 1024 {
+		t.Errorf("error carries %d body bytes, want 1024", got)
+	}
+}
+
+// TestDoJSONAcceptsTrailingBytes checks that a 200 body is decoded from its first JSON value, as
+// json.Decoder did before, so bytes after the object do not fail the call.
+func TestDoJSONAcceptsTrailingBytes(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, `{"metadata":{"generation":7}} trailing bytes`)
+	}))
+	defer server.Close()
+
+	client := NewClientWithBaseURL("test-token", server.URL, server.Client(), zap.NewNop())
+	var out struct {
+		Metadata struct {
+			Generation int64 `json:"generation"`
+		} `json:"metadata"`
+	}
+	err := client.doJSON(context.Background(), apiCall{method: http.MethodGet, endpoint: server.URL, wantStatus: http.StatusOK, out: &out})
+	if err != nil {
+		t.Fatalf("doJSON() error = %v, want the first JSON value decoded", err)
+	}
+	if out.Metadata.Generation != 7 {
+		t.Errorf("generation = %d, want 7", out.Metadata.Generation)
 	}
 }
 
@@ -181,6 +268,9 @@ func TestNewClientWithBaseURLUsesDefaults(t *testing.T) {
 	}
 	if client.baseURL != "https://example.test" {
 		t.Errorf("baseURL = %q", client.baseURL)
+	}
+	if client.maxBytes != httpx.DefaultMaxResponseBytes {
+		t.Errorf("maxBytes = %d, want %d", client.maxBytes, httpx.DefaultMaxResponseBytes)
 	}
 }
 
@@ -293,5 +383,55 @@ func TestCreateJobFromCronJobGetError(t *testing.T) {
 	client := NewClientWithBaseURL("test-token", server.URL, server.Client(), zap.NewNop())
 	if _, err := client.CreateJobFromCronJob(context.Background(), "internal-apps", "missing"); err == nil || !strings.Contains(err.Error(), "get cronjob") {
 		t.Fatalf("error = %v, want get cronjob failure", err)
+	}
+}
+
+func TestCreateJobFromCronJobCapsCronJobBody(t *testing.T) {
+	body := `{"metadata":{"name":"dependency-report","uid":"uid-123"},"spec":{"jobTemplate":{"spec":{"pad":"` +
+		strings.Repeat("a", 4096) + `"}}}}`
+	var posted map[string]any
+	server := newCronJobAPIServer(t, body, http.StatusCreated, &posted)
+	defer server.Close()
+
+	client := NewClientWithBaseURL("test-token", server.URL, server.Client(), zap.NewNop())
+	client.maxBytes = 1024
+	_, err := client.CreateJobFromCronJob(context.Background(), "internal-apps", "dependency-report")
+	if err == nil || !strings.Contains(err.Error(), "decode response") {
+		t.Fatalf("CreateJobFromCronJob() error = %v, want decode response failure", err)
+	}
+	if posted != nil {
+		t.Errorf("a Job was posted for a truncated CronJob: %v", posted)
+	}
+}
+
+func TestJobNameUsesInjectedClock(t *testing.T) {
+	const cronJobBody = `{"metadata":{"name":"ops-cleanup","uid":"uid-456"},"spec":{"jobTemplate":{"spec":{}}}}`
+	var posted map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/apis/batch/v1/namespaces/internal-apps/cronjobs/ops-cleanup":
+			_, _ = io.WriteString(w, cronJobBody)
+		case r.Method == http.MethodPost && r.URL.Path == "/apis/batch/v1/namespaces/internal-apps/jobs":
+			if err := json.NewDecoder(r.Body).Decode(&posted); err != nil {
+				t.Errorf("decode job: %v", err)
+			}
+			w.WriteHeader(http.StatusCreated)
+		default:
+			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClientWithBaseURL("test-token", server.URL, server.Client(), zap.NewNop())
+	client.now = fixedClock
+	name, err := client.CreateJobFromCronJob(context.Background(), "internal-apps", "ops-cleanup")
+	if err != nil {
+		t.Fatalf("CreateJobFromCronJob() error = %v", err)
+	}
+	if name != "ops-cleanup-manual-1791709620" {
+		t.Errorf("name = %q, want ops-cleanup-manual-1791709620", name)
+	}
+	if meta, _ := posted["metadata"].(map[string]any); meta["name"] != name {
+		t.Errorf("posted metadata = %v", posted["metadata"])
 	}
 }

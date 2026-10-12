@@ -8,8 +8,12 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
+
+	"automation-hub/internal/httpx"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 )
 
 type failingRoundTripper struct{}
@@ -84,13 +88,51 @@ func TestNewClientDispatchWorkflow(t *testing.T) {
 	}))
 	defer server.Close()
 
-	previousAPIURL := githubAPIURL
-	githubAPIURL = server.URL
-	t.Cleanup(func() { githubAPIURL = previousAPIURL })
-
-	client := NewClient("test-token", zap.NewNop())
+	client := NewClient(Config{Token: "test-token", APIURL: server.URL, MaxResponseBytes: httpx.DefaultMaxResponseBytes}, zap.NewNop())
 	if _, err := client.DispatchWorkflow(context.Background(), "owner", "repo", "workflow.yml", "main"); err != nil {
 		t.Fatalf("DispatchWorkflow() error = %v", err)
+	}
+}
+
+func TestNewClientUsesAPIURL(t *testing.T) {
+	const wantPath = "/api/v3/repos/owner/repo/actions/workflows/check-updates.yml/dispatches"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != wantPath {
+			t.Errorf("path = %s, want %s", r.URL.Path, wantPath)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	client := NewClient(Config{Token: "test-token", APIURL: server.URL + "/api/v3/", MaxResponseBytes: httpx.DefaultMaxResponseBytes}, zap.NewNop())
+	if _, err := client.DispatchWorkflow(context.Background(), "owner", "repo", "check-updates.yml", "master"); err != nil {
+		t.Fatalf("DispatchWorkflow() error = %v", err)
+	}
+}
+
+func TestDispatchWorkflowCapsOversizedBody(t *testing.T) {
+	const capBytes = 1024
+	// The run URL comes first, so only a decoder that sees the whole body could fail on the cut.
+	head := `{"html_url":"https://github.com/owner/repo/actions/runs/1","padding":"`
+	tail := `"}`
+	body := head + strings.Repeat("x", 2000-len(head)-len(tail)) + tail
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(body))
+	}))
+	defer server.Close()
+
+	core, logs := observer.New(zap.WarnLevel)
+	client := NewClient(Config{Token: "test-token", APIURL: server.URL, MaxResponseBytes: capBytes}, zap.New(core))
+	runURL, err := client.DispatchWorkflow(context.Background(), "owner", "repo", "check-updates.yml", "master")
+	if err != nil {
+		t.Fatalf("DispatchWorkflow() error = %v", err)
+	}
+	if runURL != "" {
+		t.Errorf("DispatchWorkflow() url = %q, want empty for a truncated body", runURL)
+	}
+	if got := logs.FilterMessage("Workflow dispatched but run details could not be decoded").Len(); got != 1 {
+		t.Errorf("undecodable-body warnings = %d, want 1", got)
 	}
 }
 
@@ -101,6 +143,12 @@ func TestNewClientWithBaseURLUsesDefaults(t *testing.T) {
 	}
 	if client.baseURL != "https://example.test" {
 		t.Errorf("baseURL = %q", client.baseURL)
+	}
+	if client.maxResponseBytes != httpx.DefaultMaxResponseBytes {
+		t.Errorf("maxResponseBytes = %d, want %d", client.maxResponseBytes, httpx.DefaultMaxResponseBytes)
+	}
+	if client.httpClient.Timeout != 30*time.Second {
+		t.Errorf("timeout = %s, want 30s", client.httpClient.Timeout)
 	}
 }
 

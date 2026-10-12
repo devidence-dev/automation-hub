@@ -4,6 +4,47 @@ timezone: "America/Guayaquil"
 server:
   address: ":8080"
 
+# Optional HTTP settings, shown with their defaults. Durations are Go durations ("15s", "3m") and must
+# be positive; counts and sizes must be positive too. Telegram's timeout and response_header_timeout
+# default to poll_timeout + 10s and poll_timeout + 5s, and must stay above poll_timeout.
+# server:
+#   read_timeout: "15s"
+#   write_timeout: "15s"
+#   shutdown_timeout: "30s"
+# github:
+#   api_url: "https://api.github.com"  # https only; GitHub Enterprise Server uses its /api/v3 base
+#   http:
+#     timeout: "30s"
+#     dial_timeout: "30s"
+#     tls_handshake_timeout: "10s"
+#     keep_alive: "30s"
+#     max_idle_conns: 100
+#     idle_conn_timeout: "90s"
+#     max_response_bytes: 1048576  # 1 MiB cap on every response body read
+# kubernetes:
+#   http:
+#     timeout: "15s"
+#     dial_timeout: "10s"
+#     tls_handshake_timeout: "10s"
+#     keep_alive: "30s"
+#     max_idle_conns: 100
+#     idle_conn_timeout: "90s"
+#     max_response_bytes: 1048576
+# telegram:
+#   http:
+#     timeout: "40s"                  # whole request, default poll_timeout + 10s
+#     dial_timeout: "10s"
+#     tls_handshake_timeout: "10s"
+#     keep_alive: "30s"
+#     max_idle_conns: 100
+#     idle_conn_timeout: "90s"
+#     poll_timeout: "30s"             # long-poll window sent to Telegram
+#     response_header_timeout: "35s"  # default poll_timeout + 5s
+#     expect_continue_timeout: "1s"
+#     max_attempts: 3                 # attempts per message, minimum 1
+#     retry_backoff: "1s"             # doubled after each failed attempt
+#     max_retry_after: "30s"          # a 429 asking for a longer wait fails at once
+
 telegram:
   bot_token: "{{TELEGRAM_BOT_TOKEN}}"
 

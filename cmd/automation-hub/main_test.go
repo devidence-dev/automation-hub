@@ -279,6 +279,20 @@ func TestRegisterCommandsMenuRejectedReturnsError(t *testing.T) {
 	}
 }
 
+// TestNewHTTPServerUsesConfiguredTimeouts checks that the server takes its read and write timeouts from the config.
+func TestNewHTTPServerUsesConfiguredTimeouts(t *testing.T) {
+	cfg := &config.Config{Server: config.ServerConfig{
+		Address:         ":0",
+		ReadTimeout:     7 * time.Second,
+		WriteTimeout:    9 * time.Second,
+		ShutdownTimeout: 11 * time.Second,
+	}}
+	srv := newHTTPServer(cfg, nil, zap.NewNop())
+	if srv.ReadTimeout != 7*time.Second || srv.WriteTimeout != 9*time.Second {
+		t.Errorf("timeouts = read %s, write %s; want 7s and 9s", srv.ReadTimeout, srv.WriteTimeout)
+	}
+}
+
 func TestNewGitHubClientNilWhenUnconfigured(t *testing.T) {
 	if client := newGitHubClient(&config.Config{}, zap.NewNop()); client != nil {
 		t.Errorf("newGitHubClient() = %#v, want a nil interface without workflows", client)

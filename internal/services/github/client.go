@@ -5,42 +5,65 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
+	"automation-hub/internal/httpx"
+
 	"go.uber.org/zap"
 )
 
-var githubAPIURL = "https://api.github.com"
+// defaultTestTimeout is the request timeout of the NewClientWithBaseURL fallback client, the 30s
+// of the default transport this client used before. Production clients take github.http.timeout.
+const defaultTestTimeout = 30 * time.Second
+
+// Config holds the settings of the GitHub client. The caller fills it from its own configuration.
+type Config struct {
+	Token            string
+	APIURL           string // base of the REST API; a trailing slash is trimmed
+	HTTP             httpx.Settings
+	MaxResponseBytes int64 // cap on every response body the client reads
+}
 
 // Client is the small subset of the GitHub API needed by automation-hub.
 type Client struct {
-	token      string
-	httpClient *http.Client
-	baseURL    string
-	logger     *zap.Logger
+	token            string
+	httpClient       *http.Client
+	baseURL          string
+	maxResponseBytes int64
+	logger           *zap.Logger
 }
 
-func NewClient(token string, logger *zap.Logger) *Client {
-	return newClient(token, &http.Client{Timeout: 30 * time.Second}, githubAPIURL, logger)
+// NewClient builds a client whose transport comes from cfg.HTTP and whose requests go to cfg.APIURL.
+func NewClient(cfg Config, logger *zap.Logger) *Client {
+	return newClient(cfg.Token, httpx.NewClient(cfg.HTTP), cfg.APIURL, cfg.MaxResponseBytes, logger)
 }
 
 // NewClientWithBaseURL lets tests point the client at an httptest.Server.
 func NewClientWithBaseURL(token, baseURL string, httpClient *http.Client, logger *zap.Logger) *Client {
 	if httpClient == nil {
-		httpClient = &http.Client{Timeout: 30 * time.Second}
+		httpClient = httpx.NewClient(httpx.Settings{Timeout: defaultTestTimeout})
 	}
-	return newClient(token, httpClient, baseURL, logger)
+	return newClient(token, httpClient, baseURL, httpx.DefaultMaxResponseBytes, logger)
 }
 
-func newClient(token string, httpClient *http.Client, baseURL string, logger *zap.Logger) *Client {
+func newClient(token string, httpClient *http.Client, baseURL string, maxResponseBytes int64, logger *zap.Logger) *Client {
 	if logger == nil {
 		logger = zap.NewNop()
 	}
-	return &Client{token: token, httpClient: httpClient, baseURL: strings.TrimRight(baseURL, "/"), logger: logger}
+	// A zero cap would silently empty every body, so fall back to the shared default.
+	if maxResponseBytes <= 0 {
+		maxResponseBytes = httpx.DefaultMaxResponseBytes
+	}
+	return &Client{
+		token:            token,
+		httpClient:       httpClient,
+		baseURL:          strings.TrimRight(baseURL, "/"),
+		maxResponseBytes: maxResponseBytes,
+		logger:           logger,
+	}
 }
 
 // DispatchWorkflow starts a workflow_dispatch run and returns the HTML URL of
@@ -48,30 +71,44 @@ func newClient(token string, httpClient *http.Client, baseURL string, logger *za
 // the request does not get them back, so the URL is empty with no error in
 // that case, and the caller falls back to the repository's Actions page.
 func (c *Client) DispatchWorkflow(ctx context.Context, owner, repo, workflowFile, ref string) (string, error) {
+	req, err := c.newDispatchRequest(owner, repo, workflowFile, ref)
+	if err != nil {
+		return "", err
+	}
+	resp, err := httpx.Send(ctx, c.httpClient, req, c.maxResponseBytes)
+	if err != nil {
+		return "", fmt.Errorf("dispatch workflow request: %w", err)
+	}
+	return c.decodeDispatch(resp)
+}
+
+// newDispatchRequest builds the POST that asks GitHub to start the workflow.
+func (c *Client) newDispatchRequest(owner, repo, workflowFile, ref string) (httpx.Request, error) {
 	body, err := json.Marshal(struct {
 		Ref              string `json:"ref"`
 		ReturnRunDetails bool   `json:"return_run_details"`
 	}{Ref: ref, ReturnRunDetails: true})
 	if err != nil {
-		return "", fmt.Errorf("marshal workflow dispatch request: %w", err)
+		return httpx.Request{}, fmt.Errorf("marshal workflow dispatch request: %w", err)
 	}
 
-	endpoint := fmt.Sprintf("%s/repos/%s/%s/actions/workflows/%s/dispatches",
-		c.baseURL, url.PathEscape(owner), url.PathEscape(repo), url.PathEscape(workflowFile))
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
-	if err != nil {
-		return "", fmt.Errorf("create workflow dispatch request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+c.token)
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("Content-Type", "application/json")
+	header := http.Header{}
+	header.Set("Authorization", "Bearer "+c.token)
+	header.Set("Accept", "application/vnd.github+json")
+	header.Set("Content-Type", "application/json")
 
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("dispatch workflow request: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
+	return httpx.Request{
+		Method: http.MethodPost,
+		URL: fmt.Sprintf("%s/repos/%s/%s/actions/workflows/%s/dispatches",
+			c.baseURL, url.PathEscape(owner), url.PathEscape(repo), url.PathEscape(workflowFile)),
+		Header: header,
+		Body:   body,
+	}, nil
+}
 
+// decodeDispatch maps the dispatch answer to the run URL: 204 has none, 200 carries it,
+// and any other status is an error.
+func (c *Client) decodeDispatch(resp httpx.Response) (string, error) {
 	switch resp.StatusCode {
 	case http.StatusNoContent:
 		return "", nil
@@ -81,16 +118,11 @@ func (c *Client) DispatchWorkflow(ctx context.Context, owner, repo, workflowFile
 		}
 		// The run already exists at this point: report success without a URL
 		// rather than an error that would invite a duplicate dispatch.
-		if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&parsed); err != nil {
+		if err := json.NewDecoder(bytes.NewReader(resp.Body)).Decode(&parsed); err != nil {
 			c.logger.Warn("Workflow dispatched but run details could not be decoded", zap.Error(err))
 			return "", nil
 		}
 		return parsed.HTMLURL, nil
 	}
-
-	responseBody, readErr := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-	if readErr != nil {
-		return "", fmt.Errorf("read workflow dispatch response: %w", readErr)
-	}
-	return "", fmt.Errorf("GitHub workflow dispatch failed: status %s: %s", resp.Status, strings.TrimSpace(string(responseBody)))
+	return "", fmt.Errorf("GitHub workflow dispatch failed: status %s: %s", resp.Status, strings.TrimSpace(string(resp.Body)))
 }

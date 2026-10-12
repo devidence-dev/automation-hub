@@ -43,7 +43,7 @@ func main() {
 	logger.Info("Timezone loaded", zap.String("timezone", loc.String()))
 
 	// Initialize services
-	telegramClient := telegram.NewClient(cfg.Telegram.BotToken, logger)
+	telegramClient := newTelegramClient(cfg, cfg.Telegram.BotToken, logger)
 	imapClient := email.NewIMAPClient(cfg.Email, logger)
 	workflowBotClient, botHandler, sched := setupWorkflowBot(cfg, loc, logger)
 
@@ -67,7 +67,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	shutdownServer(srv, sched, logger)
+	shutdownServer(srv, sched, cfg.Server.ShutdownTimeout, logger)
 	logger.Info("Server exited")
 }
 
@@ -81,7 +81,7 @@ func setupWorkflowBot(cfg *config.Config, loc *time.Location, logger *zap.Logger
 	if cfg.WorkflowBot.BotToken == "" {
 		logger.Fatal("workflow_bot bot_token is required when workflows, restarts or jobs are configured")
 	}
-	workflowBotClient := telegram.NewClient(cfg.WorkflowBot.BotToken, logger)
+	workflowBotClient := newTelegramClient(cfg, cfg.WorkflowBot.BotToken, logger)
 
 	kubeClient := newKubeClient(cfg, logger)
 	deps := handlers.BotHandlerDeps{
@@ -155,6 +155,21 @@ func (l *lazyScheduler) Add(name, spec string, fn func()) error {
 	return l.sched.Add(name, spec, fn)
 }
 
+// newTelegramClient builds a client for token. The notifications bot and the workflow bot share the
+// telegram.http settings, each with its own token.
+func newTelegramClient(cfg *config.Config, token string, logger *zap.Logger) *telegram.Client {
+	h := cfg.Telegram.HTTP
+	return telegram.NewClient(telegram.Config{
+		Token:         token,
+		Logger:        logger,
+		HTTP:          h.Settings(),
+		PollTimeout:   h.PollTimeout,
+		MaxAttempts:   h.MaxAttempts,
+		RetryBackoff:  h.RetryBackoff,
+		MaxRetryAfter: h.MaxRetryAfter,
+	})
+}
+
 // newGitHubClient returns nil, an untyped nil interface, when no workflow is configured.
 func newGitHubClient(cfg *config.Config, logger *zap.Logger) handlers.WorkflowDispatcher {
 	if len(cfg.Workflows) == 0 {
@@ -163,7 +178,12 @@ func newGitHubClient(cfg *config.Config, logger *zap.Logger) handlers.WorkflowDi
 	if cfg.GitHub.Token == "" {
 		logger.Fatal("GitHub token is required when workflows are configured")
 	}
-	return github.NewClient(cfg.GitHub.Token, logger)
+	return github.NewClient(github.Config{
+		Token:            cfg.GitHub.Token,
+		APIURL:           cfg.GitHub.APIURL,
+		HTTP:             cfg.GitHub.HTTP.Settings(),
+		MaxResponseBytes: cfg.GitHub.HTTP.MaxResponseBytes,
+	}, logger)
 }
 
 // newKubeClient returns nil, an untyped nil interface, when no restart or job is configured.
@@ -171,7 +191,7 @@ func newKubeClient(cfg *config.Config, logger *zap.Logger) handlers.KubeClient {
 	if len(cfg.Restarts) == 0 && len(cfg.Jobs) == 0 {
 		return nil
 	}
-	kubeClient, err := kube.NewInClusterClient(logger)
+	kubeClient, err := kube.NewInClusterClient(logger, cfg.Kubernetes.HTTP.Settings(), cfg.Kubernetes.HTTP.MaxResponseBytes)
 	if err != nil {
 		logger.Fatal("Failed to build Kubernetes client for restarts or jobs", zap.Error(err))
 	}
@@ -193,8 +213,8 @@ func newHTTPServer(cfg *config.Config, telegramClient *telegram.Client, logger *
 	return &http.Server{
 		Addr:         cfg.Server.Address,
 		Handler:      router,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  cfg.Server.ReadTimeout,
+		WriteTimeout: cfg.Server.WriteTimeout,
 	}
 }
 
@@ -208,14 +228,14 @@ func startServer(srv *http.Server, logger *zap.Logger) {
 	}()
 }
 
-// shutdownServer stops the scheduler, then the HTTP server, with a 30 second limit.
-func shutdownServer(srv *http.Server, sched *scheduler.Scheduler, logger *zap.Logger) {
+// shutdownServer stops the scheduler, then the HTTP server, within the shutdown timeout.
+func shutdownServer(srv *http.Server, sched *scheduler.Scheduler, timeout time.Duration, logger *zap.Logger) {
 	if sched != nil {
 		logger.Info("Stopping scheduler...")
 		sched.Stop()
 	}
 	logger.Info("Shutting down server...")
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), timeout)
 	defer shutdownCancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {

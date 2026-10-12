@@ -10,7 +10,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -18,28 +17,49 @@ import (
 	"strings"
 	"time"
 
+	"automation-hub/internal/httpx"
+
 	"go.uber.org/zap"
 )
 
 const serviceAccountDir = "/var/run/secrets/kubernetes.io/serviceaccount"
 
 const (
-	bearerPrefix  = "Bearer "
-	mediaTypeJSON = "application/json"
+	bearerPrefix                 = "Bearer "
+	mediaTypeJSON                = "application/json"
+	mediaTypeStrategicMergePatch = "application/strategic-merge-patch+json"
+	batchAPIVersion              = "batch/v1"
 )
+
+// API paths relative to the API server. resourceURL escapes the namespace and name.
+const (
+	deploymentPath = "/apis/apps/v1/namespaces/%s/deployments/%s"
+	cronJobPath    = "/apis/batch/v1/namespaces/%s/cronjobs/%s"
+	jobsPath       = "/apis/batch/v1/namespaces/%s/jobs"
+)
+
+// jobNameFormat is <cronjob>-manual-<unix seconds>.
+const jobNameFormat = "%s-manual-%d"
+
+// defaultTestTimeout is the request timeout of the NewClientWithBaseURL fallback client.
+// Production clients take their timeout from kubernetes.http.timeout.
+const defaultTestTimeout = 15 * time.Second
 
 // Client is the small subset of the Kubernetes API needed by automation-hub.
 type Client struct {
 	token      string
 	httpClient *http.Client
 	baseURL    string
+	maxBytes   int64 // caps every response body the client reads
 	logger     *zap.Logger
 	now        func() time.Time // overridden in tests
 }
 
 // NewInClusterClient builds a Client from the ServiceAccount token, CA
 // certificate, and API server address that Kubernetes projects into every pod.
-func NewInClusterClient(logger *zap.Logger) (*Client, error) {
+// settings are the transport values of kubernetes.http; the TLS config is always
+// the ServiceAccount CA. maxResponseBytes caps every response body.
+func NewInClusterClient(logger *zap.Logger, settings httpx.Settings, maxResponseBytes int64) (*Client, error) {
 	host := os.Getenv("KUBERNETES_SERVICE_HOST")
 	port := os.Getenv("KUBERNETES_SERVICE_PORT")
 	if host == "" || port == "" {
@@ -55,34 +75,38 @@ func NewInClusterClient(logger *zap.Logger) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read service account CA certificate: %w", err)
 	}
+	settings, err = withServiceAccountCA(settings, caCert)
+	if err != nil {
+		return nil, err
+	}
+
+	httpClient := httpx.NewClient(settings)
+	return newClient(strings.TrimSpace(string(token)), httpClient, "https://"+net.JoinHostPort(host, port), maxResponseBytes, logger), nil
+}
+
+// withServiceAccountCA returns settings whose TLS config trusts only the certificates in caPEM.
+func withServiceAccountCA(settings httpx.Settings, caPEM []byte) (httpx.Settings, error) {
 	pool := x509.NewCertPool()
-	if !pool.AppendCertsFromPEM(caCert) {
-		return nil, fmt.Errorf("parse service account CA certificate")
+	if !pool.AppendCertsFromPEM(caPEM) {
+		return httpx.Settings{}, fmt.Errorf("parse service account CA certificate")
 	}
-
-	httpClient := &http.Client{
-		Timeout: 15 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{RootCAs: pool},
-		},
-	}
-
-	return newClient(strings.TrimSpace(string(token)), httpClient, "https://"+net.JoinHostPort(host, port), logger), nil
+	settings.TLSConfig = &tls.Config{RootCAs: pool}
+	return settings, nil
 }
 
 // NewClientWithBaseURL lets tests point the client at an httptest.Server.
 func NewClientWithBaseURL(token, baseURL string, httpClient *http.Client, logger *zap.Logger) *Client {
 	if httpClient == nil {
-		httpClient = &http.Client{Timeout: 15 * time.Second}
+		httpClient = httpx.NewClient(httpx.Settings{Timeout: defaultTestTimeout})
 	}
-	return newClient(token, httpClient, baseURL, logger)
+	return newClient(token, httpClient, baseURL, httpx.DefaultMaxResponseBytes, logger)
 }
 
-func newClient(token string, httpClient *http.Client, baseURL string, logger *zap.Logger) *Client {
+func newClient(token string, httpClient *http.Client, baseURL string, maxBytes int64, logger *zap.Logger) *Client {
 	if logger == nil {
 		logger = zap.NewNop()
 	}
-	return &Client{token: token, httpClient: httpClient, baseURL: strings.TrimRight(baseURL, "/"), logger: logger, now: time.Now}
+	return &Client{token: token, httpClient: httpClient, baseURL: strings.TrimRight(baseURL, "/"), maxBytes: maxBytes, logger: logger, now: time.Now}
 }
 
 // RestartDeployment triggers a rollout restart, the same effect as
@@ -91,28 +115,19 @@ func newClient(token string, httpClient *http.Client, baseURL string, logger *za
 // treats as a template change and rolls new pods out to satisfy.
 func (c *Client) RestartDeployment(ctx context.Context, namespace, name string) error {
 	patch := fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":%q}}}}}`,
-		time.Now().UTC().Format(time.RFC3339))
+		c.now().UTC().Format(time.RFC3339))
 
-	endpoint := fmt.Sprintf("%s/apis/apps/v1/namespaces/%s/deployments/%s",
-		c.baseURL, url.PathEscape(namespace), url.PathEscape(name))
-	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, endpoint, strings.NewReader(patch))
+	err := c.doJSON(ctx, apiCall{
+		method:      http.MethodPatch,
+		endpoint:    resourceURL(c.baseURL, deploymentPath, namespace, name),
+		contentType: mediaTypeStrategicMergePatch,
+		body:        []byte(patch),
+		wantStatus:  http.StatusOK,
+	})
 	if err != nil {
-		return fmt.Errorf("create restart deployment request: %w", err)
+		return fmt.Errorf("restart deployment: %w", err)
 	}
-	req.Header.Set("Authorization", bearerPrefix+c.token)
-	req.Header.Set("Content-Type", "application/strategic-merge-patch+json")
-	req.Header.Set("Accept", mediaTypeJSON)
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("restart deployment request: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode == http.StatusOK {
-		return nil
-	}
-	return fmt.Errorf("restart deployment failed: status %s", resp.Status)
+	return nil
 }
 
 type deploymentStatus struct {
@@ -132,29 +147,15 @@ type deploymentStatus struct {
 }
 
 func (c *Client) getDeployment(ctx context.Context, namespace, name string) (deploymentStatus, error) {
-	endpoint := fmt.Sprintf("%s/apis/apps/v1/namespaces/%s/deployments/%s",
-		c.baseURL, url.PathEscape(namespace), url.PathEscape(name))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-	if err != nil {
-		return deploymentStatus{}, fmt.Errorf("create get deployment request: %w", err)
-	}
-	req.Header.Set("Authorization", bearerPrefix+c.token)
-	req.Header.Set("Accept", mediaTypeJSON)
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return deploymentStatus{}, fmt.Errorf("get deployment request: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-		return deploymentStatus{}, fmt.Errorf("get deployment failed: status %s: %s", resp.Status, strings.TrimSpace(string(body)))
-	}
-
 	var parsed deploymentStatus
-	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
-		return deploymentStatus{}, fmt.Errorf("decode deployment response: %w", err)
+	err := c.doJSON(ctx, apiCall{
+		method:     http.MethodGet,
+		endpoint:   resourceURL(c.baseURL, deploymentPath, namespace, name),
+		wantStatus: http.StatusOK,
+		out:        &parsed,
+	})
+	if err != nil {
+		return deploymentStatus{}, fmt.Errorf("get deployment: %w", err)
 	}
 	return parsed, nil
 }
@@ -220,6 +221,32 @@ type cronJobTemplateMetadata struct {
 	Annotations map[string]string `json:"annotations"`
 }
 
+// job is the batch/v1 Job that CreateJobFromCronJob posts. Spec stays raw, as in cronJob.
+type job struct {
+	APIVersion string          `json:"apiVersion"`
+	Kind       string          `json:"kind"`
+	Metadata   objectMeta      `json:"metadata"`
+	Spec       json.RawMessage `json:"spec"`
+}
+
+// objectMeta is the metadata of the posted Job.
+type objectMeta struct {
+	Name            string            `json:"name"`
+	Namespace       string            `json:"namespace"`
+	Labels          map[string]string `json:"labels"`
+	Annotations     map[string]string `json:"annotations"`
+	OwnerReferences []ownerReference  `json:"ownerReferences"`
+}
+
+// ownerReference points the Job at the CronJob that created it.
+type ownerReference struct {
+	APIVersion string `json:"apiVersion"`
+	Kind       string `json:"kind"`
+	Name       string `json:"name"`
+	UID        string `json:"uid"`
+	Controller bool   `json:"controller"`
+}
+
 // CreateJobFromCronJob creates a Job from the CronJob's job template and
 // returns its name. It mirrors `kubectl create job --from=cronjob/<name>`
 // (createJobFromCronJob in kubectl's pkg/cmd/create/create_job.go): same
@@ -227,80 +254,107 @@ type cronJobTemplateMetadata struct {
 // template spec, and a controller ownerReference to the CronJob without
 // blockOwnerDeletion. The name is <cronjob>-manual-<unix seconds>.
 func (c *Client) CreateJobFromCronJob(ctx context.Context, namespace, name string) (string, error) {
-	cronJobURL := fmt.Sprintf("%s/apis/batch/v1/namespaces/%s/cronjobs/%s",
-		c.baseURL, url.PathEscape(namespace), url.PathEscape(name))
 	var cj cronJob
-	if err := c.doJSON(ctx, http.MethodGet, cronJobURL, nil, http.StatusOK, &cj); err != nil {
+	err := c.doJSON(ctx, apiCall{
+		method:     http.MethodGet,
+		endpoint:   resourceURL(c.baseURL, cronJobPath, namespace, name),
+		wantStatus: http.StatusOK,
+		out:        &cj,
+	})
+	if err != nil {
 		return "", fmt.Errorf("get cronjob: %w", err)
 	}
 
-	annotations := map[string]string{"cronjob.kubernetes.io/instantiate": "manual"}
-	for k, v := range cj.Spec.JobTemplate.Metadata.Annotations {
-		annotations[k] = v
-	}
-	jobName := fmt.Sprintf("%s-manual-%d", name, c.now().Unix())
-	job := map[string]any{
-		"apiVersion": "batch/v1",
-		"kind":       "Job",
-		"metadata": map[string]any{
-			"name":        jobName,
-			"namespace":   namespace,
-			"labels":      cj.Spec.JobTemplate.Metadata.Labels,
-			"annotations": annotations,
-			"ownerReferences": []map[string]any{{
-				"apiVersion": "batch/v1",
-				"kind":       "CronJob",
-				"name":       cj.Metadata.Name,
-				"uid":        cj.Metadata.UID,
-				"controller": true,
-			}},
-		},
-		"spec": cj.Spec.JobTemplate.Spec,
-	}
-	body, err := json.Marshal(job)
+	jobName := fmt.Sprintf(jobNameFormat, name, c.now().Unix())
+	body, err := json.Marshal(jobFromTemplate(cj, namespace, jobName))
 	if err != nil {
 		return "", fmt.Errorf("encode job: %w", err)
 	}
 
-	jobsURL := fmt.Sprintf("%s/apis/batch/v1/namespaces/%s/jobs", c.baseURL, url.PathEscape(namespace))
-	if err := c.doJSON(ctx, http.MethodPost, jobsURL, body, http.StatusCreated, nil); err != nil {
+	err = c.doJSON(ctx, apiCall{
+		method:      http.MethodPost,
+		endpoint:    c.baseURL + fmt.Sprintf(jobsPath, url.PathEscape(namespace)),
+		contentType: mediaTypeJSON,
+		body:        body,
+		wantStatus:  http.StatusCreated,
+	})
+	if err != nil {
 		return "", fmt.Errorf("create job: %w", err)
 	}
 	return jobName, nil
 }
 
-// doJSON sends a request and decodes the JSON response into out when out is
-// not nil. Any status other than wantStatus is an error that carries the body.
-func (c *Client) doJSON(ctx context.Context, method, endpoint string, body []byte, wantStatus int, out any) error {
-	var reader io.Reader
-	if body != nil {
-		reader = bytes.NewReader(body)
+// jobFromTemplate builds the Job named name from the CronJob's job template.
+func jobFromTemplate(cj cronJob, namespace, name string) job {
+	annotations := map[string]string{"cronjob.kubernetes.io/instantiate": "manual"}
+	for k, v := range cj.Spec.JobTemplate.Metadata.Annotations {
+		annotations[k] = v
 	}
-	req, err := http.NewRequestWithContext(ctx, method, endpoint, reader)
-	if err != nil {
-		return fmt.Errorf("create request: %w", err)
+	return job{
+		APIVersion: batchAPIVersion,
+		Kind:       "Job",
+		Metadata: objectMeta{
+			Name:        name,
+			Namespace:   namespace,
+			Labels:      cj.Spec.JobTemplate.Metadata.Labels,
+			Annotations: annotations,
+			OwnerReferences: []ownerReference{{
+				APIVersion: batchAPIVersion,
+				Kind:       "CronJob",
+				Name:       cj.Metadata.Name,
+				UID:        cj.Metadata.UID,
+				Controller: true,
+			}},
+		},
+		Spec: cj.Spec.JobTemplate.Spec,
 	}
-	req.Header.Set("Authorization", bearerPrefix+c.token)
-	req.Header.Set("Accept", mediaTypeJSON)
-	if body != nil {
-		req.Header.Set("Content-Type", mediaTypeJSON)
+}
+
+// apiCall describes one request for doJSON. contentType and body are empty for a GET.
+// A nil out means the response body is not decoded.
+type apiCall struct {
+	method      string
+	endpoint    string
+	contentType string
+	body        []byte
+	wantStatus  int
+	out         any
+}
+
+// doJSON sends the call through httpx.Send, with the response body capped at c.maxBytes.
+// A status other than wantStatus is an error that carries the capped body. The response is
+// decoded into call.out when it is not nil.
+func (c *Client) doJSON(ctx context.Context, call apiCall) error {
+	header := http.Header{}
+	header.Set("Authorization", bearerPrefix+c.token)
+	header.Set("Accept", mediaTypeJSON)
+	if call.contentType != "" {
+		header.Set("Content-Type", call.contentType)
 	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := httpx.Send(ctx, c.httpClient, httpx.Request{
+		Method: call.method,
+		URL:    call.endpoint,
+		Header: header,
+		Body:   call.body,
+	}, c.maxBytes)
 	if err != nil {
-		return fmt.Errorf("request: %w", err)
+		return err
 	}
-	defer func() { _ = resp.Body.Close() }()
 
-	if resp.StatusCode != wantStatus {
-		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-		return fmt.Errorf("status %s: %s", resp.Status, strings.TrimSpace(string(msg)))
+	if resp.StatusCode != call.wantStatus {
+		return fmt.Errorf("status %s: %s", resp.Status, strings.TrimSpace(string(resp.Body)))
 	}
-	if out == nil {
+	if call.out == nil {
 		return nil
 	}
-	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
+	if err := json.NewDecoder(bytes.NewReader(resp.Body)).Decode(call.out); err != nil {
 		return fmt.Errorf("decode response: %w", err)
 	}
 	return nil
+}
+
+// resourceURL fills a path format with the namespace and name, escaping each as a path segment.
+func resourceURL(baseURL, pathFormat, namespace, name string) string {
+	return baseURL + fmt.Sprintf(pathFormat, url.PathEscape(namespace), url.PathEscape(name))
 }

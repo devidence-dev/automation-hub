@@ -209,6 +209,40 @@ messages:                         # overrides single bot texts; keep the {placeh
 
 The bot texts are the `bot.*` keys of `internal/messages/default.yaml`. A `messages:` override that drops or adds a `{placeholder}` fails config loading and names the key.
 
+### 🌐 HTTP settings
+
+All HTTP keys are optional. The defaults keep the current behavior; the commented block in `configs/config.yaml.example` lists every key.
+
+```yaml
+server:
+  read_timeout: "15s"        # webhook request read limit (positive)
+  write_timeout: "15s"       # webhook response write limit (positive)
+  shutdown_timeout: "30s"    # graceful stop on SIGINT/SIGTERM (positive)
+github:
+  api_url: "https://api.github.com"  # https only; trailing slash ignored; GHES uses its /api/v3 base
+  http:
+    timeout: "30s"           # whole request; the other transport keys below are also positive
+    dial_timeout: "30s"
+    tls_handshake_timeout: "10s"
+    keep_alive: "30s"
+    max_idle_conns: 100
+    idle_conn_timeout: "90s"
+    max_response_bytes: 1048576  # 1 MiB cap on every response body read
+kubernetes:
+  http:                      # same keys as github.http; timeout defaults to 15s, dial_timeout to 10s
+    max_response_bytes: 1048576
+telegram:
+  http:                      # same transport keys; timeout defaults to poll_timeout + 10s
+    poll_timeout: "30s"      # long-poll window sent to Telegram
+    response_header_timeout: "35s"  # defaults to poll_timeout + 5s; must exceed poll_timeout
+    expect_continue_timeout: "1s"
+    max_attempts: 3          # sends per message, minimum 1; only network errors, 5xx and 429 are retried
+    retry_backoff: "1s"      # doubled after each failed attempt
+    max_retry_after: "30s"   # a 429 asking for a longer wait fails at once
+```
+
+Telegram's timeout and response_header_timeout must each be greater than poll_timeout. A value that is zero, negative or unparseable stops startup and names the key.
+
 ### 📦 Dependency report webhook
 
 When `dependency_report:` is configured, the hub exposes `POST` on `dependency_report.path` (default `/webhook/dependency-report`). The Job's reporter container posts a `multipart/form-data` body (`exit_code`, `pod`, file `log_tail`, optional file `report`) with the token in the header `dependency_report.token_header` (default `X-Report-Token`). The hub answers `202` and sends one Telegram message to `telegram_chat_id`, through the notifications bot (`telegram.bot_token`): the HTML document `dependency-report-<YYYY-MM-DD>.html`, named from `dependency_report.document_name` with the day the hub received the report in the top-level `timezone` (default `America/Guayaquil`), formatted with `dependency_report.date_layout`, with a short Spanish summary as its caption. Its header shows the scan time in the same zone. The caption lists the repos with pending updates (🔴 when one has a major update), with the count per update type, then how many repos are up to date, the totals of the two tabs and the scan errors. Telegram caps captions at 1024 characters (the hub also keeps messages under 4096), so when the list is too long the hub drops repo lines from the end and adds `… y N repos más (ver reporte)`. If Telegram rejects the document, the caption is sent as a text message instead. A wrong token gets `401`, a malformed request `400`, and a body over `dependency_report.max_body_bytes` (default 10 MiB) gets `413`. A Renovate failure (`exit_code` not `0`, or no `report`) sends only the failure message, never a document.
