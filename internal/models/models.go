@@ -20,3 +20,9 @@ type EmailProcessor interface {
 	Process(email Email) error
 	GetSender() string
 }
+
+// ReadMarker is an optional interface of an EmailProcessor: ShouldMarkAsRead reports whether a
+// successfully processed email gets the \Seen flag.
+type ReadMarker interface {
+	ShouldMarkAsRead() bool
+}

@@ -41,8 +41,8 @@ The request body SHALL be read up to the hook's `max_body_bytes` (under `hook[].
 - **THEN** config loading fails with an error that names `hook.qbittorrent.config.max_body_bytes`
 
 ### Requirement: Hook configuration lookup
-The hook named `qbittorrent` SHALL be looked up by name in the `hook:` list before the body is read. When no such hook exists, the response MUST be `500` with `Webhook configuration not found`, regardless of the body.
+The `qbittorrent` hook configuration SHALL be resolved once, when the route is registered, and handed to the handler, so the body cap is known before the body is read. When the `hook:` list has no `qbittorrent` entry, no route is mounted and a `POST` to its path MUST get `404`, regardless of the body.
 
 #### Scenario: Hook missing
 - **WHEN** the config has only a `sonarr` hook and a `POST` arrives at `/webhook/qbittorrent` with an invalid body
-- **THEN** the response is `500` with `Webhook configuration not found` and no Telegram message is sent
+- **THEN** the response is `404` and no Telegram message is sent

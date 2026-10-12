@@ -44,17 +44,20 @@ func main() {
 
 	// Initialize services
 	telegramClient := newTelegramClient(cfg, cfg.Telegram.BotToken, logger)
-	imapClient := email.NewIMAPClient(cfg.Email, logger)
 	workflowBotClient, botHandler, sched := setupWorkflowBot(cfg, loc, logger)
 
 	// Initialize processor manager with dynamic configuration
-	processorManager := processor.NewProcessorManager(cfg.Email, telegramClient, logger)
+	processorManager, err := processor.NewProcessorManager(cfg.Email, telegramClient, logger)
+	if err != nil {
+		logger.Fatal("Failed to build email processors", zap.Error(err))
+	}
 
-	// Start email monitoring with dynamic processors
+	// Start email monitoring: the poller reads unread mail and dispatches it through the manager
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go imapClient.StartMonitoring(ctx, processorManager.GetProcessors()...)
+	poller := email.NewPoller(email.NewIMAPSource(cfg.Email, logger), processorManager, cfg.Email.EffectivePollingInterval(), logger)
+	go poller.Run(ctx)
 	if workflowBotClient != nil {
 		go workflowBotClient.StartPolling(ctx, botHandler.Handle)
 	}

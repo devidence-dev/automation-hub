@@ -27,6 +27,21 @@ const (
 	defaultDateLayout   = "2006-01-02"
 )
 
+// Defaults of the email and webhook processing settings. Each applies when its key is absent or zero.
+const (
+	DefaultPollingInterval     = 60 * time.Second
+	DefaultCodePattern         = `\b[a-zA-Z0-9]{4,8}\b`
+	DefaultNotFoundText        = "Not found"
+	DefaultLogPreviewLength    = 200
+	DefaultWebhookMaxBodyBytes = 1 << 20 // 1 MiB
+)
+
+// Extractor values of a service: the regex strategy and the marker strategy.
+const (
+	ExtractorPattern = "pattern"
+	ExtractorMarker  = "marker"
+)
+
 // Defaults of the bot settings. The handlers fall back to them too, so a zero value never reaches a command.
 const (
 	DefaultGitHubWebURL        = "https://github.com"
@@ -91,12 +106,29 @@ type ServerConfig struct {
 }
 
 type EmailConfig struct {
-	Host            string          `mapstructure:"host"`
-	Port            int             `mapstructure:"port"`
-	Username        string          `mapstructure:"username"`
-	Password        string          `mapstructure:"password"`
-	PollingInterval int             `mapstructure:"polling_interval"` // en segundos
-	Services        []ServiceConfig `mapstructure:"services"`
+	Host             string          `mapstructure:"host"`
+	Port             int             `mapstructure:"port"`
+	Username         string          `mapstructure:"username"`
+	Password         string          `mapstructure:"password"`
+	PollingInterval  int             `mapstructure:"polling_interval"`   // en segundos
+	LogPreviewLength int             `mapstructure:"log_preview_length"` // characters of searched text in warnings
+	Services         []ServiceConfig `mapstructure:"services"`
+}
+
+// EffectivePollingInterval returns the poll interval, DefaultPollingInterval when unset.
+func (e EmailConfig) EffectivePollingInterval() time.Duration {
+	if e.PollingInterval <= 0 {
+		return DefaultPollingInterval
+	}
+	return time.Duration(e.PollingInterval) * time.Second
+}
+
+// EffectiveLogPreviewLength returns the preview cap of log warnings, DefaultLogPreviewLength when unset.
+func (e EmailConfig) EffectiveLogPreviewLength() int {
+	if e.LogPreviewLength <= 0 {
+		return DefaultLogPreviewLength
+	}
+	return e.LogPreviewLength
 }
 
 type ServiceConfig struct {
@@ -111,6 +143,16 @@ type ServiceProcessorConfig struct {
 	TelegramMessage string   `mapstructure:"telegram_message"`
 	CodePattern     string   `mapstructure:"code_pattern,omitempty"` // optional custom regex
 	MarkAsRead      *bool    `mapstructure:"mark_as_read,omitempty"` // optional; defaults to true
+	// Extractor selects the code strategy: "pattern" (default) or "marker".
+	Extractor string `mapstructure:"extractor"`
+	// CodeMarkers are the phrases that precede a code, tried in order (extractor marker).
+	CodeMarkers []string `mapstructure:"code_markers"`
+	// CodeCandidates are the regexes tried after a marker, in order (extractor marker).
+	CodeCandidates []string `mapstructure:"code_candidates"`
+	// NotFoundText replaces the code in the template when no code is found.
+	NotFoundText string `mapstructure:"not_found_text"`
+	// StripMIMEHeaders removes the header block before extraction. Nil means true.
+	StripMIMEHeaders *bool `mapstructure:"strip_mime_headers"`
 }
 
 // ShouldMarkAsRead reports whether a processed email should be flagged as
@@ -121,6 +163,38 @@ func (c ServiceProcessorConfig) ShouldMarkAsRead() bool {
 		return true
 	}
 	return *c.MarkAsRead
+}
+
+// EffectiveExtractor returns the extractor, ExtractorPattern when unset.
+func (c ServiceProcessorConfig) EffectiveExtractor() string {
+	if c.Extractor == "" {
+		return ExtractorPattern
+	}
+	return c.Extractor
+}
+
+// EffectiveCodePattern returns code_pattern, DefaultCodePattern when unset.
+func (c ServiceProcessorConfig) EffectiveCodePattern() string {
+	if c.CodePattern == "" {
+		return DefaultCodePattern
+	}
+	return c.CodePattern
+}
+
+// EffectiveNotFoundText returns not_found_text, DefaultNotFoundText when unset.
+func (c ServiceProcessorConfig) EffectiveNotFoundText() string {
+	if c.NotFoundText == "" {
+		return DefaultNotFoundText
+	}
+	return c.NotFoundText
+}
+
+// EffectiveStripMIMEHeaders reports whether the header block is removed. It is true when unset.
+func (c ServiceProcessorConfig) EffectiveStripMIMEHeaders() bool {
+	if c.StripMIMEHeaders == nil {
+		return true
+	}
+	return *c.StripMIMEHeaders
 }
 
 type TelegramConfig struct {
@@ -282,6 +356,26 @@ type WebhookConfig struct {
 type WebhookProcessorConfig struct {
 	TelegramChatID  string `mapstructure:"telegram_chat_id"`
 	TelegramMessage string `mapstructure:"telegram_message"`
+	// MaxBodyBytes caps the request body; a larger one gets 413. Zero means DefaultWebhookMaxBodyBytes.
+	MaxBodyBytes int64 `mapstructure:"max_body_bytes"`
+}
+
+// EffectiveMaxBodyBytes returns the body cap, DefaultWebhookMaxBodyBytes when unset.
+func (c WebhookProcessorConfig) EffectiveMaxBodyBytes() int64 {
+	if c.MaxBodyBytes <= 0 {
+		return DefaultWebhookMaxBodyBytes
+	}
+	return c.MaxBodyBytes
+}
+
+// FindWebhook returns the config of the hook entry named name, or nil when no entry has that name.
+func FindWebhook(cfg *Config, name string) *WebhookProcessorConfig {
+	for i := range cfg.Hook {
+		if cfg.Hook[i].Name == name {
+			return &cfg.Hook[i].Config
+		}
+	}
+	return nil
 }
 
 // defaultConfigPaths are searched in order: container paths first, then the working directory.
@@ -342,6 +436,12 @@ func loadFrom(configPaths []string) (*Config, error) {
 		return nil, err
 	}
 	if err := validateHTTPSettings(&config); err != nil {
+		return nil, err
+	}
+	if err := validateEmail(config.Email); err != nil {
+		return nil, err
+	}
+	if err := validateHooks(config.Hook); err != nil {
 		return nil, err
 	}
 
@@ -707,6 +807,63 @@ func validateReportSettings(r *DependencyReportConfig) error {
 		return fmt.Errorf("dependency_report.document_name must contain {date} and no / or \\: %q", r.DocumentName)
 	case r.DateLayout == "":
 		return fmt.Errorf("dependency_report.date_layout must not be empty")
+	}
+	return nil
+}
+
+// validateEmail rejects a negative poll interval and checks each email service's extractor settings.
+func validateEmail(e EmailConfig) error {
+	if e.PollingInterval < 0 {
+		return fmt.Errorf("email.polling_interval must not be negative, got %d", e.PollingInterval)
+	}
+	for _, service := range e.Services {
+		if err := validateService(service); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// validateService checks the extractor of one email service. Each error names the service and the key.
+func validateService(service ServiceConfig) error {
+	c := service.Config
+	switch c.EffectiveExtractor() {
+	case ExtractorPattern:
+	case ExtractorMarker:
+		if len(c.CodeMarkers) == 0 {
+			return fmt.Errorf("service %q: extractor %s requires code_markers", service.Name, ExtractorMarker)
+		}
+	default:
+		return fmt.Errorf("service %q: extractor %q must be %s or %s", service.Name, c.Extractor, ExtractorPattern, ExtractorMarker)
+	}
+	if err := validateRegexp(service.Name, "code_pattern", c.CodePattern); err != nil {
+		return err
+	}
+	for _, candidate := range c.CodeCandidates {
+		if err := validateRegexp(service.Name, "code_candidates", candidate); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// validateRegexp compiles an optional regex and names the service and key when it is invalid.
+func validateRegexp(service, key, expression string) error {
+	if expression == "" {
+		return nil
+	}
+	if _, err := regexp.Compile(expression); err != nil {
+		return fmt.Errorf("service %q: %s: %w", service, key, err)
+	}
+	return nil
+}
+
+// validateHooks rejects a negative body cap of a webhook hook. The error names the hook and the key.
+func validateHooks(hooks []WebhookConfig) error {
+	for _, hook := range hooks {
+		if hook.Config.MaxBodyBytes < 0 {
+			return fmt.Errorf("hook.%s.config.max_body_bytes must not be negative, got %d", hook.Name, hook.Config.MaxBodyBytes)
+		}
 	}
 	return nil
 }

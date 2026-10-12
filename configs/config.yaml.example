@@ -133,6 +133,7 @@ email:
   username: "{{EMAIL_USERNAME}}"
   password: "{{EMAIL_PASSWORD}}"
   polling_interval: 20 # Polling interval in seconds
+  # log_preview_length: 200  # Optional: characters of the searched text shown in not-found warnings
   services:
     - name: "cloudflare"
       config:
@@ -141,8 +142,11 @@ email:
           - "devidence.dev"
         telegram_chat_id: "{{TELEGRAM_CLOUDFLARE_CHAT_ID}}"
         telegram_message: "🛡️ Cloudflare App Code: \n```%s```"
-        # code_pattern: "\\b\\d{6}\\b"  # Optional: custom regex pattern
+        code_pattern: "\\b\\d{6}\\b"  # the 6-digit code
+        # The code sits in the header block, so the headers are kept.
+        strip_mime_headers: false
         # mark_as_read: false  # Optional: leave the email unread after processing (default: true)
+        # not_found_text: "Not found"  # Optional: sent when no code is found (default: Not found)
     - name: "openai"
       config:
         email_from: "noreply@tm.openai.com"
@@ -153,8 +157,8 @@ email:
         telegram_message: "🤖 ChatGPT Code: ```%s```"
         # HTML email body has inline CSS hex colors (e.g. "#202123") that a
         # bare \b\d{6}\b would greedily match before the real code. The
-        # leading [^#] + capture group rules those out (see generic.go's
-        # extractCode: it prefers submatch group 1 when the pattern has one).
+        # leading [^#] + capture group rules those out (see extractor.go's
+        # matchCode: it prefers submatch group 1 when the pattern has one).
         code_pattern: "[^#]\\b(\\d{6})\\b"
     - name: "perplexity"
       config:
@@ -164,7 +168,12 @@ email:
           - "Inicia sesión en Perplexity"
         telegram_chat_id: "{{TELEGRAM_PERPLEXITY_CHAT_ID}}"
         telegram_message: "🔮 Perplexity Code: ```%s```"
-        # code_pattern: "\\b[a-zA-Z0-9]{5}-[a-zA-Z0-9]{5}\\b"  # Optional
+        # The code follows the first marker that occurs, in this order. The
+        # candidates are tried on the text after the marker, then code_pattern.
+        extractor: marker
+        code_markers: ["directly:", "directamente:"]
+        code_candidates: ["\\b(\\d{5,6})\\b", "\\b([a-zA-Z0-9]+-[a-zA-Z0-9]+)\\b"]
+        code_pattern: "(?:\\d{5,6}|[a-zA-Z0-9]+-[a-zA-Z0-9]+)"
 
 hook:
   - name: "qbittorrent"
@@ -172,6 +181,7 @@ hook:
     config:
       telegram_chat_id: "{{TELEGRAM_QBITTORRENT_CHAT_ID}}"
       telegram_message: "📥 **Download completed successfully!** 🎬 \n🔍 **Name:**  \n%s\n📍 **Path:**  \n%s"
+      # max_body_bytes: 1048576  # Optional: body cap in bytes; a larger body gets 413 (default 1 MiB)
   # - name: "other-webhook"
   #   path: "/webhook/other-webhook"
   #   config:

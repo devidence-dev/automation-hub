@@ -1,58 +1,30 @@
 package processor
 
 import (
-	"fmt"
-
 	"go.uber.org/zap"
 
 	"automation-hub/internal/config"
 	"automation-hub/internal/models"
-	"automation-hub/internal/services/telegram"
 )
 
+// TorrentProcessor sends the completion message of a torrent webhook through the hook's template.
 type TorrentProcessor struct {
-	telegram *telegram.Client
+	notifier TemplateNotifier
 	logger   *zap.Logger
-	config   *config.WebhookProcessorConfig
 }
 
-func NewTorrentProcessor(telegram *telegram.Client, webhookConfig *config.WebhookProcessorConfig, logger *zap.Logger) *TorrentProcessor {
+func NewTorrentProcessor(sender messageSender, webhookConfig *config.WebhookProcessorConfig, logger *zap.Logger) *TorrentProcessor {
 	return &TorrentProcessor{
-		telegram: telegram,
-		logger:   logger,
-		config:   webhookConfig,
-	}
-}
-
-// NewTorrentProcessorLegacy maintains compatibility with the existing code
-func NewTorrentProcessorLegacy(telegram *telegram.Client, chatID string, logger *zap.Logger) *TorrentProcessor {
-	return &TorrentProcessor{
-		telegram: telegram,
-		logger:   logger,
-		config: &config.WebhookProcessorConfig{
-			TelegramChatID: chatID,
-			TelegramMessage: `📥 **Download completed successfully!** 🎬
-
-🔍 **Name:**  
-%s
-
-📍 **Path:**  
-%s`,
+		notifier: TemplateNotifier{
+			sender:   sender,
+			chatID:   webhookConfig.TelegramChatID,
+			template: webhookConfig.TelegramMessage,
 		},
+		logger: logger,
 	}
 }
 
 func (p *TorrentProcessor) Process(notification models.TorrentNotification) error {
-	message := fmt.Sprintf(p.config.TelegramMessage, notification.TorrentName, notification.SavePath)
-	return p.telegram.SendMessage(p.config.TelegramChatID, message)
-}
-
-// GetWebhookConfig searches for the configuration of a specific webhook by name
-func GetWebhookConfig(cfg *config.Config, webhookName string) *config.WebhookProcessorConfig {
-	for _, hook := range cfg.Hook {
-		if hook.Name == webhookName {
-			return &hook.Config
-		}
-	}
-	return nil
+	p.logger.Debug("Sending torrent notification", zap.String("torrent", notification.TorrentName))
+	return p.notifier.Notify(notification.TorrentName, notification.SavePath)
 }

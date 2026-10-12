@@ -1,11 +1,9 @@
 package email
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"strings"
-	"time"
 
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
@@ -15,146 +13,132 @@ import (
 	"automation-hub/internal/models"
 )
 
-type IMAPClient struct {
+// imapSession is the part of a go-imap connection the source uses. *client.Client satisfies it.
+type imapSession interface {
+	Login(username, password string) error
+	Select(name string, readOnly bool) (*imap.MailboxStatus, error)
+	Search(criteria *imap.SearchCriteria) ([]uint32, error)
+	Fetch(seqset *imap.SeqSet, items []imap.FetchItem, ch chan *imap.Message) error
+	Store(seqset *imap.SeqSet, item imap.StoreItem, value interface{}, ch chan *imap.Message) error
+	Logout() error
+}
+
+// IMAPSource is the go-imap transport: it connects, searches unread mail per sender, fetches and flags it.
+type IMAPSource struct {
 	config config.EmailConfig
+	dial   func(addr string) (imapSession, error)
 	logger *zap.Logger
 }
 
-func NewIMAPClient(config config.EmailConfig, logger *zap.Logger) *IMAPClient {
-	return &IMAPClient{
+func NewIMAPSource(config config.EmailConfig, logger *zap.Logger) *IMAPSource {
+	return &IMAPSource{
 		config: config,
+		dial:   dialTLS,
 		logger: logger,
 	}
 }
 
-func (c *IMAPClient) StartMonitoring(ctx context.Context, processors ...models.EmailProcessor) {
-	// Use the polling interval from the configuration, default 60 seconds if not configured
-	pollingInterval := time.Duration(c.config.PollingInterval) * time.Second
-	if c.config.PollingInterval == 0 {
-		pollingInterval = 60 * time.Second
-	}
-
-	c.logger.Info("Starting email monitoring",
-		zap.Duration("polling_interval", pollingInterval))
-
-	ticker := time.NewTicker(pollingInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			c.checkEmails(processors...)
-		}
-	}
-}
-
-func (c *IMAPClient) checkEmails(processors ...models.EmailProcessor) {
-	imapClient, err := c.connectAndLogin()
+func dialTLS(addr string) (imapSession, error) {
+	session, err := client.DialTLS(addr, nil)
 	if err != nil {
-		return
-	}
-	defer c.logout(imapClient)
-
-	var senders []string
-	for _, p := range processors {
-		if s := p.GetSender(); s != "" {
-			senders = append(senders, s)
-		}
-	}
-
-	ids, err := c.searchUnreadEmails(imapClient, senders)
-	if err != nil {
-		return
-	}
-
-	if len(ids) == 0 {
-		return
-	}
-
-	c.fetchAndProcessMessages(imapClient, ids, processors...)
-}
-
-func (c *IMAPClient) connectAndLogin() (*client.Client, error) {
-	imapClient, err := client.DialTLS(fmt.Sprintf("%s:%d", c.config.Host, c.config.Port), nil)
-	if err != nil {
-		c.logger.Error("Failed to connect to IMAP server", zap.Error(err))
 		return nil, err
 	}
+	return session, nil
+}
 
-	if err := imapClient.Login(c.config.Username, c.config.Password); err != nil {
-		c.logger.Error("Failed to login", zap.Error(err))
-		if logoutErr := imapClient.Logout(); logoutErr != nil {
-			c.logger.Error("Failed to logout after login failure", zap.Error(logoutErr))
-		}
-		return nil, err
-	}
-
-	_, err = imapClient.Select("INBOX", false)
+// Unread connects, logs in, selects INBOX and offers each unread email from senders to handle. Errors
+// wrap the IMAP host; the poller logs them.
+func (s *IMAPSource) Unread(senders []string, handle func(models.Email) bool) error {
+	session, err := s.connect()
 	if err != nil {
-		c.logger.Error("Failed to select INBOX", zap.Error(err))
-		if logoutErr := imapClient.Logout(); logoutErr != nil {
-			c.logger.Error("Failed to logout after select failure", zap.Error(logoutErr))
-		}
-		return nil, err
+		return err
 	}
+	defer s.logout(session)
 
-	return imapClient, nil
+	ids, err := s.search(session, senders)
+	if err != nil || len(ids) == 0 {
+		return err
+	}
+	return s.fetch(session, ids, handle)
 }
 
-func (c *IMAPClient) logout(imapClient *client.Client) {
-	if err := imapClient.Logout(); err != nil {
-		c.logger.Error("Failed to logout from IMAP server", zap.Error(err))
+func (s *IMAPSource) connect() (imapSession, error) {
+	addr := fmt.Sprintf("%s:%d", s.config.Host, s.config.Port)
+	session, err := s.dial(addr)
+	if err != nil {
+		return nil, fmt.Errorf("imap %s: connect: %w", s.config.Host, err)
+	}
+	if err := session.Login(s.config.Username, s.config.Password); err != nil {
+		s.logout(session)
+		return nil, fmt.Errorf("imap %s: login: %w", s.config.Host, err)
+	}
+	if _, err := session.Select("INBOX", false); err != nil {
+		s.logout(session)
+		return nil, fmt.Errorf("imap %s: select INBOX: %w", s.config.Host, err)
+	}
+	return session, nil
+}
+
+func (s *IMAPSource) logout(session imapSession) {
+	if err := session.Logout(); err != nil {
+		s.logger.Error("Failed to logout from IMAP server", zap.Error(err))
 	}
 }
 
-func (c *IMAPClient) searchUnreadEmails(imapClient *client.Client, senders []string) ([]uint32, error) {
+// search returns the IDs of the unread emails from any sender, or of all unread emails when senders is
+// empty. A failed search for one sender is logged and skipped; the search fails only when every one fails.
+func (s *IMAPSource) search(session imapSession, senders []string) ([]uint32, error) {
 	if len(senders) == 0 {
-		// Fallback to searching all unread emails if no senders specified
-		criteria := imap.NewSearchCriteria()
-		criteria.WithoutFlags = []string{imap.SeenFlag}
-
-		ids, err := imapClient.Search(criteria)
+		ids, err := session.Search(unreadCriteria(""))
 		if err != nil {
-			c.logger.Error("Failed to search emails", zap.Error(err))
-			return nil, err
+			return nil, fmt.Errorf("imap %s: search unread: %w", s.config.Host, err)
 		}
 		if len(ids) > 0 {
-			c.logger.Info("Found unread emails (all sources)", zap.Int("count", len(ids)))
+			s.logger.Info("Found unread emails (all sources)", zap.Int("count", len(ids)))
 		}
 		return ids, nil
 	}
 
 	uniqueIDs := make(map[uint32]struct{})
+	var lastErr error
+	failed := 0
 	for _, sender := range senders {
-		criteria := imap.NewSearchCriteria()
-		criteria.WithoutFlags = []string{imap.SeenFlag}
-		criteria.Header.Add("From", sender)
-
-		ids, err := imapClient.Search(criteria)
+		ids, err := session.Search(unreadCriteria(sender))
 		if err != nil {
-			c.logger.Error("Failed to search emails for sender", zap.String("sender", sender), zap.Error(err))
+			s.logger.Error("Failed to search emails for sender", zap.String("sender", sender), zap.Error(err))
+			lastErr = err
+			failed++
 			continue
 		}
 		for _, id := range ids {
 			uniqueIDs[id] = struct{}{}
 		}
 	}
+	if failed == len(senders) {
+		return nil, fmt.Errorf("imap %s: every sender search failed: %w", s.config.Host, lastErr)
+	}
 
 	var allIDs []uint32
 	for id := range uniqueIDs {
 		allIDs = append(allIDs, id)
 	}
-
 	if len(allIDs) > 0 {
-		c.logger.Info("Found unread emails from allowed senders", zap.Int("count", len(allIDs)))
+		s.logger.Info("Found unread emails from allowed senders", zap.Int("count", len(allIDs)))
 	}
-
 	return allIDs, nil
 }
 
-func (c *IMAPClient) fetchAndProcessMessages(imapClient *client.Client, ids []uint32, processors ...models.EmailProcessor) {
+// unreadCriteria matches unread mail, and mail whose From contains sender when sender is not empty.
+func unreadCriteria(sender string) *imap.SearchCriteria {
+	criteria := imap.NewSearchCriteria()
+	criteria.WithoutFlags = []string{imap.SeenFlag}
+	if sender != "" {
+		criteria.Header.Add("From", sender)
+	}
+	return criteria
+}
+
+func (s *IMAPSource) fetch(session imapSession, ids []uint32, handle func(models.Email) bool) error {
 	seqset := new(imap.SeqSet)
 	seqset.AddNum(ids...)
 
@@ -162,7 +146,7 @@ func (c *IMAPClient) fetchAndProcessMessages(imapClient *client.Client, ids []ui
 	done := make(chan error, 1)
 
 	go func() {
-		done <- imapClient.Fetch(seqset, []imap.FetchItem{
+		done <- session.Fetch(seqset, []imap.FetchItem{
 			imap.FetchEnvelope,
 			imap.FetchBodyStructure,
 			"BODY.PEEK[TEXT]",
@@ -172,98 +156,35 @@ func (c *IMAPClient) fetchAndProcessMessages(imapClient *client.Client, ids []ui
 	}()
 
 	for msg := range messages {
-		c.processMessage(imapClient, msg, processors...)
-	}
-
-	if err := <-done; err != nil {
-		c.logger.Error("Failed to fetch messages", zap.Error(err))
-	}
-}
-
-func (c *IMAPClient) processMessage(imapClient *client.Client, msg *imap.Message, processors ...models.EmailProcessor) {
-	email := c.parseMessage(msg)
-
-	for _, processor := range processors {
-		if processor.ShouldProcess(email) {
-			c.logger.Info("Processing email",
-				zap.String("subject", email.Subject),
-				zap.String("from", email.From))
-
-			// Try to process the email
-			if err := processor.Process(email); err != nil {
-				c.logger.Error("Failed to process email",
-					zap.String("subject", email.Subject),
-					zap.String("from", email.From),
-					zap.Error(err))
-				return
-			}
-
-			c.logger.Info("Email processed successfully",
-				zap.String("subject", email.Subject),
-				zap.String("from", email.From))
-
-			// Handle post-processing (marking as read only for Perplexity/Cloudflare)
-			c.handlePostProcessing(imapClient, processor, msg, email)
-			return
+		if handle(s.parseMessage(msg)) {
+			s.markAsRead(session, msg.SeqNum)
 		}
 	}
 
-	// No processor matched this email, leave it unread
-	c.logger.Info("Email ignored (no matching processor)",
-		zap.String("subject", email.Subject),
-		zap.String("from", email.From))
+	if err := <-done; err != nil {
+		return fmt.Errorf("imap %s: fetch: %w", s.config.Host, err)
+	}
+	return nil
 }
 
-func (c *IMAPClient) handlePostProcessing(imapClient *client.Client, processor models.EmailProcessor, msg *imap.Message, email models.Email) {
-	marker, ok := processor.(interface{ ShouldMarkAsRead() bool })
-	if !ok {
-		c.logger.Debug("Processor has no ShouldMarkAsRead, not marking as read",
-			zap.String("subject", email.Subject))
-		return
-	}
-
-	if marker.ShouldMarkAsRead() {
-		c.logger.Info("Marking email as read",
-			zap.String("from", email.From),
-			zap.String("subject", email.Subject))
-		c.markAsRead(imapClient, msg.SeqNum)
-	} else {
-		c.logger.Info("Email processed but NOT marked as read (mark_as_read: false in config)",
-			zap.String("from", email.From),
-			zap.String("subject", email.Subject))
-	}
-}
-
-func (c *IMAPClient) markAsRead(imapClient *client.Client, seqNum uint32) {
-	if imapClient == nil {
+func (s *IMAPSource) markAsRead(session imapSession, seqNum uint32) {
+	if session == nil {
 		return
 	}
 	seqSet := new(imap.SeqSet)
 	seqSet.AddNum(seqNum)
 	flags := []interface{}{imap.SeenFlag}
-	if err := imapClient.Store(seqSet, "+FLAGS", flags, nil); err != nil {
-		c.logger.Error("Failed to mark email as read", zap.Error(err))
+	if err := session.Store(seqSet, "+FLAGS", flags, nil); err != nil {
+		s.logger.Error("Failed to mark email as read", zap.Error(err))
 	}
 }
 
-func (c *IMAPClient) markAsUnread(imapClient *client.Client, seqNum uint32) {
-	if imapClient == nil {
-		return
-	}
-	seqSet := new(imap.SeqSet)
-	seqSet.AddNum(seqNum)
-	flags := []interface{}{imap.SeenFlag}
-	if err := imapClient.Store(seqSet, "-FLAGS", flags, nil); err != nil {
-		c.logger.Error("Failed to mark email as unread", zap.Error(err))
-	}
-}
-
-func (c *IMAPClient) parseMessage(msg *imap.Message) models.Email {
-	email := models.Email{
-		ID: msg.Envelope.MessageId,
-	}
+// parseMessage builds the email of a fetched message. A message without an envelope keeps empty fields.
+func (s *IMAPSource) parseMessage(msg *imap.Message) models.Email {
+	var email models.Email
 
 	if msg.Envelope != nil {
+		email.ID = msg.Envelope.MessageId
 		email.Subject = msg.Envelope.Subject
 		if len(msg.Envelope.From) > 0 {
 			email.From = msg.Envelope.From[0].Address()
@@ -273,9 +194,9 @@ func (c *IMAPClient) parseMessage(msg *imap.Message) models.Email {
 	// Parse body - look for BODY[TEXT] section
 	for sectionName, body := range msg.Body {
 		sectionStr := string(sectionName.FetchItem())
-		c.logger.Info("Found email section", zap.String("section", sectionStr))
+		s.logger.Info("Found email section", zap.String("section", sectionStr))
 		if strings.Contains(sectionStr, "TEXT") {
-			email.TextPlain = c.extractTextPlain(body)
+			email.TextPlain = s.extractTextPlain(body)
 			break
 		}
 	}
@@ -283,7 +204,7 @@ func (c *IMAPClient) parseMessage(msg *imap.Message) models.Email {
 	return email
 }
 
-func (c *IMAPClient) extractTextPlain(body imap.Literal) string {
+func (s *IMAPSource) extractTextPlain(body imap.Literal) string {
 	if body == nil {
 		return ""
 	}
@@ -291,7 +212,7 @@ func (c *IMAPClient) extractTextPlain(body imap.Literal) string {
 	// Read the body content
 	buf, err := io.ReadAll(body)
 	if err != nil {
-		c.logger.Error("Failed to read email body", zap.Error(err))
+		s.logger.Error("Failed to read email body", zap.Error(err))
 		return ""
 	}
 

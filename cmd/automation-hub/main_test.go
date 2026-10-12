@@ -141,6 +141,18 @@ func TestRegisterRoutesUnknownHookWarns(t *testing.T) {
 	}
 }
 
+// TestRegisterRoutesQbittorrentMissing checks that without a qbittorrent hook its path has no route.
+func TestRegisterRoutesQbittorrentMissing(t *testing.T) {
+	cfg := &config.Config{Hook: []config.WebhookConfig{{Name: "sonarr", Path: "/webhook/sonarr"}}}
+	router := routesWith(t, cfg, zap.NewNop())
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/webhook/qbittorrent", strings.NewReader("{")))
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404 without a qbittorrent hook", rec.Code)
+	}
+}
+
 // TestRegisterRoutesHookNamedDependencyReportIgnored checks that a hook entry named dependency-report
 // is unknown: the report route mounts once, from its section, and the entry only logs a warning.
 func TestRegisterRoutesHookNamedDependencyReportIgnored(t *testing.T) {

@@ -78,7 +78,8 @@ email:
           - "your-domain.com"
         telegram_chat_id: "YOUR_CLOUDFLARE_CHAT_ID"
         telegram_message: "🛡️ Cloudflare Code: ```%s```"
-        # code_pattern: "\\b\\d{6}\\b"  # Optional: custom regex
+        code_pattern: "\\b\\d{6}\\b"  # the 6-digit code
+        strip_mime_headers: false  # the code is in the header block
         
     - name: "perplexity"
       config:
@@ -87,8 +88,13 @@ email:
           - "Sign in to Perplexity"
         telegram_chat_id: "YOUR_PERPLEXITY_CHAT_ID"
         telegram_message: "🔮 Perplexity Code: ```%s```"
+        extractor: marker  # the code follows one of the markers
+        code_markers: ["directly:", "directamente:"]
+        code_candidates: ["\\b(\\d{5,6})\\b", "\\b([a-zA-Z0-9]+-[a-zA-Z0-9]+)\\b"]
+        code_pattern: "(?:\\d{5,6}|[a-zA-Z0-9]+-[a-zA-Z0-9]+)"
         
     # ➕ Add more services here without touching code!
+    # Each service's extraction comes from its keys; see "Email extraction settings" below.
 
 # 🔗 Webhook Configuration
 hook:
@@ -317,6 +323,16 @@ The `%s` placeholders will be replaced with:
 1. First `%s` → Torrent name
 2. Second `%s` → Save path
 
+**📏 Body size cap:** the request body is read up to `max_body_bytes` (under the hook's `config`, default `1048576`, 1 MiB). A larger body gets `413` and no Telegram message is sent. A negative value stops startup.
+
+```yaml
+hook:
+  - name: "qbittorrent"
+    config:
+      telegram_chat_id: "YOUR_CHAT_ID"
+      max_body_bytes: 1048576  # optional
+```
+
 ### 🆕 Adding New Webhooks
 
 The system now supports **configurable webhooks**! Add new webhook handlers without coding:
@@ -366,6 +382,23 @@ email:
 - ✅ Extract codes using the pattern
 - ✅ Send formatted Telegram notifications
 - ✅ Mark the email as read (unless `mark_as_read: false`), so it isn't re-forwarded on the next poll
+
+### 🔎 Email extraction settings
+
+Each service's behavior comes from its keys, not from its name. All keys are optional:
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `extractor` | `pattern` | `pattern` takes the first match of `code_pattern`; `marker` finds the code after one of `code_markers` |
+| `code_markers` | none | Phrases that precede the code, tried in order and case-insensitively (required by `marker`) |
+| `code_candidates` | none | Regexes tried on the text after the marker, in order; the first capture group is the code |
+| `code_pattern` | `\b[a-zA-Z0-9]{4,8}\b` | The code pattern; with `marker` it is the fallback after the candidates, and absent means no fallback |
+| `strip_mime_headers` | `true` | Removes the header block before extraction; set `false` when the code is in the headers |
+| `not_found_text` | `Not found` | Sent in place of the code when none is found |
+| `log_preview_length` (under `email:`) | `200` | Characters of the searched text shown in not-found warnings |
+| `polling_interval` (under `email:`) | `60` | Seconds between mailbox polls |
+
+An invalid regex, an unknown `extractor`, or `marker` without `code_markers` stops startup, and the error names the service.
 
 ---
 

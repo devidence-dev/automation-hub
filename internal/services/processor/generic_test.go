@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"errors"
 	"testing"
 
 	"go.uber.org/zap"
@@ -9,8 +10,43 @@ import (
 	"automation-hub/internal/models"
 )
 
+// migratedCloudflare and migratedPerplexity are the service configs of the CONFIG_YAML migration (task 6.1).
+var (
+	migratedCloudflare = config.ServiceProcessorConfig{
+		EmailFrom:        "noreply@notify.cloudflare.com",
+		EmailSubject:     []string{"devidence.dev"},
+		TelegramChatID:   "42",
+		TelegramMessage:  "🛡️ Cloudflare App Code: \n```%s```",
+		CodePattern:      `\b\d{6}\b`,
+		StripMIMEHeaders: boolPtr(false),
+	}
+	migratedPerplexity = config.ServiceProcessorConfig{
+		EmailFrom:       "team@mail.perplexity.ai",
+		EmailSubject:    []string{"Sign in to Perplexity"},
+		TelegramChatID:  "43",
+		TelegramMessage: "🔮 Perplexity Code: ```%s```",
+		Extractor:       config.ExtractorMarker,
+		CodeMarkers:     []string{"directly:", "directamente:"},
+		CodeCandidates:  []string{`\b(\d{5,6})\b`, `\b([a-zA-Z0-9]+-[a-zA-Z0-9]+)\b`},
+		CodePattern:     `(?:\d{5,6}|[a-zA-Z0-9]+-[a-zA-Z0-9]+)`,
+	}
+)
+
+func boolPtr(b bool) *bool {
+	return &b
+}
+
+// newTestProcessor builds a processor with a nil sender, for tests that call its extraction only.
+func newTestProcessor(t *testing.T, name string, cfg config.ServiceProcessorConfig) *GenericEmailProcessor {
+	t.Helper()
+	p, err := NewGenericEmailProcessor(name, cfg, config.DefaultLogPreviewLength, nil, zap.NewNop())
+	if err != nil {
+		t.Fatalf("NewGenericEmailProcessor(%s) error = %v", name, err)
+	}
+	return p
+}
+
 func TestNewGenericEmailProcessor_CustomPattern(t *testing.T) {
-	logger := zap.NewNop()
 	cfg := config.ServiceProcessorConfig{
 		EmailFrom:       "test@example.com",
 		EmailSubject:    []string{"Security Code"},
@@ -19,7 +55,7 @@ func TestNewGenericEmailProcessor_CustomPattern(t *testing.T) {
 		CodePattern:     `\b[0-9]{4}\b`,
 	}
 
-	p := NewGenericEmailProcessor("custom_service", cfg, nil, logger)
+	p := newTestProcessor(t, "custom_service", cfg)
 
 	if p.GetName() != "custom_service" {
 		t.Errorf("Expected name custom_service, got %s", p.GetName())
@@ -29,45 +65,40 @@ func TestNewGenericEmailProcessor_CustomPattern(t *testing.T) {
 	}
 }
 
-func TestNewGenericEmailProcessor_InvalidCustomPatternFallback(t *testing.T) {
-	logger := zap.NewNop()
-	cfg := config.ServiceProcessorConfig{
-		EmailFrom:       "test@example.com",
-		EmailSubject:    []string{"Code"},
-		CodePattern:     `[invalid regex (`,
+func TestNewGenericEmailProcessor_InvalidPatternFails(t *testing.T) {
+	tests := []struct {
+		name string
+		cfg  config.ServiceProcessorConfig
+	}{
+		{name: "invalid code_pattern", cfg: config.ServiceProcessorConfig{CodePattern: `[invalid regex (`}},
+		{name: "invalid candidate", cfg: config.ServiceProcessorConfig{Extractor: config.ExtractorMarker, CodeMarkers: []string{"x"}, CodeCandidates: []string{"("}}},
+		{name: "unknown extractor", cfg: config.ServiceProcessorConfig{Extractor: "regex"}},
 	}
-
-	p := NewGenericEmailProcessor("default", cfg, nil, logger)
-	if p.codePattern == nil {
-		t.Error("Expected fallback codePattern to be initialized")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := NewGenericEmailProcessor("github", tt.cfg, config.DefaultLogPreviewLength, nil, zap.NewNop()); err == nil {
+				t.Error("NewGenericEmailProcessor() error = nil, want an error")
+			}
+		})
 	}
 }
 
-func TestNewGenericEmailProcessor_BuiltInPatterns(t *testing.T) {
-	logger := zap.NewNop()
-	cfg := config.ServiceProcessorConfig{
-		EmailFrom: "test@example.com",
-	}
-
-	cfProcessor := NewGenericEmailProcessor("cloudflare", cfg, nil, logger)
-	if cfProcessor.codePattern == nil {
-		t.Error("Expected Cloudflare default pattern")
-	}
-
-	pxProcessor := NewGenericEmailProcessor("perplexity", cfg, nil, logger)
-	if pxProcessor.codePattern == nil {
-		t.Error("Expected Perplexity default pattern")
+// TestNewGenericEmailProcessor_ExplicitConfig builds the two migrated services from explicit config only.
+func TestNewGenericEmailProcessor_ExplicitConfig(t *testing.T) {
+	cloudflare := newTestProcessor(t, "cloudflare", migratedCloudflare)
+	perplexity := newTestProcessor(t, "perplexity", migratedPerplexity)
+	if cloudflare.extractor == nil || perplexity.extractor == nil {
+		t.Error("Expected both explicit services to get an extractor")
 	}
 }
 
 func TestShouldProcess(t *testing.T) {
-	logger := zap.NewNop()
 	cfg := config.ServiceProcessorConfig{
 		EmailFrom:    "alert@service.com",
 		EmailSubject: []string{"Verification", "Login Code"},
 	}
 
-	p := NewGenericEmailProcessor("test", cfg, nil, logger)
+	p := newTestProcessor(t, "test", cfg)
 
 	tests := []struct {
 		name     string
@@ -119,13 +150,10 @@ func TestShouldProcess(t *testing.T) {
 }
 
 func TestExtractCode(t *testing.T) {
-	logger := zap.NewNop()
-	cfg := config.ServiceProcessorConfig{
+	p := newTestProcessor(t, "default", config.ServiceProcessorConfig{
 		EmailFrom:   "test@example.com",
 		CodePattern: `\b\d{6}\b`,
-	}
-
-	p := NewGenericEmailProcessor("default", cfg, nil, logger)
+	})
 
 	bodyWithHeaders := "Header: Value\n\nYour code is 123456"
 	code := p.extractCode(bodyWithHeaders)
@@ -135,11 +163,15 @@ func TestExtractCode(t *testing.T) {
 
 	noMatchBody := "Header: Value\n\nNo numbers here"
 	codeNotFound := p.extractCode(noMatchBody)
-	if codeNotFound != NotFoundCode {
-		t.Errorf("Expected %s, got %s", NotFoundCode, codeNotFound)
+	if codeNotFound != config.DefaultNotFoundText {
+		t.Errorf("Expected %s, got %s", config.DefaultNotFoundText, codeNotFound)
 	}
 
-	cfProc := NewGenericEmailProcessor("cloudflare", config.ServiceProcessorConfig{EmailFrom: "test@example.com"}, nil, logger)
+	cfProc := newTestProcessor(t, "cloudflare", config.ServiceProcessorConfig{
+		EmailFrom:        "test@example.com",
+		CodePattern:      `\b\d{6}\b`,
+		StripMIMEHeaders: boolPtr(false),
+	})
 	cfCode := cfProc.extractCode("Your Cloudflare verification code is 654321")
 	if cfCode != "654321" {
 		t.Errorf("Expected Cloudflare code 654321, got %s", cfCode)
@@ -153,13 +185,12 @@ func TestExtractCode(t *testing.T) {
 // (OpenAI's configured code_pattern) must skip the hex color and return the
 // actual code via submatch group 1.
 func TestExtractCode_IgnoresHexColor(t *testing.T) {
-	logger := zap.NewNop()
 	cfg := config.ServiceProcessorConfig{
 		EmailFrom:   "noreply@tm.openai.com",
 		CodePattern: `[^#]\b(\d{6})\b`,
 	}
 
-	p := NewGenericEmailProcessor("openai", cfg, nil, logger)
+	p := newTestProcessor(t, "openai", cfg)
 
 	body := "background-color: #ffffff;color:#202123; padding: 0\n" +
 		"Ingresa este codigo:\n662575\n"
@@ -169,54 +200,98 @@ func TestExtractCode_IgnoresHexColor(t *testing.T) {
 	}
 }
 
-func TestExtractPerplexityCode(t *testing.T) {
-	logger := zap.NewNop()
-	cfg := config.ServiceProcessorConfig{
-		EmailFrom: "perplexity@example.com",
+// TestNoNameDefaults checks that a service's name alone changes nothing: "cloudflare" without keys
+// strips the headers and uses the generic pattern.
+func TestNoNameDefaults(t *testing.T) {
+	p := newTestProcessor(t, "cloudflare", config.ServiceProcessorConfig{EmailFrom: "test@example.com"})
+	got := p.extractCode("Subject: Code 111111\n\nYour code is 222222")
+	if got != "Your" {
+		t.Errorf("extractCode() = %q, want Your (generic pattern after the headers)", got)
 	}
+}
 
-	p := NewGenericEmailProcessor("perplexity", cfg, nil, logger)
-
+// TestMigratedServices proves that the migrated keys give today's Cloudflare and Perplexity behavior.
+func TestMigratedServices(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		expected string
+		name string
+		cfg  config.ServiceProcessorConfig
+		text string
+		want string
 	}{
-		{
-			name:     "Perplexity Spanish marker with numeric code",
-			input:    "Inicie sesión directamente:\n123456",
-			expected: "123456",
-		},
-		{
-			name:     "Perplexity English marker with hyphenated code",
-			input:    "Log in directly:\naw9s5-y1zoy",
-			expected: "aw9s5-y1zoy",
-		},
-		{
-			name:     "Perplexity marker missing",
-			input:    "Welcome to Perplexity. Click here to confirm.",
-			expected: NotFoundCode,
-		},
-		{
-			name:     "Perplexity marker present but no valid code",
-			input:    "Log in directly: !!!",
-			expected: NotFoundCode,
-		},
+		{name: "cloudflare plain code", cfg: migratedCloudflare, text: "Your Cloudflare verification code is 654321", want: "654321"},
+		{name: "cloudflare keeps headers", cfg: migratedCloudflare, text: "Subject: Code 111111\n\nYour code is 222222", want: "111111"},
+		{name: "perplexity Spanish marker", cfg: migratedPerplexity, text: "Inicie sesión directamente:\n123456", want: "123456"},
+		{name: "perplexity English marker", cfg: migratedPerplexity, text: "Log in directly:\naw9s5-y1zoy", want: "aw9s5-y1zoy"},
+		{name: "perplexity marker missing", cfg: migratedPerplexity, text: "Welcome to Perplexity.", want: config.DefaultNotFoundText},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := p.extractCode(tt.input)
-			if got != tt.expected {
-				t.Errorf("extractPerplexityCode() = %s, expected %s", got, tt.expected)
+			p := newTestProcessor(t, "service", tt.cfg)
+			if got := p.extractCode(tt.text); got != tt.want {
+				t.Errorf("extractCode() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGenericEmailProcessor_Process(t *testing.T) {
+	tests := []struct {
+		name     string
+		cfg      config.ServiceProcessorConfig
+		text     string
+		sendErr  error
+		wantText string
+		wantErr  bool
+	}{
+		{
+			name:     "cloudflare example",
+			cfg:      migratedCloudflare,
+			text:     "Use this code directly: 123456",
+			wantText: "🛡️ Cloudflare App Code: \n```123456```",
+		},
+		{
+			name: "configured not-found text is sent",
+			cfg: config.ServiceProcessorConfig{
+				TelegramChatID:  "42",
+				TelegramMessage: "🤖 ChatGPT Code: ```%s```",
+				CodePattern:     `\b\d{6}\b`,
+				NotFoundText:    "No code in email",
+			},
+			text:     "There is no code here",
+			wantText: "🤖 ChatGPT Code: ```No code in email```",
+		},
+		{
+			name:    "sender error is returned",
+			cfg:     migratedCloudflare,
+			text:    "Use this code directly: 123456",
+			sendErr: errors.New("telegram unavailable"),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sender := &fakeSender{err: tt.sendErr}
+			p, err := NewGenericEmailProcessor("service", tt.cfg, config.DefaultLogPreviewLength, sender, zap.NewNop())
+			if err != nil {
+				t.Fatalf("NewGenericEmailProcessor() error = %v", err)
+			}
+
+			err = p.Process(models.Email{Subject: "subject", From: "from", TextPlain: tt.text})
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Process() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
+			if len(sender.messages) != 1 || sender.messages[0] != tt.wantText {
+				t.Errorf("sent %q, want %q", sender.messages, tt.wantText)
 			}
 		})
 	}
 }
 
 func TestStripMIMEHeaders(t *testing.T) {
-	logger := zap.NewNop()
-	p := NewGenericEmailProcessor("test", config.ServiceProcessorConfig{}, nil, logger)
+	p := newTestProcessor(t, "test", config.ServiceProcessorConfig{})
 
 	tests := []struct {
 		name     string
@@ -260,8 +335,7 @@ func TestTruncateString(t *testing.T) {
 }
 
 func TestDecodeQuotedPrintable(t *testing.T) {
-	logger := zap.NewNop()
-	p := NewGenericEmailProcessor("test", config.ServiceProcessorConfig{}, nil, logger)
+	p := newTestProcessor(t, "test", config.ServiceProcessorConfig{})
 
 	quoted := "Hello=20World=21"
 	decoded := p.decodeQuotedPrintable(quoted)

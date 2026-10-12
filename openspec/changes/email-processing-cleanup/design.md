@@ -71,7 +71,7 @@ The poller in `email` depends on a `Dispatcher` interface with those two methods
 The go-imap client sits behind a small `imapSession` interface (Login, Select, Search, Fetch, Store, Logout), which `*client.Client` satisfies. Search and error handling are testable with a fake, with no network.
 
 ### D9. Torrent webhook: cap in the handler, processor only formats and sends
-`handlers/webhook.go` finds the hook with `config.FindWebhook` before decoding, because the cap comes from the hook's config. It wraps `r.Body` with `http.MaxBytesReader` using `EffectiveMaxBodyBytes()`, and a `MaxBytesError` maps to `413`. Today the lookup runs after decoding, so this moves it ahead; the response for a missing hook is unchanged. The processor only formats and sends. The cap sits on the hook's config because it applies to this route only. The dependency-report upload has its own limit and is out of scope.
+The hook is read once at registration (`bot-command-registry` D9), so the handler already holds its config and no per-request lookup is added. `handlers/webhook.go` reads the body through `http.MaxBytesReader` with the hook's `EffectiveMaxBodyBytes()`, then decodes it, so a body over the cap is rejected whole. A `MaxBytesError` maps to `413`. The processor only formats and sends. The cap sits on the hook's config because it applies to this route only. The dependency-report upload has its own limit and is out of scope.
 
 ## Coordination with sibling changes
 
@@ -87,7 +87,7 @@ The go-imap client sits behind a small `imapSession` interface (Login, Select, S
 - **Invalid regexes now stop startup** (previously a warning and a fallback). → Mitigation: stated in the proposal, tested in task 1.3. It is a deliberate tightening.
 - **Negative `polling_interval` is rejected** (today `time.NewTicker` panics). → Mitigation: explicit error at load.
 - **Logs change:** the Perplexity search-text preview drops from 300 to the configured 200 characters. Logs only, no behavior change.
-- **Hook lookup now precedes body parsing.** A missing hook returns 500 before a bad body returns 400. → Acceptable; the error is a configuration problem.
+- **No request-time hook lookup.** A hook absent from `hook:` mounts no route, so a POST to its path gets the mux's 404 and not the spec's 500 `Webhook configuration not found`. Producing that 500 would need a per-request lookup, which D9 rules out. → Open question below.
 - **Shared wiring in `cmd/automation-hub/main.go`.** Sibling changes also edit it. → Keep the edit to the constructor and poller lines, and rebase carefully.
 - **Test churn.** Tests keyed on the removed name defaults (`BuiltInPatterns`, the Cloudflare and Perplexity cases in `TestExtractCode` and `TestExtractPerplexityCode`) get explicit config with the same expectations. `TestExtractCode_IgnoresHexColor` keeps its body and assertion.
 
@@ -100,4 +100,6 @@ The go-imap client sits behind a small `imapSession` interface (Login, Select, S
 
 ## Open Questions
 
-None that change the specs or tasks. Possible later work (not in this change): `IDLE` instead of polling, and per-service body caps for other webhooks.
+- Hook configuration lookup (`specs/torrent-webhook-notification`): the spec requires `500 Webhook configuration not found` for a missing `qbittorrent` hook. With the hook fixed at registration, that case is a missing route (404). Decide: amend the spec to the 404, or accept a per-request lookup against D9.
+
+Possible later work (not in this change): `IDLE` instead of polling, and per-service body caps for other webhooks.

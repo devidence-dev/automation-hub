@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 
 	"automation-hub/internal/config"
+	"automation-hub/internal/models"
 )
 
 func TestNewTorrentProcessor(t *testing.T) {
@@ -19,55 +20,27 @@ func TestNewTorrentProcessor(t *testing.T) {
 	if proc == nil {
 		t.Fatal("Expected NewTorrentProcessor to return non-nil instance")
 	}
-	if proc.config != webhookCfg {
-		t.Errorf("Expected config to match webhookCfg")
+	if proc.notifier.chatID != "123" || proc.notifier.template != "Done %s" {
+		t.Errorf("notifier = {chat %q, template %q}, want the hook's chat and template", proc.notifier.chatID, proc.notifier.template)
 	}
 }
 
-func TestNewTorrentProcessorLegacy(t *testing.T) {
-	logger := zap.NewNop()
-	proc := NewTorrentProcessorLegacy(nil, "999", logger)
-
-	if proc == nil {
-		t.Fatal("Expected NewTorrentProcessorLegacy to return non-nil instance")
-	}
-	if proc.config.TelegramChatID != "999" {
-		t.Errorf("Expected TelegramChatID 999, got %s", proc.config.TelegramChatID)
-	}
-}
-
-func TestGetWebhookConfig(t *testing.T) {
-	cfg := &config.Config{
-		Hook: []config.WebhookConfig{
-			{
-				Name: "qbittorrent",
-				Path: "/webhook/qbittorrent",
-				Config: config.WebhookProcessorConfig{
-					TelegramChatID:  "123",
-					TelegramMessage: "Download finished: %s",
-				},
-			},
-			{
-				Name: "sonarr",
-				Path: "/webhook/sonarr",
-				Config: config.WebhookProcessorConfig{
-					TelegramChatID:  "456",
-					TelegramMessage: "Series imported: %s",
-				},
-			},
-		},
+func TestTorrentProcessor_Process(t *testing.T) {
+	sender := &fakeSender{}
+	webhookCfg := &config.WebhookProcessorConfig{
+		TelegramChatID:  "123",
+		TelegramMessage: "Download finished: %s at %s",
 	}
 
-	qbitHook := GetWebhookConfig(cfg, "qbittorrent")
-	if qbitHook == nil {
-		t.Fatalf("Expected qbittorrent webhook config, got nil")
+	proc := NewTorrentProcessor(sender, webhookCfg, zap.NewNop())
+	err := proc.Process(models.TorrentNotification{TorrentName: "Dune.2021.1080p", SavePath: "/downloads/movies"})
+	if err != nil {
+		t.Fatalf("Process() error = %v", err)
 	}
-	if qbitHook.TelegramChatID != "123" {
-		t.Errorf("Expected TelegramChatID 123, got %s", qbitHook.TelegramChatID)
+	if len(sender.messages) != 1 || sender.messages[0] != "Download finished: Dune.2021.1080p at /downloads/movies" {
+		t.Errorf("sent %q, want the filled template", sender.messages)
 	}
-
-	nonExistentHook := GetWebhookConfig(cfg, "non_existent")
-	if nonExistentHook != nil {
-		t.Errorf("Expected nil for non_existent webhook, got %v", nonExistentHook)
+	if len(sender.chatIDs) != 1 || sender.chatIDs[0] != "123" {
+		t.Errorf("chat IDs = %q, want [123]", sender.chatIDs)
 	}
 }

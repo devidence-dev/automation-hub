@@ -1,98 +1,90 @@
 package processor
 
 import (
-	"context"
-	"sync"
-
 	"go.uber.org/zap"
 
 	"automation-hub/internal/config"
 	"automation-hub/internal/models"
-	"automation-hub/internal/services/telegram"
 )
 
+// Manager holds the email processors in config order and dispatches each email to the first one that matches.
 type Manager struct {
 	processors []models.EmailProcessor
-	telegram   *telegram.Client
 	logger     *zap.Logger
-	wg         sync.WaitGroup
 }
 
-func NewProcessorManager(emailConfig config.EmailConfig, telegram *telegram.Client, logger *zap.Logger) *Manager {
-	manager := &Manager{
-		telegram: telegram,
-		logger:   logger,
-	}
+// NewProcessorManager builds one processor per configured service. It fails when a service's regexes do not compile.
+func NewProcessorManager(emailConfig config.EmailConfig, sender messageSender, logger *zap.Logger) (*Manager, error) {
+	manager := &Manager{logger: logger}
+	previewLength := emailConfig.EffectiveLogPreviewLength()
 
-	// Create processors dynamically from the configuration
 	for _, serviceConfig := range emailConfig.Services {
-		processor := NewGenericEmailProcessor(
-			serviceConfig.Name,
-			serviceConfig.Config,
-			telegram,
-			logger,
-		)
+		processor, err := NewGenericEmailProcessor(serviceConfig.Name, serviceConfig.Config, previewLength, sender, logger)
+		if err != nil {
+			return nil, err
+		}
 		manager.processors = append(manager.processors, processor)
-		logger.Info("Loaded email processor",
-			zap.String("service", serviceConfig.Name),
-			zap.String("email_from", serviceConfig.Config.EmailFrom),
-			zap.Strings("email_subjects", serviceConfig.Config.EmailSubject))
+		logLoaded(logger, serviceConfig)
 	}
 
-	return manager
+	return manager, nil
+}
+
+// logLoaded logs the extractor of a service, and warns when it runs on the generic default pattern.
+func logLoaded(logger *zap.Logger, service config.ServiceConfig) {
+	extractor := service.Config.EffectiveExtractor()
+	logger.Info("Loaded email processor",
+		zap.String("service", service.Name),
+		zap.String("email_from", service.Config.EmailFrom),
+		zap.Strings("email_subjects", service.Config.EmailSubject),
+		zap.String("extractor", extractor))
+	if extractor == config.ExtractorPattern && service.Config.CodePattern == "" {
+		logger.Warn("Email service uses the generic default code pattern",
+			zap.String("service", service.Name),
+			zap.String("code_pattern", config.DefaultCodePattern))
+	}
 }
 
 func (pm *Manager) GetProcessors() []models.EmailProcessor {
 	return pm.processors
 }
 
-func (pm *Manager) ProcessEmailsConcurrently(ctx context.Context, emails []models.Email) {
-	if len(emails) == 0 {
-		return
+// Senders returns the email_from of every service that sets one, in config order.
+func (pm *Manager) Senders() []string {
+	var senders []string
+	for _, processor := range pm.processors {
+		if sender := processor.GetSender(); sender != "" {
+			senders = append(senders, sender)
+		}
 	}
-
-	pm.logger.Info("Processing emails concurrently", zap.Int("email_count", len(emails)))
-
-	// Process each email in its own goroutine
-	for _, email := range emails {
-		pm.wg.Add(1)
-		go pm.processEmailAsync(ctx, email)
-	}
-
-	// Wait for all goroutines to finish
-	pm.wg.Wait()
+	return senders
 }
 
-func (pm *Manager) processEmailAsync(ctx context.Context, email models.Email) {
-	defer pm.wg.Done()
-
-	// Check if the context was canceled
-	select {
-	case <-ctx.Done():
-		return
-	default:
-	}
-
-	// Find a processor that can handle this email
+// Dispatch offers the email to the services in config order and processes it with the first one that
+// matches. It returns that processor, or nil when none matches. A failed Process returns the processor with its error.
+func (pm *Manager) Dispatch(email models.Email) (models.EmailProcessor, error) {
 	for _, processor := range pm.processors {
-		if processor.ShouldProcess(email) {
-			pm.logger.Info("Processing email",
-				zap.String("subject", email.Subject),
-				zap.String("from", email.From))
-
-			if err := processor.Process(email); err != nil {
-				pm.logger.Error("Failed to process email",
-					zap.String("subject", email.Subject),
-					zap.Error(err))
-			} else {
-				pm.logger.Info("Email processed successfully",
-					zap.String("subject", email.Subject))
-			}
-			return // Only the first matching processor should process the email
+		if !processor.ShouldProcess(email) {
+			continue
 		}
+		pm.logger.Info("Processing email",
+			zap.String("subject", email.Subject),
+			zap.String("from", email.From))
+
+		if err := processor.Process(email); err != nil {
+			pm.logger.Error("Failed to process email",
+				zap.String("subject", email.Subject),
+				zap.Error(err))
+			return processor, err
+		}
+
+		pm.logger.Info("Email processed successfully",
+			zap.String("subject", email.Subject))
+		return processor, nil
 	}
 
 	pm.logger.Info("Email ignored (no matching processor)",
 		zap.String("subject", email.Subject),
 		zap.String("from", email.From))
+	return nil, nil
 }
