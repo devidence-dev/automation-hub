@@ -5,9 +5,11 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"
@@ -26,6 +28,12 @@ func (noopSender) SendDocument(string, string, string, []byte) error { return ni
 // routesFor registers the routes of cfg on a fresh router, with the default catalog and zone.
 func routesFor(t *testing.T, cfg *config.Config) *mux.Router {
 	t.Helper()
+	return routesWith(t, cfg, zap.NewNop())
+}
+
+// routesWith is routesFor with the given logger, so a test can read what the registration logged.
+func routesWith(t *testing.T, cfg *config.Config, logger *zap.Logger) *mux.Router {
+	t.Helper()
 	cat, err := messages.Load(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -36,7 +44,13 @@ func routesFor(t *testing.T, cfg *config.Config) *mux.Router {
 	}
 	cfg.Catalog, cfg.Location = cat, loc
 	router := mux.NewRouter()
-	registerRoutes(router, cfg, handlers.NewWebhookHandler(nil, cfg, zap.NewNop()), noopSender{}, zap.NewNop())
+	registerRoutes(router, cfg, handlers.RouteEnv{
+		DependencyReport: cfg.DependencyReport,
+		Catalog:          cat,
+		Location:         loc,
+		Sender:           noopSender{},
+		Logger:           logger,
+	})
 	return router
 }
 
@@ -92,6 +106,79 @@ func TestRegisterRoutesNotConfigured(t *testing.T) {
 	}
 }
 
+func TestRegisterRoutesQbittorrent(t *testing.T) {
+	cfg := &config.Config{Hook: []config.WebhookConfig{{
+		Name: "qbittorrent", Path: "/webhook/qbittorrent",
+		Config: config.WebhookProcessorConfig{TelegramChatID: "123", TelegramMessage: "Downloaded: %s at %s"},
+	}}}
+	router := routesFor(t, cfg)
+	post := httptest.NewRecorder()
+	router.ServeHTTP(post, httptest.NewRequest(http.MethodPost, "/webhook/qbittorrent", strings.NewReader(`{"torrent_name":"Debian ISO","save_path":"/downloads"}`)))
+	if post.Code != http.StatusOK {
+		t.Errorf("POST status = %d, want 200", post.Code)
+	}
+	get := httptest.NewRecorder()
+	router.ServeHTTP(get, httptest.NewRequest(http.MethodGet, "/webhook/qbittorrent", nil))
+	if get.Code != http.StatusMethodNotAllowed {
+		t.Errorf("GET status = %d, want 405", get.Code)
+	}
+}
+
+func TestRegisterRoutesUnknownHookWarns(t *testing.T) {
+	core, logs := observer.New(zap.WarnLevel)
+	cfg := &config.Config{Hook: []config.WebhookConfig{{Name: "unknown-hook", Path: "/webhook/unknown"}}}
+	router := routesWith(t, cfg, zap.New(core))
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/webhook/unknown", nil))
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404 for an unknown hook", rec.Code)
+	}
+	warned := logs.FilterMessage("Unknown webhook type").All()
+	if len(warned) != 1 || warned[0].ContextMap()["name"] != "unknown-hook" {
+		t.Errorf("warnings = %v, want one naming unknown-hook", warned)
+	}
+}
+
+// TestRegisterRoutesHookNamedDependencyReportIgnored checks that a hook entry named dependency-report
+// is unknown: the report route mounts once, from its section, and the entry only logs a warning.
+func TestRegisterRoutesHookNamedDependencyReportIgnored(t *testing.T) {
+	core, logs := observer.New(zap.InfoLevel)
+	cfg := &config.Config{
+		Hook: []config.WebhookConfig{{Name: "dependency-report", Path: "/hooks/deps"}},
+		DependencyReport: &config.DependencyReportConfig{
+			WebhookToken: "secret", TelegramChatID: "1", Path: "/hooks/deps", TokenHeader: "X-Report-Token",
+			MaxBodyBytes: 1 << 20, DocumentName: "dependency-report-{date}.html", DateLayout: "2006-01-02",
+		},
+	}
+	router := routesWith(t, cfg, zap.New(core))
+
+	warned := logs.FilterMessage("Unknown webhook type").All()
+	if len(warned) != 1 || warned[0].ContextMap()["name"] != "dependency-report" {
+		t.Errorf("warnings = %v, want one naming dependency-report", warned)
+	}
+	if registered := logs.FilterMessage("Registered webhook route").All(); len(registered) != 1 {
+		t.Errorf("registered routes = %d, want 1", len(registered))
+	}
+	mounted := 0
+	err := router.Walk(func(route *mux.Route, _ *mux.Router, _ []*mux.Route) error {
+		tmpl, err := route.GetPathTemplate()
+		if err != nil {
+			return err
+		}
+		if tmpl == "/hooks/deps" {
+			mounted++
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mounted != 1 {
+		t.Errorf("routes on /hooks/deps = %d, want 1", mounted)
+	}
+}
+
 // TestJobSchedulesUseConfiguredZone registers a job schedule in a non-default zone: the scheduler
 // runs in that zone, so the next run is Monday 09:00 in Europe/Madrid.
 func TestJobSchedulesUseConfiguredZone(t *testing.T) {
@@ -106,9 +193,14 @@ func TestJobSchedulesUseConfiguredZone(t *testing.T) {
 		}},
 	}
 	core, logs := observer.New(zap.InfoLevel)
-	sched := registerSchedules(cfg, handlers.NewBotHandler(handlers.BotHandlerDeps{}), cfg.Location, zap.New(core))
+	deps := handlers.BotHandlerDeps{Jobs: cfg.Jobs, Logger: zap.New(core)}
+	lazy := &lazyScheduler{loc: cfg.Location, logger: zap.New(core)}
+	if err := registerCommands(&fakeMenu{}, lazy, handlers.NewScheduledRunner(deps), handlers.NewCommandSpecs(deps)); err != nil {
+		t.Fatalf("registerCommands() error = %v", err)
+	}
+	sched := lazy.sched
 	if sched == nil {
-		t.Fatal("registerSchedules() returned no scheduler for a scheduled job")
+		t.Fatal("registerCommands() created no scheduler for a scheduled job")
 	}
 	sched.Start()
 	defer sched.Stop()
@@ -128,5 +220,60 @@ func TestJobSchedulesUseConfiguredZone(t *testing.T) {
 	}
 	if local := at.In(madrid); local.Weekday() != time.Monday || local.Hour() != 9 || local.Minute() != 0 {
 		t.Errorf("next run = %s, want Monday 09:00 in Europe/Madrid", local)
+	}
+}
+
+// fakeMenu records the commands published to Telegram.
+type fakeMenu struct {
+	commands []tgbotapi.BotCommand
+}
+
+func (f *fakeMenu) SetMyCommands(commands []tgbotapi.BotCommand) error {
+	f.commands = commands
+	return nil
+}
+
+// fakeAdder records the names of the schedules registered.
+type fakeAdder struct {
+	names []string
+}
+
+func (f *fakeAdder) Add(name, _ string, _ func()) error {
+	f.names = append(f.names, name)
+	return nil
+}
+
+func TestRegisterCommandsOneLoop(t *testing.T) {
+	deps := handlers.BotHandlerDeps{
+		Workflows: []config.WorkflowCommandConfig{{Command: "run_cleanup", Description: "Cleanup", Schedule: "0 9 * * 2,5"}},
+		Restarts:  []config.RestartCommandConfig{{Command: "restart_runner", Description: "Restart"}},
+		Jobs:      []config.JobCommandConfig{{Command: "run_dependency_report", Description: "Report", Schedule: "0 9 * * 1"}},
+	}
+	menu, adder := &fakeMenu{}, &fakeAdder{}
+	if err := registerCommands(menu, adder, handlers.NewScheduledRunner(deps), handlers.NewCommandSpecs(deps)); err != nil {
+		t.Fatalf("registerCommands() error = %v", err)
+	}
+
+	var got []string
+	for _, c := range menu.commands {
+		got = append(got, c.Command)
+	}
+	if want := []string{"run_cleanup", "restart_runner", "run_dependency_report"}; strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Errorf("menu = %v, want %v", got, want)
+	}
+	if want := []string{"run_cleanup", "run_dependency_report"}; strings.Join(adder.names, ",") != strings.Join(want, ",") {
+		t.Errorf("schedules = %v, want %v: the restart has no schedule", adder.names, want)
+	}
+}
+
+func TestNewGitHubClientNilWhenUnconfigured(t *testing.T) {
+	if client := newGitHubClient(&config.Config{}, zap.NewNop()); client != nil {
+		t.Errorf("newGitHubClient() = %#v, want a nil interface without workflows", client)
+	}
+}
+
+func TestNewKubeClientNilWhenUnconfigured(t *testing.T) {
+	if client := newKubeClient(&config.Config{}, zap.NewNop()); client != nil {
+		t.Errorf("newKubeClient() = %#v, want a nil interface without restarts or jobs", client)
 	}
 }

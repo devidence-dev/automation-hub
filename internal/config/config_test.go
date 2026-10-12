@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -316,5 +317,90 @@ func TestLoadExampleConfig(t *testing.T) {
 	}
 	if cfg.DependencyReport == nil || len(cfg.DependencyReport.Forks) != 1 {
 		t.Errorf("dependency_report = %+v, want one fork", cfg.DependencyReport)
+	}
+}
+
+func TestLoadDefaults(t *testing.T) {
+	tests := []struct {
+		name         string
+		content      string
+		wantURL      string
+		wantTimeout  time.Duration
+		wantInterval time.Duration
+	}{
+		{name: "defaults without the sections", content: serverOnly, wantURL: "https://github.com", wantTimeout: 3 * time.Minute, wantInterval: 5 * time.Second},
+		{
+			name:         "overrides and trailing slash trimmed",
+			content:      serverOnly + "github:\n  web_url: \"https://github.example.com/\"\nrestart_ready:\n  timeout: \"1m\"\n  poll_interval: \"2s\"\n",
+			wantURL:      "https://github.example.com",
+			wantTimeout:  time.Minute,
+			wantInterval: 2 * time.Second,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := loadYAML(t, tt.content)
+			if err != nil {
+				t.Fatalf("Load() error = %v", err)
+			}
+			if cfg.GitHub.WebURL != tt.wantURL {
+				t.Errorf("WebURL = %q, want %q", cfg.GitHub.WebURL, tt.wantURL)
+			}
+			if cfg.RestartReady.Timeout != tt.wantTimeout || cfg.RestartReady.PollInterval != tt.wantInterval {
+				t.Errorf("RestartReady = %+v, want timeout %s and poll interval %s", cfg.RestartReady, tt.wantTimeout, tt.wantInterval)
+			}
+		})
+	}
+}
+
+func TestValidateGitHubWebURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		raw     string
+		wantErr bool
+	}{
+		{name: "https accepted", raw: "https://github.com"},
+		{name: "http accepted", raw: "http://github.example.com"},
+		{name: "no scheme rejected", raw: "github.com", wantErr: true},
+		{name: "other scheme rejected", raw: "ftp://github.com", wantErr: true},
+		{name: "no host rejected", raw: "https://", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateGitHubWebURL(tt.raw)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("validateGitHubWebURL(%q) error = %v, wantErr %v", tt.raw, err, tt.wantErr)
+			}
+			if err != nil && !strings.Contains(err.Error(), "github.web_url") {
+				t.Errorf("error %q does not name github.web_url", err)
+			}
+		})
+	}
+}
+
+func TestValidateRestartReady(t *testing.T) {
+	tests := []struct {
+		name    string
+		section string
+		wantErr string
+	}{
+		{name: "valid durations", section: "timeout: \"5s\"\n  poll_interval: \"1s\""},
+		{name: "zero timeout", section: "timeout: \"0s\"", wantErr: "restart_ready.timeout"},
+		{name: "poll interval longer than timeout", section: "timeout: \"5s\"\n  poll_interval: \"10s\"", wantErr: "restart_ready.poll_interval"},
+		{name: "unparsable timeout", section: "timeout: \"soon\"", wantErr: "restart_ready.timeout"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := loadYAML(t, serverOnly+"restart_ready:\n  "+tt.section+"\n")
+			if tt.wantErr == "" {
+				if err != nil {
+					t.Fatalf("Load() error = %v", err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("Load() error = %v, want it to name %s", err, tt.wantErr)
+			}
+		})
 	}
 }

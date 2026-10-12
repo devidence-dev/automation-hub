@@ -13,6 +13,8 @@ workflow_bot:
 
 github:
   token: "{{GITHUB_TOKEN}}"
+  # Optional, shown with its default. Base of the run link when GitHub returns no run details.
+  # web_url: "https://github.com"
 
 workflows:
   # Optional "schedule" on any entry: a 5-field cron expression (minute hour
@@ -35,6 +37,12 @@ restarts:
     namespace: "infrastructure"
     deployment: "github-runner"
     allowed_chat_ids: ["{{TELEGRAM_ADMIN_CHAT_ID}}"]
+# Optional, shown with its defaults: how long a restart waits for the new pods to report
+# ready (timeout, must be positive) and how often it checks (poll_interval, must be positive
+# and not longer than timeout). Applies to every restart command.
+# restart_ready:
+#   timeout: "3m"
+#   poll_interval: "5s"
 
 jobs:
   # Creates a one-off Kubernetes Job from a suspended CronJob template, like
@@ -74,6 +82,9 @@ dependency_report:
 # messages:
 #   caption:
 #     header: "🔔 <b>Deps</b> · {date}"
+# Bot texts (the defaults are under "bot:" in internal/messages/default.yaml), for example:
+# bot:
+#   unknown_command: "❔ Comando no existe."
 
 email:
   host: "{{EMAIL_HOST}}"

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -25,6 +26,13 @@ const (
 	defaultDateLayout   = "2006-01-02"
 )
 
+// Defaults of the bot settings. The handlers fall back to them too, so a zero value never reaches a command.
+const (
+	DefaultGitHubWebURL        = "https://github.com"
+	DefaultRestartTimeout      = 3 * time.Minute
+	DefaultRestartPollInterval = 5 * time.Second
+)
+
 type Config struct {
 	// Timezone is the zone of every schedule and of the dependency report's dates.
 	Timezone    string                  `mapstructure:"timezone"`
@@ -36,6 +44,8 @@ type Config struct {
 	Workflows   []WorkflowCommandConfig `mapstructure:"workflows"`
 	Restarts    []RestartCommandConfig  `mapstructure:"restarts"`
 	Jobs        []JobCommandConfig      `mapstructure:"jobs"`
+	// RestartReady bounds the wait for a restarted Deployment to report ready, for every restart command.
+	RestartReady RestartReadyConfig `mapstructure:"restart_ready"`
 	// DependencyReport is nil when the section is absent, which disables its webhook.
 	DependencyReport *DependencyReportConfig `mapstructure:"dependency_report"`
 	Hook             []WebhookConfig         `mapstructure:"hook"`
@@ -95,6 +105,14 @@ type WorkflowBotConfig struct {
 
 type GitHubConfig struct {
 	Token string `mapstructure:"token"`
+	// WebURL is the GitHub web address the run links fall back to. Trailing slashes are trimmed.
+	WebURL string `mapstructure:"web_url"`
+}
+
+// RestartReadyConfig sets how long a restart waits for the rollout, and how often it checks.
+type RestartReadyConfig struct {
+	Timeout      time.Duration `mapstructure:"timeout"`
+	PollInterval time.Duration `mapstructure:"poll_interval"`
 }
 
 type WorkflowCommandConfig struct {
@@ -184,6 +202,7 @@ func loadFrom(configPaths []string) (*Config, error) {
 	_ = viper.BindEnv("github.token")
 	_ = viper.BindEnv("telegram.bot_token")
 	_ = viper.BindEnv("workflow_bot.bot_token")
+	setBotDefaults()
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, err
@@ -209,8 +228,43 @@ func loadFrom(configPaths []string) (*Config, error) {
 	if err := validateDependencyReport(config.DependencyReport); err != nil {
 		return nil, err
 	}
+	if err := validateGitHubWebURL(config.GitHub.WebURL); err != nil {
+		return nil, err
+	}
+	if err := validateRestartReady(config.RestartReady); err != nil {
+		return nil, err
+	}
 
 	return &config, nil
+}
+
+// setBotDefaults registers the defaults of the bot keys with viper, so an absent key decodes to them.
+func setBotDefaults() {
+	viper.SetDefault("github.web_url", DefaultGitHubWebURL)
+	viper.SetDefault("restart_ready.timeout", DefaultRestartTimeout)
+	viper.SetDefault("restart_ready.poll_interval", DefaultRestartPollInterval)
+}
+
+// validateGitHubWebURL requires an absolute http or https URL, the base of the run links.
+func validateGitHubWebURL(raw string) error {
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return fmt.Errorf("github.web_url must be an absolute http or https URL: %q", raw)
+	}
+	return nil
+}
+
+// validateRestartReady requires positive durations, and a poll interval that fits in the timeout.
+func validateRestartReady(r RestartReadyConfig) error {
+	switch {
+	case r.Timeout <= 0:
+		return fmt.Errorf("restart_ready.timeout must be positive, got %s", r.Timeout)
+	case r.PollInterval <= 0:
+		return fmt.Errorf("restart_ready.poll_interval must be positive, got %s", r.PollInterval)
+	case r.PollInterval > r.Timeout:
+		return fmt.Errorf("restart_ready.poll_interval %s must not exceed restart_ready.timeout %s", r.PollInterval, r.Timeout)
+	}
+	return nil
 }
 
 // resolve fills the defaults, then the zone and the message catalog the config names.
@@ -235,6 +289,7 @@ func applyDefaults(cfg *Config) {
 	if cfg.Timezone == "" {
 		cfg.Timezone = defaultTimezone
 	}
+	cfg.GitHub.WebURL = strings.TrimRight(cfg.GitHub.WebURL, "/")
 	if cfg.DependencyReport != nil {
 		applyReportDefaults(cfg.DependencyReport)
 	}

@@ -11,6 +11,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 
 	"automation-hub/internal/config"
 )
@@ -252,43 +253,55 @@ func commandUpdate(command string, chatID int64) tgbotapi.Update {
 	}}
 }
 
-func TestRunWorkflow(t *testing.T) {
+func TestBotHandlerHandleWorkflowRunURL(t *testing.T) {
 	workflow := config.WorkflowCommandConfig{
 		Command: "run_check_updates", Owner: "devidence-dev", Repo: "workflows",
-		WorkflowFile: "ops-github-runner-check-updates.yml", Ref: "main",
+		WorkflowFile: "ops-github-runner-check-updates.yml", Ref: "main", AllowedChatIDs: []string{"123"},
 	}
 	tests := []struct {
 		name        string
 		runURL      string
 		dispatchErr error
 		want        string
-		wantErr     bool
 	}{
 		{name: "returns the html_url of the created run", runURL: "https://github.com/devidence-dev/workflows/actions/runs/123456", want: "https://github.com/devidence-dev/workflows/actions/runs/123456"},
 		{name: "falls back to the Actions page without run details", want: "https://github.com/devidence-dev/workflows/actions"},
-		{name: "dispatch error is returned", dispatchErr: errors.New("status 500"), wantErr: true},
+		{name: "dispatch error is reported and logged", dispatchErr: errors.New("status 500"), want: "Failed to dispatch"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			core, logs := observer.New(zap.ErrorLevel)
 			dispatcher := &fakeDispatcher{runURL: tt.runURL, err: tt.dispatchErr}
-			handler := NewBotHandler(BotHandlerDeps{GitHubClient: dispatcher, Logger: zap.NewNop()})
+			messenger := &fakeMessenger{}
+			handler := NewBotHandler(BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Workflows: []config.WorkflowCommandConfig{workflow}, Logger: zap.New(core)})
 
-			got, err := handler.RunWorkflow(context.Background(), workflow)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("RunWorkflow() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if got != tt.want {
-				t.Errorf("RunWorkflow() = %q, want %q", got, tt.want)
-			}
+			handler.Handle(commandUpdate("/run_check_updates", 123))
+
 			if dispatcher.calls != 1 {
 				t.Errorf("dispatch calls = %d, want 1", dispatcher.calls)
+			}
+			messages := messenger.snapshot()
+			if len(messages) != 1 || !strings.Contains(messages[0], tt.want) {
+				t.Errorf("messages = %#v, want one containing %q", messages, tt.want)
+			}
+			if tt.dispatchErr != nil {
+				assertDispatchErrorLogged(t, logs, tt.dispatchErr)
 			}
 		})
 	}
 }
 
-func TestRunScheduled(t *testing.T) {
+// assertDispatchErrorLogged checks that one failed dispatch was logged with its error.
+func assertDispatchErrorLogged(t *testing.T, logs *observer.ObservedLogs, want error) {
+	t.Helper()
+	failed := logs.FilterMessage("Failed to dispatch GitHub workflow").All()
+	if len(failed) != 1 || failed[0].ContextMap()["error"] != want.Error() {
+		t.Errorf("error logs = %v, want one carrying %q", failed, want)
+	}
+}
+
+func TestScheduledRunnerWorkflow(t *testing.T) {
 	workflow := config.WorkflowCommandConfig{
 		Command: "run_cleanup", Owner: "devidence-dev", Repo: "workflows",
 		WorkflowFile: "ops-github-runner-cleanup.yml", Ref: "main", AllowedChatIDs: []string{"123", "456"},
@@ -306,9 +319,9 @@ func TestRunScheduled(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			dispatcher := &fakeDispatcher{runURL: "https://github.com/devidence-dev/workflows/actions/runs/1", err: tt.dispatchErr}
 			messenger := &fakeMessenger{}
-			handler := NewBotHandler(BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Workflows: []config.WorkflowCommandConfig{workflow}, Logger: zap.NewNop()})
+			deps := BotHandlerDeps{GitHubClient: dispatcher, TelegramClient: messenger, Workflows: []config.WorkflowCommandConfig{workflow}, Logger: zap.NewNop()}
 
-			handler.RunScheduled(workflow)
+			NewScheduledRunner(deps).Wrap(NewCommandSpecs(deps)[0])()
 
 			assertScheduledRun(t, dispatcher, messenger, workflow, tt.wantMessages)
 		})
@@ -370,20 +383,22 @@ func TestBotHandlerHandleJob(t *testing.T) {
 	}
 }
 
-func TestBotHandlerRunScheduledJob(t *testing.T) {
+func TestScheduledRunnerJob(t *testing.T) {
 	job := config.JobCommandConfig{
 		Command: "run_dependency_report", Namespace: "internal-apps", CronJob: "dependency-report", AllowedChatIDs: []string{"123", "456"},
 	}
 	t.Run("success creates the job and stays silent", func(t *testing.T) {
 		creator, messenger := &fakeJobCreator{}, &fakeMessenger{}
-		NewBotHandler(BotHandlerDeps{TelegramClient: messenger, JobClient: creator, Jobs: []config.JobCommandConfig{job}, Logger: zap.NewNop()}).RunScheduledJob(job)
+		deps := BotHandlerDeps{TelegramClient: messenger, JobClient: creator, Jobs: []config.JobCommandConfig{job}, Logger: zap.NewNop()}
+		NewScheduledRunner(deps).Wrap(NewCommandSpecs(deps)[0])()
 		if len(creator.cronJobs) != 1 || len(messenger.snapshot()) != 0 {
 			t.Errorf("creates = %v, messages = %v", creator.cronJobs, messenger.snapshot())
 		}
 	})
 	t.Run("failure notifies every allowed chat", func(t *testing.T) {
 		creator, messenger := &fakeJobCreator{err: errors.New("boom")}, &fakeMessenger{}
-		NewBotHandler(BotHandlerDeps{TelegramClient: messenger, JobClient: creator, Jobs: []config.JobCommandConfig{job}, Logger: zap.NewNop()}).RunScheduledJob(job)
+		deps := BotHandlerDeps{TelegramClient: messenger, JobClient: creator, Jobs: []config.JobCommandConfig{job}, Logger: zap.NewNop()}
+		NewScheduledRunner(deps).Wrap(NewCommandSpecs(deps)[0])()
 		messages := messenger.snapshot()
 		if len(messages) != 2 || !strings.Contains(messages[0], "run_dependency_report") {
 			t.Errorf("messages = %#v, want one failure per allowed chat naming the command", messages)

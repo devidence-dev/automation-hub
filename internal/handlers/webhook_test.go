@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"go.uber.org/zap"
@@ -13,8 +14,7 @@ import (
 
 func TestNewWebhookHandler(t *testing.T) {
 	logger := zap.NewNop()
-	cfg := &config.Config{}
-	handler := NewWebhookHandler(nil, cfg, logger)
+	handler := NewWebhookHandler(nil, config.WebhookProcessorConfig{}, logger)
 
 	if handler == nil {
 		t.Fatal("Expected NewWebhookHandler to return non-nil instance")
@@ -23,8 +23,7 @@ func TestNewWebhookHandler(t *testing.T) {
 
 func TestHandleTorrentComplete_InvalidJSON(t *testing.T) {
 	logger := zap.NewNop()
-	cfg := &config.Config{}
-	handler := NewWebhookHandler(nil, cfg, logger)
+	handler := NewWebhookHandler(nil, config.WebhookProcessorConfig{}, logger)
 
 	req := httptest.NewRequest("POST", "/webhook/qbittorrent", bytes.NewBufferString("{invalid_json"))
 	w := httptest.NewRecorder()
@@ -37,40 +36,13 @@ func TestHandleTorrentComplete_InvalidJSON(t *testing.T) {
 	}
 }
 
-func TestHandleTorrentComplete_MissingWebhookConfig(t *testing.T) {
-	logger := zap.NewNop()
-	cfg := &config.Config{
-		Hook: []config.WebhookConfig{}, // No qbittorrent hook configured
-	}
-	handler := NewWebhookHandler(nil, cfg, logger)
-
-	validPayload := `{"torrent_name": "Ubuntu 24.04 ISO", "save_path": "/downloads"}`
-	req := httptest.NewRequest("POST", "/webhook/qbittorrent", bytes.NewBufferString(validPayload))
-	w := httptest.NewRecorder()
-
-	handler.HandleTorrentComplete(w, req)
-
-	resp := w.Result()
-	if resp.StatusCode != http.StatusInternalServerError {
-		t.Errorf("Expected status 500 Internal Server Error, got %d", resp.StatusCode)
-	}
-}
-
 func TestHandleTorrentComplete_Success(t *testing.T) {
 	logger := zap.NewNop()
-	cfg := &config.Config{
-		Hook: []config.WebhookConfig{
-			{
-				Name: "qbittorrent",
-				Path: "/webhook/qbittorrent",
-				Config: config.WebhookProcessorConfig{
-					TelegramChatID:  "123",
-					TelegramMessage: "Downloaded: %s at %s",
-				},
-			},
-		},
+	hook := config.WebhookProcessorConfig{
+		TelegramChatID:  "123",
+		TelegramMessage: "Downloaded: %s at %s",
 	}
-	handler := NewWebhookHandler(nil, cfg, logger)
+	handler := NewWebhookHandler(nil, hook, logger)
 
 	validPayload := `{"torrent_name": "Debian ISO", "save_path": "/downloads/iso"}`
 	req := httptest.NewRequest("POST", "/webhook/qbittorrent", bytes.NewBufferString(validPayload))
@@ -81,5 +53,8 @@ func TestHandleTorrentComplete_Success(t *testing.T) {
 	resp := w.Result()
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200 OK, got %d", resp.StatusCode)
+	}
+	if body := strings.TrimSpace(w.Body.String()); body != `{"status":"success"}` {
+		t.Errorf("body = %q, want the success status", body)
 	}
 }

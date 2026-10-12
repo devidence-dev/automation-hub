@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	_ "log"
 	"net/http"
 	"os"
@@ -16,7 +17,6 @@ import (
 
 	"automation-hub/internal/config"
 	"automation-hub/internal/handlers"
-	"automation-hub/internal/services/depreport"
 	"automation-hub/internal/services/email"
 	"automation-hub/internal/services/github"
 	"automation-hub/internal/services/kube"
@@ -72,8 +72,8 @@ func main() {
 }
 
 // setupWorkflowBot builds the command bot and its handler when any workflow,
-// restart or job is configured, registers their schedules and starts the
-// scheduler. Without commands it returns nil values.
+// restart or job is configured, registers their commands and schedules, and
+// starts the scheduler. Without commands it returns nil values.
 func setupWorkflowBot(cfg *config.Config, loc *time.Location, logger *zap.Logger) (*telegram.Client, *handlers.BotHandler, *scheduler.Scheduler) {
 	if len(cfg.Workflows) == 0 && len(cfg.Restarts) == 0 && len(cfg.Jobs) == 0 {
 		return nil, nil, nil
@@ -82,47 +82,80 @@ func setupWorkflowBot(cfg *config.Config, loc *time.Location, logger *zap.Logger
 		logger.Fatal("workflow_bot bot_token is required when workflows, restarts or jobs are configured")
 	}
 	workflowBotClient := telegram.NewClient(cfg.WorkflowBot.BotToken, logger)
-	registerBotCommands(workflowBotClient, cfg, logger)
 
-	githubClient := newGitHubClient(cfg, logger)
 	kubeClient := newKubeClient(cfg, logger)
-	botHandler := handlers.NewBotHandler(handlers.BotHandlerDeps{
-		GitHubClient:   githubClient,
+	deps := handlers.BotHandlerDeps{
+		GitHubClient:   newGitHubClient(cfg, logger),
 		KubeClient:     kubeClient,
 		TelegramClient: workflowBotClient,
 		JobClient:      kubeClient,
 		Workflows:      cfg.Workflows,
 		Restarts:       cfg.Restarts,
 		Jobs:           cfg.Jobs,
+		GitHubWebURL:   cfg.GitHub.WebURL,
+		RestartReady:   cfg.RestartReady,
+		Catalog:        cfg.Catalog,
 		Logger:         logger,
-	})
+	}
+	botHandler := handlers.NewBotHandler(deps)
 
-	sched := registerSchedules(cfg, botHandler, loc, logger)
+	lazy := &lazyScheduler{loc: loc, logger: logger}
+	if err := registerCommands(workflowBotClient, lazy, handlers.NewScheduledRunner(deps), handlers.NewCommandSpecs(deps)); err != nil {
+		logger.Fatal("Failed to register bot commands", zap.Error(err))
+	}
+	sched := lazy.sched
 	if sched != nil {
 		sched.Start()
 	}
 	return workflowBotClient, botHandler, sched
 }
 
-// registerBotCommands publishes the configured commands to Telegram.
-func registerBotCommands(botClient *telegram.Client, cfg *config.Config, logger *zap.Logger) {
-	commands := make([]tgbotapi.BotCommand, 0, len(cfg.Workflows)+len(cfg.Restarts)+len(cfg.Jobs))
-	for _, workflow := range cfg.Workflows {
-		commands = append(commands, tgbotapi.BotCommand{Command: workflow.Command, Description: workflow.Description})
-	}
-	for _, restart := range cfg.Restarts {
-		commands = append(commands, tgbotapi.BotCommand{Command: restart.Command, Description: restart.Description})
-	}
-	for _, job := range cfg.Jobs {
-		commands = append(commands, tgbotapi.BotCommand{Command: job.Command, Description: job.Description})
-	}
-	if err := botClient.SetMyCommands(commands); err != nil {
-		logger.Fatal("Failed to set Telegram commands", zap.Error(err))
-	}
+// commandMenu publishes the command menu to Telegram.
+type commandMenu interface {
+	SetMyCommands(commands []tgbotapi.BotCommand) error
 }
 
-// newGitHubClient returns nil when no workflow is configured.
-func newGitHubClient(cfg *config.Config, logger *zap.Logger) *github.Client {
+// scheduleAdder registers a named cron entry.
+type scheduleAdder interface {
+	Add(name, spec string, fn func()) error
+}
+
+// registerCommands makes one pass over specs: each command goes into the Telegram menu, and each
+// scheduled one is registered through adder. The menu is published last, in config order.
+func registerCommands(menu commandMenu, adder scheduleAdder, runner *handlers.ScheduledRunner, specs []handlers.CommandSpec) error {
+	commands := make([]tgbotapi.BotCommand, 0, len(specs))
+	for _, spec := range specs {
+		commands = append(commands, tgbotapi.BotCommand{Command: spec.Name(), Description: spec.Description()})
+		if spec.Schedule() == "" {
+			continue
+		}
+		if err := adder.Add(spec.Name(), spec.Schedule(), runner.Wrap(spec)); err != nil {
+			return fmt.Errorf("schedule %q: %w", spec.Name(), err)
+		}
+	}
+	if err := menu.SetMyCommands(commands); err != nil {
+		return fmt.Errorf("set Telegram commands: %w", err)
+	}
+	return nil
+}
+
+// lazyScheduler creates the scheduler when the first schedule is added, so no scheduler exists
+// when no command has a schedule.
+type lazyScheduler struct {
+	loc    *time.Location
+	logger *zap.Logger
+	sched  *scheduler.Scheduler
+}
+
+func (l *lazyScheduler) Add(name, spec string, fn func()) error {
+	if l.sched == nil {
+		l.sched = scheduler.New(l.loc, l.logger)
+	}
+	return l.sched.Add(name, spec, fn)
+}
+
+// newGitHubClient returns nil, an untyped nil interface, when no workflow is configured.
+func newGitHubClient(cfg *config.Config, logger *zap.Logger) handlers.WorkflowDispatcher {
 	if len(cfg.Workflows) == 0 {
 		return nil
 	}
@@ -132,8 +165,8 @@ func newGitHubClient(cfg *config.Config, logger *zap.Logger) *github.Client {
 	return github.NewClient(cfg.GitHub.Token, logger)
 }
 
-// newKubeClient returns nil when no restart or job is configured.
-func newKubeClient(cfg *config.Config, logger *zap.Logger) *kube.Client {
+// newKubeClient returns nil, an untyped nil interface, when no restart or job is configured.
+func newKubeClient(cfg *config.Config, logger *zap.Logger) handlers.KubeClient {
 	if len(cfg.Restarts) == 0 && len(cfg.Jobs) == 0 {
 		return nil
 	}
@@ -144,41 +177,17 @@ func newKubeClient(cfg *config.Config, logger *zap.Logger) *kube.Client {
 	return kubeClient
 }
 
-// registerSchedules adds the scheduled workflows and jobs. It returns nil when
-// none has a schedule.
-func registerSchedules(cfg *config.Config, botHandler *handlers.BotHandler, loc *time.Location, logger *zap.Logger) *scheduler.Scheduler {
-	var sched *scheduler.Scheduler
-	for _, workflow := range cfg.Workflows {
-		if workflow.Schedule == "" {
-			continue
-		}
-		if sched == nil {
-			sched = scheduler.New(loc, logger)
-		}
-		if err := sched.Add(workflow.Command, workflow.Schedule, func() { botHandler.RunScheduled(workflow) }); err != nil {
-			logger.Fatal("Failed to register scheduled workflow", zap.Error(err))
-		}
-	}
-	for _, job := range cfg.Jobs {
-		if job.Schedule == "" {
-			continue
-		}
-		if sched == nil {
-			sched = scheduler.New(loc, logger)
-		}
-		if err := sched.Add(job.Command, job.Schedule, func() { botHandler.RunScheduledJob(job) }); err != nil {
-			logger.Fatal("Failed to register scheduled job", zap.Error(err))
-		}
-	}
-	return sched
-}
-
 // newHTTPServer wires the webhook routes and returns the server, not yet listening.
 func newHTTPServer(cfg *config.Config, telegramClient *telegram.Client, logger *zap.Logger) *http.Server {
 	router := mux.NewRouter()
-	webhookHandler := handlers.NewWebhookHandler(telegramClient, cfg, logger)
-
-	registerRoutes(router, cfg, webhookHandler, telegramClient, logger)
+	registerRoutes(router, cfg, handlers.RouteEnv{
+		Telegram:         telegramClient,
+		DependencyReport: cfg.DependencyReport,
+		Catalog:          cfg.Catalog,
+		Location:         cfg.Location,
+		Sender:           telegramClient,
+		Logger:           logger,
+	})
 
 	return &http.Server{
 		Addr:         cfg.Server.Address,
@@ -213,25 +222,42 @@ func shutdownServer(srv *http.Server, sched *scheduler.Scheduler, logger *zap.Lo
 	}
 }
 
-// registerRoutes wires the webhook routes from the configuration.
-func registerRoutes(router *mux.Router, cfg *config.Config, webhookHandler *handlers.WebhookHandler, sender depreport.ReportSender, logger *zap.Logger) {
-	for _, hook := range cfg.Hook {
-		switch hook.Name {
-		case "qbittorrent":
-			router.HandleFunc(hook.Path, webhookHandler.HandleTorrentComplete).Methods("POST")
-			logger.Info("Registered webhook route",
-				zap.String("name", hook.Name),
-				zap.String("path", hook.Path))
-		default:
-			logger.Warn("Unknown webhook type", zap.String("name", hook.Name))
-		}
-	}
+// routeEntry is one route to mount: a hook entry, or the dependency_report section.
+type routeEntry struct {
+	hook        config.WebhookConfig
+	fromSection bool
+}
 
-	// Not part of the switch above: the section is top-level and its route comes from its settings.
-	if cfg.DependencyReport != nil {
-		path := cfg.DependencyReport.Path
-		handler := handlers.NewDependencyReportHandler(*cfg.DependencyReport, cfg.Catalog, cfg.Location, sender, logger)
-		router.Handle(path, handler).Methods("POST")
-		logger.Info("Registered webhook route", zap.String("name", "dependency-report"), zap.String("path", path))
+// registerRoutes mounts a POST route for each configured hook, plus the dependency report when its
+// section is set. Each route comes from the factory registered for its name and source.
+func registerRoutes(router *mux.Router, cfg *config.Config, env handlers.RouteEnv) {
+	entries := make([]routeEntry, 0, len(cfg.Hook)+1)
+	for _, hook := range cfg.Hook {
+		entries = append(entries, routeEntry{hook: hook})
 	}
+	// The section is top-level and its path comes from its settings, not from a hook entry.
+	if cfg.DependencyReport != nil {
+		entries = append(entries, routeEntry{hook: config.WebhookConfig{Name: handlers.DependencyReportRoute}, fromSection: true})
+	}
+	for _, entry := range entries {
+		mountRoute(router, entry, env)
+	}
+}
+
+// mountRoute builds the route of an entry through its factory and mounts it for POST. An unknown
+// name, or a name the entry's source may not use, is logged and skipped.
+func mountRoute(router *mux.Router, entry routeEntry, env handlers.RouteEnv) {
+	hook := entry.hook
+	factory, ok := handlers.LookupRouteFactory(hook.Name, entry.fromSection)
+	if !ok {
+		env.Logger.Warn("Unknown webhook type", zap.String("name", hook.Name))
+		return
+	}
+	route, err := factory(hook, env)
+	if err != nil {
+		env.Logger.Warn("Skipped webhook route", zap.String("name", hook.Name), zap.Error(err))
+		return
+	}
+	router.Handle(route.Path, route.Handler).Methods("POST")
+	env.Logger.Info("Registered webhook route", zap.String("name", hook.Name), zap.String("path", route.Path))
 }

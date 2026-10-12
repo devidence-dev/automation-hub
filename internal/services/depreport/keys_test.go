@@ -20,6 +20,17 @@ func defaultCatalog(t *testing.T) *messages.Catalog {
 	return cat
 }
 
+// ownKeys returns the catalog keys this package shows. The bot keys belong to the handlers.
+func ownKeys(cat *messages.Catalog) []string {
+	var keys []string
+	for _, key := range cat.Keys() {
+		if !strings.HasPrefix(key, "bot.") {
+			keys = append(keys, key)
+		}
+	}
+	return keys
+}
+
 func TestDefaultsHaveEveryKey(t *testing.T) {
 	cat := defaultCatalog(t)
 	for _, key := range allKeys {
@@ -27,7 +38,7 @@ func TestDefaultsHaveEveryKey(t *testing.T) {
 			t.Errorf("default catalog has no text for %s", key)
 		}
 	}
-	for _, key := range cat.Keys() {
+	for _, key := range ownKeys(cat) {
 		if !slices.Contains(allKeys, key) {
 			t.Errorf("default catalog key %s has no constant", key)
 		}
@@ -36,7 +47,7 @@ func TestDefaultsHaveEveryKey(t *testing.T) {
 
 func TestDefaultsKeepPlaceholders(t *testing.T) {
 	cat := defaultCatalog(t)
-	for _, key := range cat.Keys() {
+	for _, key := range ownKeys(cat) {
 		text, _ := cat.Lookup(key)
 		for _, p := range placeholderInText.FindAllString(text, -1) {
 			if !slices.Contains(placeholderNames, strings.Trim(p, "{}")) {

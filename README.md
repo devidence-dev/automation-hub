@@ -192,6 +192,23 @@ jobs:
     schedule: "0 9 * * 1"
 ```
 
+### ⚙️ Bot settings
+
+All bot values are optional. The defaults keep the current behavior:
+
+```yaml
+github:
+  web_url: "https://github.com"   # base of the run link when GitHub returns no run details
+restart_ready:
+  timeout: "3m"                   # how long a restart waits for the new pods to report ready (positive)
+  poll_interval: "5s"             # how often it checks; positive and not longer than timeout
+messages:                         # overrides single bot texts; keep the {placeholders} of the default
+  bot:
+    unknown_command: "❔ Comando no existe."
+```
+
+The bot texts are the `bot.*` keys of `internal/messages/default.yaml`. A `messages:` override that drops or adds a `{placeholder}` fails config loading and names the key.
+
 ### 📦 Dependency report webhook
 
 When `dependency_report:` is configured, the hub exposes `POST` on `dependency_report.path` (default `/webhook/dependency-report`). The Job's reporter container posts a `multipart/form-data` body (`exit_code`, `pod`, file `log_tail`, optional file `report`) with the token in the header `dependency_report.token_header` (default `X-Report-Token`). The hub answers `202` and sends one Telegram message to `telegram_chat_id`, through the notifications bot (`telegram.bot_token`): the HTML document `dependency-report-<YYYY-MM-DD>.html`, named from `dependency_report.document_name` with the day the hub received the report in the top-level `timezone` (default `America/Guayaquil`), formatted with `dependency_report.date_layout`, with a short Spanish summary as its caption. Its header shows the scan time in the same zone. The caption lists the repos with pending updates (🔴 when one has a major update), with the count per update type, then how many repos are up to date, the totals of the two tabs and the scan errors. Telegram caps captions at 1024 characters (the hub also keeps messages under 4096), so when the list is too long the hub drops repo lines from the end and adds `… y N repos más (ver reporte)`. If Telegram rejects the document, the caption is sent as a text message instead. A wrong token gets `401`, a malformed request `400`, and a body over `dependency_report.max_body_bytes` (default 10 MiB) gets `413`. A Renovate failure (`exit_code` not `0`, or no `report`) sends only the failure message, never a document.

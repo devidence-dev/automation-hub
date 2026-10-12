@@ -126,3 +126,18 @@ func TestLoadMessagesHeaderOverride(t *testing.T) {
 		t.Errorf("Render() = %q, %v; want the overridden header", got, err)
 	}
 }
+
+func TestLoadMessagesPlaceholderMismatch(t *testing.T) {
+	_, err := loadYAML(t, serverOnly+"messages:\n  bot:\n    job_created: \"🚀 Job creado.\"\n")
+	if err == nil || !strings.Contains(err.Error(), "bot.job_created") {
+		t.Errorf("Load() error = %v, want it to name bot.job_created", err)
+	}
+	cfg, err := loadYAML(t, serverOnly+"messages:\n  bot:\n    job_created: \"🚀 Job {job} en {cronjob}.\"\n")
+	if err != nil {
+		t.Fatalf("Load() error = %v for a same-shape override", err)
+	}
+	got, err := cfg.Catalog.Render("bot.job_created", map[string]string{"job": "j1", "cronjob": "cj"})
+	if err != nil || got != "🚀 Job j1 en cj." {
+		t.Errorf("Render() = %q, %v; want the overridden text", got, err)
+	}
+}

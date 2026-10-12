@@ -12,16 +12,18 @@ import (
 	"automation-hub/internal/services/telegram"
 )
 
+// WebhookHandler turns the webhook of one configured hook into a Telegram message.
 type WebhookHandler struct {
 	telegramClient *telegram.Client
-	config         *config.Config
+	hook           *config.WebhookProcessorConfig
 	logger         *zap.Logger
 }
 
-func NewWebhookHandler(telegramClient *telegram.Client, config *config.Config, logger *zap.Logger) *WebhookHandler {
+// NewWebhookHandler returns the handler for hook. The hook is read once at registration, not per request.
+func NewWebhookHandler(telegramClient *telegram.Client, hook config.WebhookProcessorConfig, logger *zap.Logger) *WebhookHandler {
 	return &WebhookHandler{
 		telegramClient: telegramClient,
-		config:         config,
+		hook:           &hook,
 		logger:         logger,
 	}
 }
@@ -35,16 +37,8 @@ func (h *WebhookHandler) HandleTorrentComplete(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// Find qbittorrent webhook configuration
-	webhookConfig := processor.GetWebhookConfig(h.config, "qbittorrent")
-	if webhookConfig == nil {
-		h.logger.Error("qbittorrent webhook configuration not found")
-		http.Error(w, "Webhook configuration not found", http.StatusInternalServerError)
-		return
-	}
-
 	// Create processor dynamically
-	torrentProc := processor.NewTorrentProcessor(h.telegramClient, webhookConfig, h.logger)
+	torrentProc := processor.NewTorrentProcessor(h.telegramClient, h.hook, h.logger)
 
 	if err := torrentProc.Process(notification); err != nil {
 		h.logger.Error("Failed to process torrent notification", zap.Error(err))
