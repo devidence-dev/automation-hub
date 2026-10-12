@@ -385,9 +385,9 @@ func (g *gatedSender) SendDocument(chatID, filename, caption string, data []byte
 // countingAggregate wraps depreport.Aggregate and counts its calls.
 type countingAggregate struct{ calls int }
 
-func (c *countingAggregate) aggregate(rep depreport.Report, forks []string) depreport.Summary {
+func (c *countingAggregate) aggregate(rep depreport.Report, forks []string, receivedAt time.Time) depreport.Summary {
 	c.calls++
-	return depreport.Aggregate(rep, forks)
+	return depreport.Aggregate(rep, forks, receivedAt)
 }
 
 func TestAggregatesOnce(t *testing.T) {

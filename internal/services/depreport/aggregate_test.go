@@ -26,7 +26,7 @@ func repoJSON(name string, types ...string) string {
 }
 
 func TestAggregateFixtureTotals(t *testing.T) {
-	sum := Aggregate(loadFixtureReport(t), []string{"devidence-dev/discord-tts-bot"})
+	sum := Aggregate(loadFixtureReport(t), []string{"devidence-dev/discord-tts-bot"}, fixedAt)
 	if sum.Repos != 6 {
 		t.Errorf("Repos = %d, want 6", sum.Repos)
 	}
@@ -50,7 +50,7 @@ func TestPendingOrder(t *testing.T) {
 		repoJSON("devidence-dev/Z", "patch", "patch"),
 		repoJSON("devidence-dev/discord-tts-bot", "minor"),
 	)
-	sum := Aggregate(rep, []string{"devidence-dev/discord-tts-bot"})
+	sum := Aggregate(rep, []string{"devidence-dev/discord-tts-bot"}, fixedAt)
 	var got []string
 	for _, p := range sum.Pending {
 		got = append(got, ShortName(p.Repo))
@@ -64,7 +64,7 @@ func TestPendingOrder(t *testing.T) {
 }
 
 func TestAggregateDigestOnlyRepoHasNoPending(t *testing.T) {
-	sum := Aggregate(reportOf(t, repoJSON("devidence-dev/digest-only", "digest")), nil)
+	sum := Aggregate(reportOf(t, repoJSON("devidence-dev/digest-only", "digest")), nil, fixedAt)
 	if len(sum.Pending) != 0 {
 		t.Errorf("pending = %+v, want none", sum.Pending)
 	}
@@ -80,7 +80,7 @@ func TestAggregateSplitsImagesFromDeps(t *testing.T) {
 		{"depName":"golang","datasource":"docker","currentVersion":"1.27","updates":[{"updateType":"patch","newVersion":"1.27.1"}]},
 		{"depName":"legacy-tool","currentVersion":"1.0.0","updates":[{"updateType":"patch","newVersion":"1.0.1"}]}
 	]}]}}`)
-	sum := Aggregate(rep, nil)
+	sum := Aggregate(rep, nil, fixedAt)
 	if len(sum.Images.Rows) != 2 || sum.Images.Rows[0].Name != "ghcr.io/immich-app/immich-server" || sum.Images.Rows[1].Name != "golang" {
 		t.Errorf("images rows = %+v", sum.Images.Rows)
 	}
@@ -93,7 +93,7 @@ func TestAggregateSplitsImagesFromDeps(t *testing.T) {
 func TestScanErrorsIncludeRoot(t *testing.T) {
 	rep := reportOf(t, `"devidence-dev/QuantWarden":{"problems":[{"level":50,"msg":"Repo failed"},{"level":40,"msg":"Just a warning"}]}`)
 	rep.Problems = []Problem{{Level: 50, Msg: "Fatal error outside any repo"}, {Level: 40, Msg: "Warning at root"}}
-	sum := Aggregate(rep, nil)
+	sum := Aggregate(rep, nil, fixedAt)
 	want := []ScanError{{Msg: "Fatal error outside any repo"}, {Repo: "devidence-dev/QuantWarden", Msg: "Repo failed"}}
 	if fmt.Sprint(sum.Errors) != fmt.Sprint(want) {
 		t.Errorf("errors = %+v, want %+v", sum.Errors, want)
@@ -109,5 +109,34 @@ func TestShortName(t *testing.T) {
 		if got := ShortName(in); got != want {
 			t.Errorf("ShortName(%q) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+// TestOneDepTwoUpdates is one dep with a major and a minor update: the repo counts it once, as
+// major, and the dependencies tab lists both rows, in either order Renovate gives them.
+func TestOneDepTwoUpdates(t *testing.T) {
+	tests := []struct {
+		name    string
+		updates string // the dep's update list, as Renovate writes it
+	}{
+		{name: "major first", updates: `{"updateType":"major","newVersion":"2.0.0"},{"updateType":"minor","newVersion":"1.9.0"}`},
+		{name: "minor first", updates: `{"updateType":"minor","newVersion":"1.9.0"},{"updateType":"major","newVersion":"2.0.0"}`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dep := `{"depName":"github.com/gorilla/mux","datasource":"go","currentVersion":"1.8.0","updates":[` + tt.updates + `]}`
+			rep := reportOf(t, `"devidence-dev/QuantWarden":{"packageFiles":{"gomod":[{"packageFile":"go.mod","deps":[`+dep+`]}]}}`)
+			sum := Aggregate(rep, nil, fixedAt)
+			if len(sum.Pending) != 1 || sum.Pending[0].Major != 1 || sum.Pending[0].Minor != 0 || sum.Pending[0].Patch != 0 {
+				t.Errorf("pending = %+v, want one repo with one major dep", sum.Pending)
+			}
+			rows := sum.Deps.Rows
+			if len(rows) != 2 || rows[0].Type != UpdateMajor || rows[1].Type != UpdateMinor {
+				t.Errorf("dependency rows = %+v, want a major row, then a minor row", rows)
+			}
+			if sum.Deps.Total != 1 || sum.Deps.WithUpdates != 1 || sum.Deps.Updates != 2 {
+				t.Errorf("deps tab = total %d, with updates %d, rows %d; want 1, 1, 2", sum.Deps.Total, sum.Deps.WithUpdates, sum.Deps.Updates)
+			}
+		})
 	}
 }

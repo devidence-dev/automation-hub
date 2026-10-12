@@ -36,9 +36,7 @@ func catalogWith(t *testing.T, overrides map[string]any) *messages.Catalog {
 
 // summaryAt aggregates rep with the test fork and the fixed receive time.
 func summaryAt(rep Report) Summary {
-	s := Aggregate(rep, []string{testForkRepo})
-	s.ReceivedAt = fixedAt
-	return s
+	return Aggregate(rep, []string{testForkRepo}, fixedAt)
 }
 
 func readGolden(t *testing.T, name string) string {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 
 	"automation-hub/internal/config"
 	"automation-hub/internal/handlers"
@@ -88,5 +89,44 @@ func TestRegisterRoutesNotConfigured(t *testing.T) {
 	router.ServeHTTP(rec, jobPost(t, "/webhook/dependency-report", "secret"))
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want 404 without the dependency_report section", rec.Code)
+	}
+}
+
+// TestJobSchedulesUseConfiguredZone registers a job schedule in a non-default zone: the scheduler
+// runs in that zone, so the next run is Monday 09:00 in Europe/Madrid.
+func TestJobSchedulesUseConfiguredZone(t *testing.T) {
+	madrid, err := time.LoadLocation("Europe/Madrid")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := &config.Config{
+		Location: madrid,
+		Jobs: []config.JobCommandConfig{{
+			Command: "run_dependency_report", Namespace: "internal-apps", CronJob: "dependency-report", Schedule: "0 9 * * 1",
+		}},
+	}
+	core, logs := observer.New(zap.InfoLevel)
+	sched := registerSchedules(cfg, handlers.NewBotHandler(handlers.BotHandlerDeps{}), cfg.Location, zap.New(core))
+	if sched == nil {
+		t.Fatal("registerSchedules() returned no scheduler for a scheduled job")
+	}
+	sched.Start()
+	defer sched.Stop()
+
+	started := logs.FilterMessage("Scheduler started").All()
+	if len(started) != 1 || started[0].ContextMap()["timezone"] != "Europe/Madrid" {
+		t.Fatalf("scheduler started = %v, want timezone Europe/Madrid", started)
+	}
+	next := logs.FilterMessage("Next scheduled run").All()
+	if len(next) != 1 {
+		t.Fatalf("next runs logged = %d, want 1", len(next))
+	}
+	nextRun, _ := next[0].ContextMap()["next_run"].(string)
+	at, err := time.Parse(time.RFC3339, nextRun)
+	if err != nil {
+		t.Fatalf("next_run %q: %v", nextRun, err)
+	}
+	if local := at.In(madrid); local.Weekday() != time.Monday || local.Hour() != 9 || local.Minute() != 0 {
+		t.Errorf("next run = %s, want Monday 09:00 in Europe/Madrid", local)
 	}
 }

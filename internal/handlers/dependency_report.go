@@ -19,7 +19,7 @@ type DependencyReportHandler struct {
 	cfg       config.DependencyReportConfig
 	cat       *messages.Catalog
 	loc       *time.Location
-	aggregate func(depreport.Report, []string) depreport.Summary
+	aggregate func(depreport.Report, []string, time.Time) depreport.Summary
 	caption   depreport.Presenter
 	document  depreport.Presenter
 	deliverer *depreport.Deliverer
@@ -108,8 +108,7 @@ func (h *DependencyReportHandler) failureDelivery(sub depreport.Submission) depr
 // without a document the caption goes out as text.
 func (h *DependencyReportHandler) reportDelivery(rep depreport.Report) depreport.Delivery {
 	receivedAt := h.now()
-	sum := h.aggregate(rep, h.cfg.Forks)
-	sum.ReceivedAt = receivedAt
+	sum := h.aggregate(rep, h.cfg.Forks, receivedAt)
 
 	caption, err := h.caption.Present(sum)
 	if err != nil {

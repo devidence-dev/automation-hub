@@ -491,12 +491,12 @@
                         {{if $tab.Updates}}
                         <div class="status-badge warning">
                             <i class="bi bi-exclamation-triangle-fill" style="color: var(--accent-yellow);"></i>
-                            <span><strong>{{$tab.StatusText}}</strong></span>
+                            <span><strong>{{$tab.StatusBold}}</strong>{{if $tab.StatusRest}} {{$tab.StatusRest}}{{end}}</span>
                         </div>
                         {{else}}
                         <div class="status-badge success">
                             <i class="bi bi-check-circle-fill" style="color: var(--accent-green);"></i>
-                            <span><strong>{{$tab.StatusText}}</strong></span>
+                            <span><strong>{{$tab.StatusBold}}</strong>{{if $tab.StatusRest}} {{$tab.StatusRest}}{{end}}</span>
                         </div>
                         {{end}}
                         {{if $tab.Rows}}

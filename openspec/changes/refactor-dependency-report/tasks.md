@@ -31,7 +31,7 @@ Every behavior task names the test that proves it. Each touched package keeps ev
 ## 6. Domain (`internal/services/depreport`)
 
 - [x] 6.1 Add `UpdateType` (`UpdateUnknown` zero value, `UpdateMajor`, `UpdateMinor`, `UpdatePatch`) with `ParseUpdateType`, `Listed()`, `Rank()` and `String()`. Verify with `TestParseUpdateType` (table: `major`, `minor`, `patch`, `digest`, `pin`, empty) and `TestUpdateTypeRank` (major before minor before patch).
-- [x] 6.2 Add `Aggregate(rep Report, forks []string) Summary` (both tabs, pending repos in caption order, repo count, errors) and `ShortName`. Verify with `TestAggregateFixtureTotals` (tab totals of the fixture), `TestPendingOrder` (the spec "Fork and sort order" case, lines `X`, `Y`, `A`, `B`, `Z`), `TestAggregateDigestOnlyRepoHasNoPending`, `TestScanErrorsIncludeRoot` (level 50 listed, level 40 not), and `TestShortName` (`acme-corp/payments-api` gives `payments-api`, a name with no slash is kept).
+- [x] 6.2 Add `Aggregate(rep Report, forks []string, receivedAt time.Time) Summary` (both tabs, pending repos in caption order, repo count, errors) and `ShortName`. Verify with `TestAggregateFixtureTotals` (tab totals of the fixture), `TestPendingOrder` (the spec "Fork and sort order" case, lines `X`, `Y`, `A`, `B`, `Z`), `TestAggregateDigestOnlyRepoHasNoPending`, `TestScanErrorsIncludeRoot` (level 50 listed, level 40 not), and `TestShortName` (`acme-corp/payments-api` gives `payments-api`, a name with no slash is kept).
 
 ## 7. Presenters and file name (`internal/services/depreport`)
 

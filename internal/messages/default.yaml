@@ -34,7 +34,8 @@ document:
   up_to_date: "Al día"
   distribution: "Distribución de actualizaciones"
   status:
-    updates: "{updates} actualizaciones disponibles para {deps} dependencias"
+    updates_bold: "{updates} actualizaciones disponibles"
+    updates_rest: "para {deps} dependencias"
     up_to_date: "Todas las dependencias están al día"
   available: "Actualizaciones disponibles"
   columns:

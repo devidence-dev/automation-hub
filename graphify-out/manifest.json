@@ -204,15 +204,15 @@
     "semantic_hash": ""
   },
   "internal/handlers/dependency_report.go": {
-    "mtime": 1791774713.9080117,
-    "seen": 1791775043.1371276,
-    "ast_hash": "665a2bd66960f78457e889616b958684",
+    "mtime": 1791776355.2909107,
+    "seen": 1791776481.8276825,
+    "ast_hash": "9a6b87d014a0e6b08729dec4e5d3de69",
     "semantic_hash": ""
   },
   "internal/handlers/dependency_report_test.go": {
-    "mtime": 1791774744.8299954,
-    "seen": 1791775043.1371293,
-    "ast_hash": "d32f025f46e03507ae97510b428dfddb",
+    "mtime": 1791776355.2909107,
+    "seen": 1791776481.8276842,
+    "ast_hash": "6e15abb8487d96b8e4d14b65a6670776",
     "semantic_hash": ""
   },
   "internal/handlers/testdata/renovate-report.json": {
@@ -258,9 +258,9 @@
     "semantic_hash": ""
   },
   "cmd/automation-hub/main_test.go": {
-    "mtime": 1791774855.1548028,
-    "seen": 1791775043.1371229,
-    "ast_hash": "d870adc11293abb59600e42fae926bd6",
+    "mtime": 1791776392.500409,
+    "seen": 1791776481.8276782,
+    "ast_hash": "d239a4ff0b2955986a682d89d0a8475d",
     "semantic_hash": ""
   },
   "openspec/changes/archive/2026-10-11-add-dependency-report-job/.openspec.yaml": {
@@ -312,9 +312,9 @@
     "semantic_hash": ""
   },
   "internal/config/settings_test.go": {
-    "mtime": 1791774214.3646233,
-    "seen": 1791775043.137127,
-    "ast_hash": "b700b28966b49ab6ffa396336a53bed8",
+    "mtime": 1791776392.500409,
+    "seen": 1791776481.8276818,
+    "ast_hash": "fe62ea757e8826c7720d263e35d60871",
     "semantic_hash": ""
   },
   "internal/handlers/dependency_report_golden_test.go": {
@@ -336,15 +336,15 @@
     "semantic_hash": ""
   },
   "internal/services/depreport/aggregate.go": {
-    "mtime": 1791774402.3083434,
-    "seen": 1791775043.137137,
-    "ast_hash": "3dd9aadea400d8ed1f30d2861d099fa8",
+    "mtime": 1791776361.1865141,
+    "seen": 1791776481.8276913,
+    "ast_hash": "f92910037202f575e14fe250bdf9b9de",
     "semantic_hash": ""
   },
   "internal/services/depreport/aggregate_test.go": {
-    "mtime": 1791774916.2468207,
-    "seen": 1791775043.1371374,
-    "ast_hash": "a786f327bbf4ca8232a07d5b8b5177af",
+    "mtime": 1791776370.781869,
+    "seen": 1791776481.8276918,
+    "ast_hash": "c93b67e4638549646275b9ce2591b6cd",
     "semantic_hash": ""
   },
   "internal/services/depreport/caption.go": {
@@ -372,9 +372,9 @@
     "semantic_hash": ""
   },
   "internal/services/depreport/document.go": {
-    "mtime": 1791774544.2190804,
-    "seen": 1791775043.13714,
-    "ast_hash": "c5b26093d695c5c962b446ef1e5ae886",
+    "mtime": 1791776333.5803711,
+    "seen": 1791776481.827695,
+    "ast_hash": "17227bf93656f67ff43bb94128734a09",
     "semantic_hash": ""
   },
   "internal/services/depreport/document_test.go": {
@@ -396,9 +396,9 @@
     "semantic_hash": ""
   },
   "internal/services/depreport/keys.go": {
-    "mtime": 1791774088.284871,
-    "seen": 1791775043.1371417,
-    "ast_hash": "c3218ff34784d7f8f600a75d236ff515",
+    "mtime": 1791776333.5803711,
+    "seen": 1791776481.8276975,
+    "ast_hash": "fd6a5edd29428bd2185b718f022efd01",
     "semantic_hash": ""
   },
   "internal/services/depreport/keys_test.go": {
@@ -408,9 +408,9 @@
     "semantic_hash": ""
   },
   "internal/services/depreport/present_helpers_test.go": {
-    "mtime": 1791774996.313383,
-    "seen": 1791775043.137143,
-    "ast_hash": "8ff4bddcd09db4d0eda2c519451c454e",
+    "mtime": 1791776355.2909107,
+    "seen": 1791776481.8276985,
+    "ast_hash": "5356af47fc6f7585a9f72416878cdbe3",
     "semantic_hash": ""
   },
   "internal/services/depreport/presenter.go": {
@@ -462,39 +462,39 @@
     "semantic_hash": ""
   },
   "internal/handlers/testdata/golden/caption.txt": {
-    "mtime": 1791774783.8714497,
-    "seen": 1791775043.137161,
+    "mtime": 1791776347.3834426,
+    "seen": 1791776481.8277178,
     "ast_hash": "5d458fdcf0fd23bdf0c7ff0ffb91d2a7",
     "semantic_hash": ""
   },
   "internal/handlers/testdata/golden/caption_up_to_date.txt": {
-    "mtime": 1791774783.8714497,
-    "seen": 1791775043.1371617,
+    "mtime": 1791776347.3834426,
+    "seen": 1791776481.8277185,
     "ast_hash": "cae094b51ca750c6ba1aeb2ee31034db",
     "semantic_hash": ""
   },
   "internal/handlers/testdata/golden/document.html": {
-    "mtime": 1791774783.8714497,
-    "seen": 1791775043.137162,
-    "ast_hash": "b665555fb436dfee8c173b4b25b39ee3",
+    "mtime": 1791776347.3834426,
+    "seen": 1791776481.827719,
+    "ast_hash": "bdad1f5dfcd74a39e136dce4e7fe7ee3",
     "semantic_hash": ""
   },
   "internal/handlers/testdata/golden/failure.txt": {
-    "mtime": 1791774783.8714497,
-    "seen": 1791775043.1371624,
+    "mtime": 1791776347.3834426,
+    "seen": 1791776481.8277194,
     "ast_hash": "2fd1db23162202331e6f355e613a11cc",
     "semantic_hash": ""
   },
   "internal/messages/default.yaml": {
-    "mtime": 1791774028.1248105,
-    "seen": 1791775043.137163,
-    "ast_hash": "0befa7b658194cf8dcb370287cf0657d",
+    "mtime": 1791776333.5803711,
+    "seen": 1791776481.82772,
+    "ast_hash": "ce7a803ff4de97813a61ce0b70666d6d",
     "semantic_hash": ""
   },
   "internal/services/depreport/assets/dependency_report.html": {
-    "mtime": 1791774489.3786592,
-    "seen": 1791775043.1371636,
-    "ast_hash": "1e1ac17b491d891af0d5751b292307ae",
+    "mtime": 1791776333.5803711,
+    "seen": 1791776481.8277204,
+    "ast_hash": "2bcff65a2b7f7f5851832f3732414a2e",
     "semantic_hash": ""
   },
   "openspec/changes/archive/2026-10-11-add-dependency-report-html/.openspec.yaml": {
@@ -648,21 +648,21 @@
     "semantic_hash": ""
   },
   "openspec/changes/refactor-dependency-report/design.md": {
-    "mtime": 1791773728.0245104,
-    "seen": 1791775043.1371856,
-    "ast_hash": "0f7fa00f5fd5ac44fdf006d2d140fd24",
+    "mtime": 1791776427.5540533,
+    "seen": 1791776481.8277426,
+    "ast_hash": "3cd9fc0328f1bbcb7efc8423f2183d2e",
     "semantic_hash": ""
   },
   "openspec/changes/refactor-dependency-report/proposal.md": {
-    "mtime": 1791773728.0245104,
-    "seen": 1791775043.137186,
-    "ast_hash": "d01a98a52bf2f000a791f08736b78f8c",
+    "mtime": 1791776423.1463494,
+    "seen": 1791776481.827743,
+    "ast_hash": "c8ee6998cfe81862db9a7cd3f8e9c92b",
     "semantic_hash": ""
   },
   "openspec/changes/refactor-dependency-report/specs/dependency-report/spec.md": {
-    "mtime": 1791773728.0245104,
-    "seen": 1791775043.1371865,
-    "ast_hash": "8d7a7a287860657390f831f2b51421ff",
+    "mtime": 1791776416.1948166,
+    "seen": 1791776481.8277438,
+    "ast_hash": "552ce3164844793b8b68da60e6c36c46",
     "semantic_hash": ""
   },
   "openspec/changes/refactor-dependency-report/specs/job-commands/spec.md": {
@@ -672,9 +672,9 @@
     "semantic_hash": ""
   },
   "openspec/changes/refactor-dependency-report/specs/message-catalog/spec.md": {
-    "mtime": 1791773728.0245104,
-    "seen": 1791775043.1371875,
-    "ast_hash": "260c8175bf91a7e24de66b64106c7c0c",
+    "mtime": 1791776416.1948166,
+    "seen": 1791776481.8277447,
+    "ast_hash": "3949a6353bbd3903f283c41e63623153",
     "semantic_hash": ""
   },
   "openspec/changes/refactor-dependency-report/specs/scheduled-dispatch/spec.md": {
@@ -684,9 +684,9 @@
     "semantic_hash": ""
   },
   "openspec/changes/refactor-dependency-report/tasks.md": {
-    "mtime": 1791774925.3582268,
-    "seen": 1791775043.1371884,
-    "ast_hash": "87320736e23e91296fd6e720628ff5a5",
+    "mtime": 1791776423.1463494,
+    "seen": 1791776481.8277457,
+    "ast_hash": "d5769156844c687e24e212c0a36cf45e",
     "semantic_hash": ""
   },
   "openspec/config.yaml": {

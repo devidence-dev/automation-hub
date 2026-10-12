@@ -69,7 +69,7 @@ If `exit_code` is not `0` or `report` is missing, the system SHALL send one text
 - **THEN** the message starts with `❌ Renovate failed (exit 1) in pod dependency-report-manual-1791763200-x7k2p`
 
 ### Requirement: HTML report document
-The system SHALL send the HTML report of a successful run as one Telegram document to the configured chat, with the summary caption (see "Summary caption") as the document's caption. A successful run sends no other message. The file name is the `dependency_report.document_name` pattern with `{date}` replaced by the day the hub received the report in the configured `timezone` (default `America/Guayaquil`), formatted with `dependency_report.date_layout`. The document's header SHALL show the scan timestamp, defined as the time the hub received the report, as `YYYY-MM-DD HH:MM <timezone>`. The document's `lang` attribute and all its labels SHALL come from the message catalog, which is Spanish by default. The system MUST NOT send a document on the Renovate failure path (`exit_code` not `0`, or `report` missing).
+The system SHALL send the HTML report of a successful run as one Telegram document to the configured chat, with the summary caption (see "Summary caption") as the document's caption. A successful run sends no other message. The file name is the `dependency_report.document_name` pattern with `{date}` replaced by the day the hub received the report in the configured `timezone` (default `America/Guayaquil`), formatted with `dependency_report.date_layout`. The document's header SHALL show the scan timestamp, defined as the time the hub received the report, as `YYYY-MM-DD HH:MM <timezone>`. The document's `lang` attribute and all its labels SHALL come from the message catalog, which is Spanish by default. The system MUST NOT send a document on the Renovate failure path (`exit_code` not `0`, or `report` missing). Update-type names (`major`, `minor`, `patch`) are Renovate's names and are not catalog entries.
 
 #### Scenario: Successful run
 - **WHEN** a valid request with `exit_code=0` and a report with `devidence-dev/QuantWarden` having pending updates is received on 2026-10-12 at 09:07 America/Guayaquil
@@ -157,3 +157,18 @@ The document SHALL have two tabs. "Imágenes" lists every dependency whose Renov
 #### Scenario: Document fork tag override
 - **WHEN** the config has `messages: {fork: {tag_document: " (fork)"}}` and `devidence-dev/discord-tts-bot` is in `dependency_report.forks` with a listed update
 - **THEN** its rows show the repo as `devidence-dev/discord-tts-bot (fork)`, and the caption line is unchanged
+
+### Requirement: Scan errors in the document
+When a repo or the report root has problems with `level >= 50`, the document SHALL list each of them in an errors section: `<owner/repo>: <msg>` for a repo, and `raíz: <msg>` for the report root (`raíz` is the catalog text `document.errors.root`). The caption's error count uses the same problems. The section is absent when there are none.
+
+#### Scenario: Lookup failure
+- **WHEN** `devidence-dev/QuantWarden` has a problem with `level` 50 and `msg` `Failed to look up dependency`
+- **THEN** the document's errors section contains `devidence-dev/QuantWarden: Failed to look up dependency`
+
+#### Scenario: Root problem
+- **WHEN** the report root has a problem with `level` 50 and `msg` `Fatal error outside any repo`
+- **THEN** the document's errors section contains `raíz: Fatal error outside any repo`, and the caption shows the error count including it
+
+#### Scenario: Warning level only
+- **WHEN** the only problem of a repo has `level` 40
+- **THEN** the document has no errors section

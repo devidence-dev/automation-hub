@@ -21,7 +21,7 @@ const errorLevel = 50
 
 // Row is one listed update: one dep and one update of type major, minor or patch.
 type Row struct {
-	Repo        string // report name, for example devidence-dev/QuantWarden
+	Repo        string // report name, for example acme-corp/payments-api
 	Fork        bool   // the repo is one of the configured forks
 	PackageFile string
 	Name        string
@@ -60,7 +60,7 @@ type ScanError struct {
 
 // Summary is what the report shows. Aggregate computes it once; every presenter reads the same value.
 type Summary struct {
-	ReceivedAt time.Time // when the hub received the report, set by the handler
+	ReceivedAt time.Time // when the hub received the report
 	Images     Tab
 	Deps       Tab
 	Repos      int           // repos in the report, with or without pending updates
@@ -68,8 +68,9 @@ type Summary struct {
 	Errors     []ScanError
 }
 
-// Aggregate computes the summary of a report. forks are the repo names tagged as forks.
-func Aggregate(rep Report, forks []string) Summary {
+// Aggregate computes the summary of a report received at receivedAt. forks are the repo names
+// tagged as forks.
+func Aggregate(rep Report, forks []string, receivedAt time.Time) Summary {
 	images, deps := newTabBuilder(), newTabBuilder()
 	for _, name := range sortedRepoNames(rep) {
 		fork := slices.Contains(forks, name)
@@ -80,11 +81,12 @@ func Aggregate(rep Report, forks []string) Summary {
 		}
 	}
 	return Summary{
-		Images:  images.finish(),
-		Deps:    deps.finish(),
-		Repos:   len(rep.Repositories),
-		Pending: pendingByRepo(forks, images, deps),
-		Errors:  scanErrors(rep),
+		ReceivedAt: receivedAt,
+		Images:     images.finish(),
+		Deps:       deps.finish(),
+		Repos:      len(rep.Repositories),
+		Pending:    pendingByRepo(forks, images, deps),
+		Errors:     scanErrors(rep),
 	}
 }
 

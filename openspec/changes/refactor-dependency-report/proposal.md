@@ -14,7 +14,7 @@ Required `add-dependency-report-html` to be archived first. It was archived on 2
 - `dependency_report:` gains `path`, `token_header`, `max_body_bytes`, `document_name` and `date_layout`, defaulting to today's values.
 - New `messages:` catalog: an embedded default in `internal/messages` holds every report text, emoji and HTML label, and `lang`. Each key keeps the text the hub sends today (the report texts are Spanish, the caption header keeps `Dependency report`). Config overrides single keys; unknown keys and missing placeholders fail at startup.
 - Two fork tags keep today's texts: `fork.tag_caption` (default ` (fork)`) for caption lines and `fork.tag_document` (default ` (fork, solo informativo)`) for document rows.
-- **Visible change**: the document labels become Spanish and `lang` becomes `es`. Today the template mixes Spanish and English labels with `lang="en"`.
+- **Visible change**: the document labels become Spanish, `lang` becomes `es`, the errors root label becomes `raíz` (was `root`) and the HTML `<title>` becomes `Reporte de dependencias - Devidence` (was `Dependency Report - Devidence`). Today the template mixes Spanish and English labels with `lang="en"`.
 - The `devidence-dev/` strip is removed; the short name is the last path segment.
 - Internal split: parser, single aggregation, caption and document presenters behind one interface, deliverer, typed `UpdateType`, per-tab view models, one column-driven tab template, named form-field constants, one `ReportSender`.
 

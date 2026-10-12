@@ -30,7 +30,7 @@ See `proposal.md` for the motivation and `specs/` for the behavior contract.
   - `submission.go`: multipart parser (`ParseSubmission(r, maxBody)`) and the form-field constants `FieldExitCode`, `FieldPod`, `FieldLogTail`, `FieldReport`, the Job↔hub contract.
   - `renovate.go`: Renovate JSON parser (`ParseReport`).
   - `update_type.go`: `UpdateType` enum.
-  - `aggregate.go`: `Aggregate(rep, forks) Summary`, called once per report.
+  - `aggregate.go`: `Aggregate(rep, forks, receivedAt) Summary`, called once per report. The returned Summary is complete, `ReceivedAt` included.
   - `presenter.go`: `Presenter` interface, implemented by `caption.go` and `document.go`.
   - `deliver.go`: `ReportSender` interface (the only definition) and `Deliverer`.
   - `failure.go`: the failure message builder with the rune-safe tail cut.
@@ -40,9 +40,11 @@ Alternative considered: keep everything in `handlers`. Rejected: the handler wou
 
 ### D2. Presentation strategy
 
-`Presenter` has one method, `Present(Summary) ([]byte, error)`. `CaptionPresenter` returns the caption bytes, `DocumentPresenter` returns HTML bytes. The handler holds a slice of presenters and does not know their output types. Both receive the same `Summary` value, so the caption and the document agree by construction.
+`Presenter` has one method, `Present(Summary) ([]byte, error)`. `CaptionPresenter` returns the caption bytes and `DocumentPresenter` returns the HTML bytes. The handler holds two named `Presenter` fields, `caption` and `document`, because the deliverer needs the caption text and the document bytes separately. Both still implement the same `Presenter` interface and both read the same `Summary` value, so the caption and the document agree by construction.
 
 Alternative considered: a `Renderer` with a generic output type. Rejected: Go generics add complexity for two callers.
+
+Alternative considered: a slice of presenters in the handler. Rejected: the deliverer needs the caption text and the document bytes separately, and a slice would lose which output is which.
 
 ### D3. Typed update types and per-tab view models
 
@@ -74,10 +76,12 @@ All defaults are filled in Go after unmarshal. Viper `SetDefault` on `dependency
 
 One default changes visible text. The user approved it on 2026-10-11:
 - Document labels: the template mixes Spanish tab labels with English labels and `lang="en"`. Under the "no es/en mix" rule every label moves to the catalog in Spanish, and `lang` is `es`. The Spanish labels are drafted in task 3.1 and approved visually in task 10.1.
+- Errors root label: `document.errors.root` is `raíz` (was `root`), so the errors section shows `raíz: <msg>` for the report root. The "Scan errors in the document" requirement in the delta spec carries this change.
+- HTML `<title>`: `document.title` is `Reporte de dependencias - Devidence` (was `Dependency Report - Devidence`).
 
 The fork tags do not change visible text. Two entries keep today's texts: `fork.tag_caption` = ` (fork)` for caption lines and `fork.tag_document` = ` (fork, solo informativo)` for document rows.
 
-The HTML `<title>` keeps the brand word through the catalog (`document.title`), so no owner literal is in code.
+The brand word stays in the catalog text of the `<title>` (`document.title`), so no owner literal is in code.
 
 ### D8. Submission parser and limits
 

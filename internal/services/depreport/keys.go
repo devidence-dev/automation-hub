@@ -31,7 +31,8 @@ const (
 	KeyDocPending           = "document.pending"
 	KeyDocUpToDate          = "document.up_to_date"
 	KeyDocDistribution      = "document.distribution"
-	KeyDocStatusUpdates     = "document.status.updates"
+	KeyDocStatusUpdatesBold = "document.status.updates_bold"
+	KeyDocStatusUpdatesRest = "document.status.updates_rest"
 	KeyDocStatusUpToDate    = "document.status.up_to_date"
 	KeyDocAvailable         = "document.available"
 	KeyColPackageFile       = "document.columns.package_file"
@@ -65,7 +66,7 @@ var allKeys = []string{
 	KeyCaptionEmojiMajor, KeyCaptionEmojiOther,
 	KeyCountMajor, KeyCountMinor, KeyCountPatch, KeyCountSeparator,
 	KeyDocTitle, KeyDocBrand, KeyDocTabImages, KeyDocTabDeps, KeyDocTotal, KeyDocPending,
-	KeyDocUpToDate, KeyDocDistribution, KeyDocStatusUpdates, KeyDocStatusUpToDate, KeyDocAvailable,
+	KeyDocUpToDate, KeyDocDistribution, KeyDocStatusUpdatesBold, KeyDocStatusUpdatesRest, KeyDocStatusUpToDate, KeyDocAvailable,
 	KeyColPackageFile, KeyColRepository, KeyColCurrentImage, KeyColLatestImage, KeyColDependency,
 	KeyColCurrent, KeyColNew, KeyColType,
 	KeyCopyCurrentImage, KeyCopyLatestImage, KeyCopyCopied, KeyCopyCopiedBefore,

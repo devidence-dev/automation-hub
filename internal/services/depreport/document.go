@@ -84,7 +84,8 @@ type TabView struct {
 	Updates      int
 	UpToDate     int
 	Distribution []distItem
-	StatusText   string
+	StatusBold   string // bold part of the status line
+	StatusRest   string // the rest of the status line, after the bold part
 	Columns      []columnView
 	Rows         []rowView
 }
@@ -181,6 +182,7 @@ func newLabels(r *renderer) labelSet {
 
 // tab builds one tab from its totals and its rows, which are already sorted.
 func (b *docBuilder) tab(id, labelKey string, tab Tab, columns []columnSpec) TabView {
+	bold, rest := b.status(tab)
 	view := TabView{
 		ID:           id,
 		Label:        b.r.text(labelKey, nil),
@@ -188,7 +190,8 @@ func (b *docBuilder) tab(id, labelKey string, tab Tab, columns []columnSpec) Tab
 		Updates:      tab.Updates,
 		UpToDate:     tab.UpToDate,
 		Distribution: distribution(tab),
-		StatusText:   b.status(tab),
+		StatusBold:   bold,
+		StatusRest:   rest,
 	}
 	for _, c := range columns {
 		view.Columns = append(view.Columns, columnView{Header: b.r.text(c.key, nil), Width: c.width})
@@ -203,15 +206,18 @@ func (b *docBuilder) tab(id, labelKey string, tab Tab, columns []columnSpec) Tab
 	return view
 }
 
-// status is the line under the tab's title: the pending counts, or that everything is up to date.
-func (b *docBuilder) status(tab Tab) string {
+// status is the line under the tab's title, as a bold part and a rest. With pending updates the
+// bold part holds the count and the rest names the dependencies; when everything is up to date the
+// whole line is the bold part.
+func (b *docBuilder) status(tab Tab) (bold, rest string) {
 	if tab.Updates == 0 {
-		return b.r.text(KeyDocStatusUpToDate, nil)
+		return b.r.text(KeyDocStatusUpToDate, nil), ""
 	}
-	return b.r.text(KeyDocStatusUpdates, map[string]string{
+	vars := map[string]string{
 		"updates": strconv.Itoa(tab.Updates),
 		"deps":    strconv.Itoa(tab.WithUpdates),
-	})
+	}
+	return b.r.text(KeyDocStatusUpdatesBold, vars), b.r.text(KeyDocStatusUpdatesRest, vars)
 }
 
 // errorLines lists the scan errors. The report root is named by its own catalog text.

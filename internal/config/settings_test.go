@@ -89,6 +89,10 @@ func TestDependencyReportZeroBodyLimit(t *testing.T) {
 	expectSettingError(t, "max_body_bytes: 0", "dependency_report.max_body_bytes")
 }
 
+func TestDependencyReportNonNumericBodyLimit(t *testing.T) {
+	expectSettingError(t, "max_body_bytes: abc", "dependency_report.max_body_bytes")
+}
+
 func TestDependencyReportTokenHeaderAndLayout(t *testing.T) {
 	expectSettingError(t, `token_header: "X Deps"`, "dependency_report.token_header")
 	expectSettingError(t, `token_header: ""`, "dependency_report.token_header")
