@@ -1,0 +1,57 @@
+# Default texts of the hub's output. Every key can be overridden under `messages:` in the config.
+# Placeholders such as {date} are filled by the code; an override must keep the same ones.
+lang: es
+failure:
+  title: "❌ Renovate falló (exit {exit}) en el pod {pod}"
+fork:
+  tag_caption: " (fork)"
+  tag_document: " (fork, solo informativo)"
+caption:
+  header: "📦 <b>Dependency report</b> · {date}"
+  all_up_to_date: "✅ Todo al día"
+  repos_up_to_date: "✅ {count} repos al día"
+  more_repos: "… y {count} repos más (ver reporte)"
+  repo_line: "{emoji} {name} — {counts}"
+  stats: "📊 {updated} desactualizadas · {current} al día"
+  tabs: "🐳 Imágenes: {images} · 📚 Paquetes: {packages}"
+  errors: "⚠️ {count} errores en el scan"
+  emoji:
+    major: "🔴"
+    other: "🟡"
+counts:
+  major: "{count} major"
+  minor: "{count} minor"
+  patch: "{count} patch"
+  separator: " · "
+document:
+  title: "Reporte de dependencias - Devidence"
+  brand: "Reporte de dependencias"
+  tab:
+    images: "Imágenes"
+    deps: "Dependencias"
+  total: "Total"
+  pending: "Actualizaciones pendientes"
+  up_to_date: "Al día"
+  distribution: "Distribución de actualizaciones"
+  status:
+    updates: "{updates} actualizaciones disponibles para {deps} dependencias"
+    up_to_date: "Todas las dependencias están al día"
+  available: "Actualizaciones disponibles"
+  columns:
+    package_file: "Archivo de paquete"
+    repository: "Repositorio"
+    current_image: "Imagen actual"
+    latest_image: "Imagen nueva"
+    dependency: "Dependencia"
+    current: "Actual"
+    new: "Nueva"
+    type: "Tipo"
+  copy:
+    current_image: "Copiar imagen actual"
+    latest_image: "Copiar imagen nueva"
+    copied: "¡Copiado!"
+    copied_before: "Copiar (copiado antes)"
+  errors:
+    heading: "Errores"
+    root: "raíz"
+    item: "{where}: {msg}"

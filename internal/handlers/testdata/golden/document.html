@@ -1,0 +1,2363 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reporte de dependencias - Devidence</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+        crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"
+        integrity="sha384-4LISF5TTJX/fLmGSxO53rV4miRxdg84mZsxmO8Rx5jGtp/LbrixFETvWa5a6sESd"
+        crossorigin="anonymous">
+    <style>
+         
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border-color: #30363d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --accent-green: #238636;
+            --accent-yellow: #d29922;
+            --accent-red: #da3633;
+            --accent-blue: #58a6ff;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+        }
+
+        .navbar-dark {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+        }
+
+        .container-fluid {
+            max-width: 1400px;
+        }
+
+         
+        .sidebar {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            min-height: calc(100vh - 80px);
+            padding: 1.5rem;
+        }
+
+        .metric-box {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .metric-box:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 600;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+         
+        .content-area {
+            padding: 1.5rem;
+        }
+
+        .status-badge {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .status-badge.warning {
+            border-color: var(--accent-yellow);
+            background: rgba(210, 153, 34, 0.1);
+        }
+
+        .status-badge.success {
+            border-color: var(--accent-green);
+            background: rgba(35, 134, 54, 0.1);
+        }
+
+         
+        .table-devops {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .table-devops .table {
+            color: var(--text-primary);
+            background: transparent;
+            margin-bottom: 0;
+        }
+
+        .table-devops thead {
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .table-devops th {
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 1rem;
+            border: none;
+            background: var(--bg-tertiary);
+        }
+
+        .table-devops td {
+            color: var(--text-primary);
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+            vertical-align: middle;
+            background: transparent;
+            overflow-wrap: anywhere;
+        }
+
+        .table-devops tbody tr {
+            background: var(--bg-secondary);
+        }
+
+        .table-devops tbody tr:hover {
+            background: var(--bg-tertiary) !important;
+        }
+
+         
+        .service-name {
+            font-weight: 600;
+            color: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .image-tag {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Courier New', monospace;
+            font-size: 0.85rem;
+            background: var(--bg-primary);
+            padding: 0.4rem 0.6rem;
+            border-radius: 4px;
+            color: var(--text-secondary);
+            display: inline-block;
+            word-break: break-all;
+            max-width: 100%;
+        }
+
+        .badge-type {
+            padding: 0.4rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+            white-space: nowrap;
+        }
+
+        .badge-patch {
+            background: rgba(35, 134, 54, 0.2);
+            color: #3fb950;
+            border: 1px solid rgba(35, 134, 54, 0.3);
+        }
+
+        .badge-minor {
+            background: rgba(210, 153, 34, 0.2);
+            color: #e3b341;
+            border: 1px solid rgba(210, 153, 34, 0.3);
+        }
+
+        .badge-major {
+            background: rgba(218, 54, 51, 0.2);
+            color: #ff7b72;
+            border: 1px solid rgba(218, 54, 51, 0.3);
+        }
+
+        .badge-unknown {
+            background: rgba(139, 148, 158, 0.2);
+            color: #adbac7;
+            border: 1px solid rgba(139, 148, 158, 0.3);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-header h5 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+         
+        @media (min-width: 992px) and (max-width: 1199.98px) {
+            .metric-value {
+                font-size: 1.75rem;
+            }
+
+            .table-devops th,
+            .table-devops td {
+                padding: 0.85rem;
+                font-size: 0.875rem;
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 991.98px) {
+
+            .sidebar,
+            .content-area {
+                padding: 1.25rem;
+            }
+
+            .metric-value {
+                font-size: 1.6rem;
+            }
+
+            .metric-box {
+                padding: 0.85rem;
+            }
+
+            .table-devops th,
+            .table-devops td {
+                padding: 0.75rem 0.9rem;
+                font-size: 0.875rem;
+            }
+
+            .image-tag {
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .sidebar {
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                min-height: auto;
+                padding: 1.25rem;
+            }
+
+            .content-area {
+                padding: 1rem;
+            }
+
+            .metric-box {
+                padding: 0.75rem;
+                margin-bottom: 0.75rem;
+            }
+
+            .metric-value {
+                font-size: 1.25rem;
+            }
+
+            .metric-label {
+                font-size: 0.75rem;
+            }
+
+            .status-badge {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.9rem;
+            }
+
+            .table-devops {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .table-devops .table {
+                min-width: 520px;
+            }
+
+            .table-devops th,
+            .table-devops td {
+                padding: 0.5rem 0.65rem;
+                font-size: 0.78rem;
+            }
+
+            .image-tag {
+                font-size: 0.7rem;
+                padding: 0.25rem 0.4rem;
+            }
+
+            .badge-type {
+                font-size: 0.65rem;
+                padding: 0.25rem 0.45rem;
+            }
+
+            .section-header h5 {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 479.98px) {
+            body {
+                font-size: 0.9rem;
+            }
+
+            .navbar-brand {
+                font-size: 0.9rem;
+            }
+
+            .metric-value {
+                font-size: 1rem;
+            }
+
+            .table-devops .table {
+                min-width: 100%;
+            }
+
+            .table-devops th,
+            .table-devops td {
+                padding: 0.35rem 0.4rem;
+                font-size: 0.65rem;
+            }
+
+            .image-tag {
+                font-size: 0.6rem;
+                padding: 0.2rem 0.3rem;
+            }
+
+            .service-name {
+                gap: 0.25rem;
+            }
+        }
+
+         
+        .nav-tabs {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-tabs .nav-link {
+            color: var(--text-secondary);
+            background: none;
+            border: 1px solid transparent;
+            border-radius: 6px 6px 0 0;
+        }
+
+        .nav-tabs .nav-link:hover {
+            color: var(--text-primary);
+            border-color: var(--border-color) var(--border-color) transparent;
+        }
+
+        .nav-tabs .nav-link.active {
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+            border-color: var(--border-color) var(--border-color) var(--bg-secondary);
+        }
+
+        .dist-patch {
+            color: #3fb950;
+        }
+
+        .dist-minor {
+            color: #d29922;
+        }
+
+        .dist-major {
+            color: #f85149;
+        }
+
+        .file-path {
+            color: var(--text-secondary);
+            font-size: 0.72rem;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+            margin-top: 0.3rem;
+            word-break: break-all;
+        }
+
+         
+        .copy-btn {
+            background: none;
+            border: none;
+            padding: 0 0 0 6px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1;
+            vertical-align: middle;
+            transition: opacity 0.15s ease, color 0.2s ease, transform 0.15s ease;
+        }
+
+        .copy-btn:hover {
+            opacity: 1;
+        }
+
+        .copy-btn.copied-just {
+            color: var(--accent-green, #4ade80);
+            opacity: 1;
+            transform: scale(1.2);
+        }
+
+        .copy-btn.copied-prev {
+            color: var(--accent-green, #4ade80);
+            opacity: 0.65;
+        }
+
+        tr:not(:hover) .copy-btn:not(.copied-just):not(.copied-prev) {
+            opacity: 0.25;
+        }
+
+        tr:hover .copy-btn:not(.copied-just):not(.copied-prev) {
+            opacity: 0.6;
+        }
+    </style>
+</head>
+
+<body data-copied="¡Copiado!" data-copied-before="Copiar (copiado antes)">
+    <nav class="navbar navbar-dark">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="bi bi-stack me-2"></i>Reporte de dependencias
+            </span>
+            <span class="navbar-text" style="color: var(--text-secondary); font-size: 0.85rem;">
+                <i class="bi bi-clock me-1"></i>2026-10-12 09:07 America/Guayaquil
+            </span>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <ul class="nav nav-tabs mt-3" id="reportTabs" role="tablist">
+            
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="images-tab" data-bs-toggle="tab" data-bs-target="#images" type="button" role="tab" aria-controls="images" aria-selected="true">Imágenes</button>
+            </li>
+            
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="deps-tab" data-bs-toggle="tab" data-bs-target="#deps" type="button" role="tab" aria-controls="deps" aria-selected="false">Dependencias</button>
+            </li>
+            
+        </ul>
+
+        <div class="tab-content">
+            
+            <div class="tab-pane fade show active" id="images" role="tabpanel" aria-labelledby="images-tab" tabindex="0">
+                <div class="row g-0">
+                    <div class="col-md-4 col-lg-3 sidebar">
+                        <div class="metric-box">
+                            <div class="metric-value" style="color: var(--accent-blue);">5</div>
+                            <div class="metric-label">Total</div>
+                        </div>
+
+                        <div class="metric-box">
+                            <div class="metric-value" style="color: var(--accent-yellow);">1</div>
+                            <div class="metric-label">Actualizaciones pendientes</div>
+                        </div>
+
+                        <div class="metric-box">
+                            <div class="metric-value" style="color: var(--accent-green);">4</div>
+                            <div class="metric-label">Al día</div>
+                        </div>
+
+                        <div class="mt-4 pt-3" style="border-top: 1px solid var(--border-color);">
+                            <h6 class="text-uppercase mb-3" style="color: var(--text-secondary); font-size: 0.75rem;">Distribución de actualizaciones</h6>
+                            
+                            <div class="d-flex justify-content-between mb-2">
+                                <span style="color: var(--text-secondary); font-size: 0.85rem;">patch</span>
+                                <span class="dist-patch">0</span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mb-2">
+                                <span style="color: var(--text-secondary); font-size: 0.85rem;">minor</span>
+                                <span class="dist-minor">1</span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mb-2">
+                                <span style="color: var(--text-secondary); font-size: 0.85rem;">major</span>
+                                <span class="dist-major">0</span>
+                            </div>
+                            
+                        </div>
+                    </div>
+                    <div class="col-md-8 col-lg-9 content-area">
+                        
+                        <div class="status-badge warning">
+                            <i class="bi bi-exclamation-triangle-fill" style="color: var(--accent-yellow);"></i>
+                            <span><strong>1 actualizaciones disponibles para 1 dependencias</strong></span>
+                        </div>
+                        
+                        
+                        <div class="section-header">
+                            <i class="bi bi-arrow-repeat" style="color: var(--accent-blue);"></i>
+                            <h5>Actualizaciones disponibles</h5>
+                        </div>
+
+                        <div class="table-devops">
+                            <table class="table mb-0">
+                                <thead>
+                                    <tr>
+                                        
+                                        <th style="width: 15%;">Archivo de paquete</th>
+                                        
+                                        <th style="width: 15%;">Repositorio</th>
+                                        
+                                        <th style="width: 30%;">Imagen actual</th>
+                                        
+                                        <th style="width: 30%;">Imagen nueva</th>
+                                        
+                                        <th style="width: 10%;">Tipo</th>
+                                        
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                kubernetes/apps/immich/values.yaml
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/homelab</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">ghcr.io/immich-app/immich-server:v1.118.0</code>
+                                            <button class="copy-btn" title="Copiar imagen actual" data-copy="ghcr.io/immich-app/immich-server:v1.118.0">
+                                                <i class="bi bi-clipboard"></i>
+                                            </button>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">ghcr.io/immich-app/immich-server:v1.119.0</code>
+                                            <button class="copy-btn" title="Copiar imagen nueva" data-copy="ghcr.io/immich-app/immich-server:v1.119.0">
+                                                <i class="bi bi-clipboard"></i>
+                                            </button>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-pane fade" id="deps" role="tabpanel" aria-labelledby="deps-tab" tabindex="0">
+                <div class="row g-0">
+                    <div class="col-md-4 col-lg-3 sidebar">
+                        <div class="metric-box">
+                            <div class="metric-value" style="color: var(--accent-blue);">53</div>
+                            <div class="metric-label">Total</div>
+                        </div>
+
+                        <div class="metric-box">
+                            <div class="metric-value" style="color: var(--accent-yellow);">53</div>
+                            <div class="metric-label">Actualizaciones pendientes</div>
+                        </div>
+
+                        <div class="metric-box">
+                            <div class="metric-value" style="color: var(--accent-green);">1</div>
+                            <div class="metric-label">Al día</div>
+                        </div>
+
+                        <div class="mt-4 pt-3" style="border-top: 1px solid var(--border-color);">
+                            <h6 class="text-uppercase mb-3" style="color: var(--text-secondary); font-size: 0.75rem;">Distribución de actualizaciones</h6>
+                            
+                            <div class="d-flex justify-content-between mb-2">
+                                <span style="color: var(--text-secondary); font-size: 0.85rem;">patch</span>
+                                <span class="dist-patch">4</span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mb-2">
+                                <span style="color: var(--text-secondary); font-size: 0.85rem;">minor</span>
+                                <span class="dist-minor">47</span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mb-2">
+                                <span style="color: var(--text-secondary); font-size: 0.85rem;">major</span>
+                                <span class="dist-major">2</span>
+                            </div>
+                            
+                        </div>
+                    </div>
+                    <div class="col-md-8 col-lg-9 content-area">
+                        
+                        <div class="status-badge warning">
+                            <i class="bi bi-exclamation-triangle-fill" style="color: var(--accent-yellow);"></i>
+                            <span><strong>53 actualizaciones disponibles para 52 dependencias</strong></span>
+                        </div>
+                        
+                        
+                        <div class="section-header">
+                            <i class="bi bi-arrow-repeat" style="color: var(--accent-blue);"></i>
+                            <h5>Actualizaciones disponibles</h5>
+                        </div>
+
+                        <div class="table-devops">
+                            <table class="table mb-0">
+                                <thead>
+                                    <tr>
+                                        
+                                        <th style="width: 15%;">Archivo de paquete</th>
+                                        
+                                        <th style="width: 15%;">Repositorio</th>
+                                        
+                                        <th style="width: 20%;">Dependencia</th>
+                                        
+                                        <th style="width: 15%;">Actual</th>
+                                        
+                                        <th style="width: 15%;">Nueva</th>
+                                        
+                                        <th style="width: 10%;">Tipo</th>
+                                        
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                go.mod
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/QuantWarden</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">github.com/gorilla/mux</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.8.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">2.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-major">major</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                go.mod
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/QuantWarden</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">github.com/gorilla/mux</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.8.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.9.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                go.mod
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/QuantWarden</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">go.uber.org/zap</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.27.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.27.1</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-patch">patch</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                go.mod
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/QuantWarden</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">golang.org/x/net</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">0.30.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-major">major</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-00</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-01</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-02</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-03</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-04</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-05</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-06</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-07</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-08</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-09</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-10</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-11</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-12</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-13</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-14</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-15</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-16</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-17</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-18</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-19</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-20</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-21</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-22</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-23</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-24</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-25</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-26</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-27</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-28</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-29</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-30</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-31</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-32</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-33</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-34</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-35</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-36</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-37</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-38</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-39</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-40</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-41</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-42</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-43</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/big-monorepo</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">pkg-44</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                package.json
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/discord-tts-bot (fork, solo informativo)</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">discord.js</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">14.1.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">14.2.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-minor">minor</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                .github/workflows/ci.yml
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/homelab</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">actions/checkout</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">v4.2.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">v4.2.2</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-patch">patch</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                ansible/requirements.yml
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/homelab</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">&lt;script&gt;alert(1)&lt;/script&gt;</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.1</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-patch">patch</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                    <tr>
+                                        
+                                        <td>
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                ansible/requirements.yml
+                                            </div>
+                                        </td>
+                                        
+                                        <td>
+                                            <div class="file-path">devidence-dev/homelab</div>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">legacy-tool</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.0</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <code class="image-tag">1.0.1</code>
+                                        </td>
+                                        
+                                        <td>
+                                            <span class="badge-type badge-patch">patch</span>
+                                        </td>
+                                        
+                                    </tr>
+                                    
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+
+        
+        <div class="content-area">
+            <div class="section-header mt-4">
+                <i class="bi bi-exclamation-triangle" style="color: var(--accent-red);"></i>
+                <h5>Errores</h5>
+            </div>
+            <div
+                style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem;">
+                <ul style="margin-bottom: 0; color: var(--accent-red);">
+                    
+                    <li>raíz: Fatal error outside any repo</li>
+                    
+                    <li>devidence-dev/QuantWarden: Failed to look up dependency</li>
+                    
+                    <li>devidence-dev/QuantWarden: Fatal level problem</li>
+                    
+                </ul>
+            </div>
+        </div>
+        
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+        crossorigin="anonymous"></script>
+
+    <script>
+        (() => {
+            document.querySelectorAll('.copy-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const text = btn.dataset.copy;
+                    if (!text) return;
+
+                    try {
+                        await navigator.clipboard.writeText(text);
+                    } catch {
+                        const ta = document.createElement('textarea');
+                        ta.value = text;
+                        ta.style.position = 'fixed';
+                        ta.style.opacity = '0';
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        ta.remove();
+                    }
+
+                    const icon = btn.querySelector('i');
+
+                    btn.classList.remove('copied-prev');
+                    btn.classList.add('copied-just');
+                    icon.className = 'bi bi-clipboard-check-fill';
+                    btn.title = document.body.dataset.copied;
+
+                    setTimeout(() => {
+                        btn.classList.remove('copied-just');
+                        btn.classList.add('copied-prev');
+                        icon.className = 'bi bi-clipboard-check';
+                        btn.title = document.body.dataset.copiedBefore;
+                    }, 2000);
+                });
+            });
+        })();
+    </script>
+</body>
+
+</html>

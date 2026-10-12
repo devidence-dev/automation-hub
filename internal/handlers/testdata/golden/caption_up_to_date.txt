@@ -1,0 +1,7 @@
+📦 <b>Dependency report</b> · 2026-10-12
+
+✅ Todo al día
+
+📊 0 desactualizadas · 58 al día
+🐳 Imágenes: 0 · 📚 Paquetes: 0
+⚠️ 3 errores en el scan

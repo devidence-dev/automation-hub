@@ -146,20 +146,7 @@ func TestSendParseMode(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var gotMode, gotText string
-			client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-				switch r.URL.Path {
-				case "/bottest-token/getMe":
-					writeTelegramResponse(w, map[string]interface{}{"id": 1, "is_bot": true, "first_name": "Test"})
-				case "/bottest-token/sendMessage":
-					if err := r.ParseForm(); err != nil {
-						t.Fatal(err)
-					}
-					gotMode, gotText = r.Form.Get("parse_mode"), r.Form.Get("text")
-					writeTelegramResponse(w, map[string]interface{}{"message_id": 1, "date": 1, "chat": map[string]interface{}{"id": 123, "type": "private"}})
-				default:
-					t.Errorf("unexpected path %s", r.URL.Path)
-				}
-			})
+			client := newTestClient(t, sendRecorder(t, &gotMode, &gotText))
 			if err := tt.send(client); err != nil {
 				t.Fatalf("send error = %v", err)
 			}
@@ -167,6 +154,24 @@ func TestSendParseMode(t *testing.T) {
 				t.Errorf("parse_mode = %q text = %q, want %q and the text unchanged", gotMode, gotText, tt.wantMode)
 			}
 		})
+	}
+}
+
+// sendRecorder answers getMe and sendMessage, and records the parse mode and text of each send.
+func sendRecorder(t *testing.T, mode, text *string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/bottest-token/getMe":
+			writeTelegramResponse(w, map[string]interface{}{"id": 1, "is_bot": true, "first_name": "Test"})
+		case "/bottest-token/sendMessage":
+			if err := r.ParseForm(); err != nil {
+				t.Fatal(err)
+			}
+			*mode, *text = r.Form.Get("parse_mode"), r.Form.Get("text")
+			writeTelegramResponse(w, map[string]interface{}{"message_id": 1, "date": 1, "chat": map[string]interface{}{"id": 123, "type": "private"}})
+		default:
+			t.Errorf("unexpected path %s", r.URL.Path)
+		}
 	}
 }
 

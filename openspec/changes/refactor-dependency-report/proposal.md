@@ -6,14 +6,15 @@ The dependency report hardcodes its timezone, an owner prefix, the webhook path 
 
 ## Dependency
 
-Requires `add-dependency-report-html` to be archived first. Its requirements are the baseline for the MODIFIED blocks here. It is in progress (20 of 30 tasks).
+Required `add-dependency-report-html` to be archived first. It was archived on 2026-10-11 (`openspec/changes/archive/2026-10-11-add-dependency-report-html`), and its requirements in `openspec/specs/` are the baseline for the MODIFIED blocks here.
 
 ## What Changes
 
 - New top-level `timezone:` (default `America/Guayaquil`), validated with `time.LoadLocation` at startup. It drives the scheduler, caption date, file name and document header.
 - `dependency_report:` gains `path`, `token_header`, `max_body_bytes`, `document_name` and `date_layout`, defaulting to today's values.
-- New `messages:` catalog: an embedded Spanish default in `internal/messages` holds every report text, emoji and HTML label, and `lang`. Config overrides single keys; unknown keys and missing placeholders fail at startup.
-- One fork tag, `fork.tag`, default ` (fork, solo informativo)`. **Visible change**: caption fork lines gain ", solo informativo". Set the key to ` (fork)` to keep the old caption.
+- New `messages:` catalog: an embedded default in `internal/messages` holds every report text, emoji and HTML label, and `lang`. Each key keeps the text the hub sends today (the report texts are Spanish, the caption header keeps `Dependency report`). Config overrides single keys; unknown keys and missing placeholders fail at startup.
+- Two fork tags keep today's texts: `fork.tag_caption` (default ` (fork)`) for caption lines and `fork.tag_document` (default ` (fork, solo informativo)`) for document rows.
+- **Visible change**: the document labels become Spanish and `lang` becomes `es`. Today the template mixes Spanish and English labels with `lang="en"`.
 - The `devidence-dev/` strip is removed; the short name is the last path segment.
 - Internal split: parser, single aggregation, caption and document presenters behind one interface, deliverer, typed `UpdateType`, per-tab view models, one column-driven tab template, named form-field constants, one `ReportSender`.
 
@@ -25,7 +26,7 @@ Requires `add-dependency-report-html` to be archived first. Its requirements are
 
 ### Modified Capabilities
 
-- `dependency-report`: configurable path, header, body limit, file name and timezone; catalog texts; fork tag.
+- `dependency-report`: configurable path, header, body limit, file name and timezone; catalog texts; fork tags.
 - `scheduled-dispatch`: schedules use `timezone:`.
 - `job-commands`: scheduled jobs use `timezone:`.
 

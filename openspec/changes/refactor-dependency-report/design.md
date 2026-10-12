@@ -62,7 +62,7 @@ All defaults are filled in Go after unmarshal. Viper `SetDefault` on `dependency
 
 ### D6. Message catalog
 
-- Storage: `internal/messages/default.yaml`, embedded with `go:embed`, Spanish, nested keys (`caption.header`, `caption.emoji.major`, `counts.major`, `document.tab.images`, ...). The top-level `lang` is `es`.
+- Storage: `internal/messages/default.yaml`, embedded with `go:embed`, nested keys (`caption.header`, `caption.emoji.major`, `counts.major`, `document.tab.images`, ...). Each key keeps the text the hub sends today: the report texts are Spanish and the caption header keeps `Dependency report`. The only exception is the document labels (D7). `bot-command-registry` adds `bot.*` keys with their current English texts. The top-level `lang` is `es`, the document language.
 - Loading: `messages.Load(overrides map[string]any) (*Catalog, error)` parses the embedded YAML with viper (`viper.New()`, `SetConfigType("yaml")`, `ReadConfig`), flattens both trees to dotted keys, merges overrides leaf by leaf, and validates: unknown keys fail, a non-text where a text is expected fails, and a dropped placeholder fails. Placeholder names are found with `\{[a-z_]+\}`.
 - Rendering: `Render(key string, vars map[string]string) string` replaces `{name}` placeholders. A key that the code asks for and that is not in the catalog is a programming error caught by a test that renders every key of every call site.
 - Overrides: `messages:` in `CONFIG_YAML`. A file path was considered and rejected: Infisical delivers one value, so a file would need a mount (a cross-repo change) for no benefit.
@@ -70,11 +70,12 @@ All defaults are filled in Go after unmarshal. Viper `SetDefault` on `dependency
 - Escaping: report values are escaped by presenters before insertion. Catalog text is trusted operator config.
 - Shared use: `bot-command-registry` adds its keys under `bot.` in `default.yaml`. Its overrides are valid only after this change lands, which is the ordering this change owns.
 
-### D7. Visible default changes
+### D7. Visible default change
 
-Two defaults change visible text. The change is deliberate and the user must confirm it before apply (see Open Questions):
-1. Fork tag: one entry `fork.tag` = ` (fork, solo informativo)`. The caption today shows ` (fork)`. Setting `fork.tag: " (fork)"` restores the old caption.
-2. Document labels: the template mixes Spanish tab labels with English labels and `lang="en"`. Under the "no es/en mix" rule every label moves to the catalog in Spanish, and `lang` is `es`. The Spanish labels are drafted in task 3.1 and approved in task 10.1.
+One default changes visible text. The user approved it on 2026-10-11:
+- Document labels: the template mixes Spanish tab labels with English labels and `lang="en"`. Under the "no es/en mix" rule every label moves to the catalog in Spanish, and `lang` is `es`. The Spanish labels are drafted in task 3.1 and approved visually in task 10.1.
+
+The fork tags do not change visible text. Two entries keep today's texts: `fork.tag_caption` = ` (fork)` for caption lines and `fork.tag_document` = ` (fork, solo informativo)` for document rows.
 
 The HTML `<title>` keeps the brand word through the catalog (`document.title`), so no owner literal is in code.
 
@@ -86,25 +87,25 @@ Protocol limits `telegramLimit = 4096` and `captionLimit = 1024` remain constant
 
 ## Risks / Trade-offs
 
-- [Visible text changes (D7)] → The two changes are explicit in the spec scenarios and listed in the README. Override keys restore the old values.
+- [Visible text change (D7)] → The label change is explicit in the spec scenarios and listed in the README. Override keys restore the old values.
 - [Override typos silently changing wording] → Startup validation rejects unknown keys and dropped placeholders; a test renders every default key.
 - [Viper key case and nesting] → Catalog keys are lowercase snake case; the loader test covers a nested override and the lowercasing.
 - [Section-gated defaults (D5)] → A test asserts that a config without `dependency_report:` leaves `DependencyReport` nil and the route returns 404.
 - [Timezone change moves cron times] → Documented in the README and in the scheduled-dispatch scenario. Defaults keep today's zone.
-- [Caption fits fewer repos with a longer fork tag] → The 1024-character fit still applies, and the fork line only appears for forks.
 - [Refactor breaks golden output] → The fixture caption and document are compared with golden strings captured from the current code before the move (task 1.2).
 - [Cognitive complexity drift] → Every task names `gocognit -over 15` on the touched package; the final validation runs it on the whole module.
 
 ## Migration Plan
 
-1. Archive `add-dependency-report-html` first (`openspec archive`), so the MODIFIED blocks apply to its requirements.
+1. `add-dependency-report-html` was archived on 2026-10-11, so the MODIFIED blocks apply to its requirements.
 2. Capture golden outputs from the current code (caption, document, failure message) before changing anything (task 1.2).
-3. Implement the catalog, config keys and the split in the order of `tasks.md`; each step keeps the golden outputs green, except the two D7 changes, which are applied in one dedicated step.
-4. Deploy with no config change: the defaults equal today's values except D7. Rollback is a binary revert: the new keys are unknown to the old binary and ignored by viper.
+3. Implement the catalog, config keys and the split in the order of `tasks.md`; each step keeps the golden outputs green, except the D7 label change, which is applied in one dedicated step.
+4. Deploy with no config change: the defaults equal today's values except the D7 labels. Rollback is a binary revert: the new keys are unknown to the old binary and ignored by viper.
 
 ## Open Questions
 
-These are decided by the defaults above and can be reversed through config or a small edit before apply:
-1. Confirm ` (fork, solo informativo)` as the single fork tag (D7.1). Alternative: ` (fork)` everywhere, which drops the "solo informativo" meaning from the document rows the spec requires.
-2. Confirm the Spanish labels of the document (D7.2, drafted in task 3.1).
-3. The active change `add-dependency-report-html` changes requirements that this change modifies. Its archive must come first; if it is archived with changes, this change's MODIFIED blocks must be re-copied from the new baseline.
+None. Resolved on 2026-10-11:
+1. Fork tag: two keys, `fork.tag_caption` and `fork.tag_document`, with today's texts, so neither output changes (D7).
+2. Document labels: Spanish, with `lang="es"` (D7). The exact wording is approved visually in task 10.1.
+3. Catalog language: each key keeps its current text (D6).
+4. `add-dependency-report-html` is archived; the MODIFIED blocks match its requirements in `openspec/specs/`.

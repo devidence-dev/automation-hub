@@ -1,0 +1,3 @@
+❌ Renovate falló (exit 1) en el pod dependency-report-manual-1791763200-x7k2p
+<pre>&lt;html&gt;
+foo &amp; bar</pre>

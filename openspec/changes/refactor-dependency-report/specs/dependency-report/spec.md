@@ -101,7 +101,7 @@ The caption SHALL be sent with HTML parse mode. For a report with pending update
 6. `🐳 Imágenes: <a> · 📚 Paquetes: <b>`, where a and b are the dependencies with a listed update in "Imágenes" and in "Dependencias";
 7. `⚠️ <N> errores en el scan`, only when there are problems with `level >= 50` in a repository or at the report root.
 
-The name is the last path segment of the repository name, for example `payments-api` for `acme-corp/payments-api`, followed by the catalog text `fork.tag` (default ` (fork, solo informativo)`) when the repository is in `dependency_report.forks`. The emoji is 🔴 when any of its dependencies has a `major` update, otherwise 🟡. The counts are the non-zero `<N> major`, `<N> minor` and `<N> patch` in that order, joined by ` · `; each dependency counts once, under its highest update type. Repository lines are sorted: repositories with a major first, then by total count descending, then by name. When no dependency has a listed update, the caption has the header, a blank line, `✅ Todo al día`, a blank line and the stats lines (items 5 to 7). All variable text MUST be HTML-escaped.
+The name is the last path segment of the repository name, for example `payments-api` for `acme-corp/payments-api`, followed by the catalog text `fork.tag_caption` (default ` (fork)`) when the repository is in `dependency_report.forks`. The emoji is 🔴 when any of its dependencies has a `major` update, otherwise 🟡. The counts are the non-zero `<N> major`, `<N> minor` and `<N> patch` in that order, joined by ` · `; each dependency counts once, under its highest update type. Repository lines are sorted: repositories with a major first, then by total count descending, then by name. When no dependency has a listed update, the caption has the header, a blank line, `✅ Todo al día`, a blank line and the stats lines (items 5 to 7). All variable text MUST be HTML-escaped.
 
 #### Scenario: Major, minor and patch counts
 - **WHEN** `devidence-dev/QuantWarden` has `github.com/gorilla/mux` with a `major` and a `minor` update, `golang.org/x/net` with a `major` update and `go.uber.org/zap` with a `patch` update
@@ -109,7 +109,7 @@ The name is the last path segment of the repository name, for example `payments-
 
 #### Scenario: Fork and sort order
 - **WHEN** repositories `X` (one `major` and four `minor` deps), `Y` (one `major`), `A` (three `patch`), `B` (three `minor`) and `Z` (two `patch`) have pending updates, and `devidence-dev/discord-tts-bot` is in `dependency_report.forks` with one `minor` update
-- **THEN** the repository lines are, in order, `X`, `Y`, `A`, `B`, `Z`, and then `🟡 discord-tts-bot (fork, solo informativo) — 1 minor`
+- **THEN** the repository lines are, in order, `X`, `Y`, `A`, `B`, `Z`, and then `🟡 discord-tts-bot (fork) — 1 minor`
 
 #### Scenario: Owner-agnostic name
 - **WHEN** repository `acme-corp/payments-api` has a `patch` update
@@ -122,3 +122,38 @@ The name is the last path segment of the repository name, for example `payments-
 #### Scenario: Caption over the limit
 - **WHEN** 60 repositories with long names have pending updates and the caption with all its repository lines would exceed 1024 characters
 - **THEN** repository lines are dropped from the end, a line `… y <N> repos más (ver reporte)` follows the last kept one, and the header, the `✅` line and the stats lines are kept, so that the caption has at most 1024 characters
+
+### Requirement: Document tabs
+The document SHALL have two tabs. "Imágenes" lists every dependency whose Renovate `datasource` is `docker`. "Dependencias" lists every other dependency, including one with no `datasource`. Only updates of type `major`, `minor` or `patch` are listed (`digest` and `pin` are ignored), one row per dependency and update, with exact duplicates removed. A row in "Imágenes" shows the repo, the package file, the current image (`<depName>:<current version>`), the latest image (`<depName>:<new version>`) and the update type badge. A row in "Dependencias" shows the repo, the package file, the dependency name, the current version, the new version and the update type badge. The repo of a fork listed in `dependency_report.forks` carries the catalog text `fork.tag_document` (default ` (fork, solo informativo)`). Each tab SHALL show its totals: dependencies in the tab, dependencies with a listed update, dependencies up to date, and the count of `patch`, `minor` and `major` rows.
+
+#### Scenario: Image dependency
+- **WHEN** `devidence-dev/homelab` has the file `kubernetes/apps/media/immich/values.yaml` with dep `ghcr.io/immich-app/immich-server`, datasource `docker`, current `v1.118.0` and a `minor` update to `v1.119.0`
+- **THEN** the "Imágenes" tab has a row with `devidence-dev/homelab`, `kubernetes/apps/media/immich/values.yaml`, `ghcr.io/immich-app/immich-server:v1.118.0`, `ghcr.io/immich-app/immich-server:v1.119.0` and a `minor` badge, and the "Dependencias" tab has no row for it
+
+#### Scenario: Non-image dependency
+- **WHEN** `devidence-dev/QuantWarden` has `go.mod` with dep `golang.org/x/net`, datasource `go`, current `0.30.0` and a `major` update to `1.0.0`
+- **THEN** the "Dependencias" tab has a row with `devidence-dev/QuantWarden`, `go.mod`, `golang.org/x/net`, `0.30.0`, `1.0.0` and a `major` badge, and the "Imágenes" tab has no row for it
+
+#### Scenario: Dockerfile image and missing datasource
+- **WHEN** `devidence-dev/discord-tts-bot` has a `Dockerfile` dep `golang` with datasource `docker`, and another dep with a `patch` update has no `datasource` field
+- **THEN** `golang` is listed in "Imágenes" and the other dep is listed in "Dependencias"
+
+#### Scenario: Digest only
+- **WHEN** a dep's only update is of type `digest`
+- **THEN** it has no row in either tab
+
+#### Scenario: Several updates for one dep
+- **WHEN** `github.com/gorilla/mux` at `1.8.0` has a `major` update to `2.0.0` and a `minor` update to `1.9.0`
+- **THEN** "Dependencias" has two rows for it, one with a `major` badge and one with a `minor` badge
+
+#### Scenario: Fork tag
+- **WHEN** `devidence-dev/discord-tts-bot` is in `dependency_report.forks` and has a listed update
+- **THEN** its rows show the repo as `devidence-dev/discord-tts-bot (fork, solo informativo)`
+
+#### Scenario: Tab totals
+- **WHEN** the report has 3 docker deps, one of them with a `minor` update, and 5 non-docker deps, two of them with a `patch` update and a `major` update
+- **THEN** "Imágenes" shows 3 total, 1 with updates, 2 up to date and `minor` 1; "Dependencias" shows 5 total, 2 with updates, 3 up to date, `patch` 1 and `major` 1
+
+#### Scenario: Document fork tag override
+- **WHEN** the config has `messages: {fork: {tag_document: " (fork)"}}` and `devidence-dev/discord-tts-bot` is in `dependency_report.forks` with a listed update
+- **THEN** its rows show the repo as `devidence-dev/discord-tts-bot (fork)`, and the caption line is unchanged

@@ -65,7 +65,7 @@ The current binary ignores unknown keys, so this can be applied before the deplo
 
 - [ ] 6.2 (user) After deploying, check the startup log: each "Loaded email processor" entry shows the extractor, and neither cloudflare nor perplexity logs the generic default pattern warning. Send one test Cloudflare code and one Perplexity code and confirm the forwarded values match the previous behavior. Roll back by redeploying the previous image; the migrated keys are harmless to it.
 
-- [ ] 6.3 (user) Resolve the overlap with `bot-command-registry`: this change owns the processor's `messageSender` interface, so drop its task 6.1 (`messenger` for `NewTorrentProcessor`) and reuse `processor` types, or tell both changes which one lands first. Verify by checking that `NewTorrentProcessor` has exactly one interface parameter after both changes are merged, and that `go vet` passes (task 7.1).
+- [ ] 6.3 Check the overlap with `bot-command-registry`, resolved on 2026-10-11: this change owns `NewTorrentProcessor`, its `messageSender` interface and `GetWebhookConfig`, and `bot-command-registry` lands first without touching them. Rebase on it, keep its registration-time hook config in `NewWebhookHandler`, and verify by checking that `NewTorrentProcessor` has exactly one interface parameter after both changes are merged, and that `go vet` passes (task 7.1).
 
 ## 7. Final validation
 

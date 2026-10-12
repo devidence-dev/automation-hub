@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -18,75 +17,20 @@ import (
 	"go.uber.org/zap/zaptest/observer"
 
 	"automation-hub/internal/config"
+	"automation-hub/internal/messages"
+	"automation-hub/internal/services/depreport"
 )
 
 const (
 	testForkRepo = "devidence-dev/discord-tts-bot"
-	// testForkTag is kept literal here so the test checks the spec text, not the constant.
-	testForkTag = " (fork, solo informativo)" //nolint:misspell // Spanish text fixed by the spec
+	// testMaxBody is the default body limit of the config (10 MiB).
+	testMaxBody = 10 << 20
+	testToken   = "secret"
+	testChatID  = "555"
 )
 
-func loadFixture(t *testing.T) renovateReport {
-	t.Helper()
-	data, err := os.ReadFile("testdata/renovate-report.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	rep, err := parseReport(data)
-	if err != nil {
-		t.Fatalf("parseReport() error = %v", err)
-	}
-	return rep
-}
-
-// assertKeepsLastLines checks that a long log keeps its newest lines whole.
-func assertKeepsLastLines(t *testing.T, pod string) {
-	t.Helper()
-	var lines []string
-	for i := 0; i < 400; i++ {
-		lines = append(lines, fmt.Sprintf("line %03d <err> & more text here", i))
-	}
-	got := buildFailureMessage(2, pod, strings.Join(lines, "\n")) // about 12 KB
-	if len(got) > telegramLimit {
-		t.Fatalf("message has %d bytes", len(got))
-	}
-	if !strings.Contains(got, "line 399 &lt;err&gt; &amp; more text here</pre>") || strings.Contains(got, "line 000") {
-		t.Errorf("tail not cut from the front: %q", got[:200])
-	}
-	body := got[strings.Index(got, "<pre>")+5 : len(got)-len("</pre>")]
-	if first := strings.SplitN(body, "\n", 2)[0]; !strings.HasPrefix(first, "line ") {
-		t.Errorf("first kept line is partial: %q", first)
-	}
-}
-
-func TestBuildFailureMessage(t *testing.T) {
-	const pod = "dependency-report-manual-1791763200-x7k2p"
-	t.Run("escapes the tail", func(t *testing.T) {
-		got := buildFailureMessage(1, pod, "<html>\nfoo & bar\n")
-		want := "❌ Renovate falló (exit 1) en el pod " + pod + "\n<pre>&lt;html&gt;\nfoo &amp; bar</pre>"
-		if got != want {
-			t.Errorf("message = %q, want %q", got, want)
-		}
-	})
-	t.Run("keeps the last lines that fit", func(t *testing.T) {
-		assertKeepsLastLines(t, pod)
-	})
-	t.Run("one huge line is cut without splitting an entity", func(t *testing.T) {
-		got := buildFailureMessage(1, pod, strings.Repeat("<", 10000))
-		if len(got) > telegramLimit {
-			t.Fatalf("message has %d bytes", len(got))
-		}
-		body := got[strings.Index(got, "<pre>")+5 : len(got)-len("</pre>")]
-		if strings.ReplaceAll(body, "&lt;", "") != "" {
-			t.Errorf("partial entity in %q", body[:20])
-		}
-	})
-	t.Run("empty tail", func(t *testing.T) {
-		if got := buildFailureMessage(1, pod, ""); got != "❌ Renovate falló (exit 1) en el pod "+pod {
-			t.Errorf("message = %q", got)
-		}
-	})
-}
+// fixedClock is the time the hub "receives" the report in the handler tests: 2026-10-12 09:07 Guayaquil.
+var fixedClock = time.Date(2026, 10, 12, 14, 7, 0, 0, time.UTC)
 
 // sentCall is one send recorded by fakeSender.
 type sentCall struct {
@@ -164,6 +108,7 @@ func onlyDocument(t *testing.T, calls []sentCall) sentCall {
 
 type reportRequest struct {
 	token  string
+	header string // token header; empty means X-Report-Token
 	fields map[string]string
 	files  map[string]string
 }
@@ -188,29 +133,76 @@ func (rr reportRequest) build(t *testing.T) *http.Request {
 	req := httptest.NewRequest(http.MethodPost, "/webhook/dependency-report", &body)
 	req.Header.Set("Content-Type", mw.FormDataContentType())
 	if rr.token != "" {
-		req.Header.Set("X-Report-Token", rr.token)
+		header := rr.header
+		if header == "" {
+			header = "X-Report-Token"
+		}
+		req.Header.Set(header, rr.token)
 	}
 	return req
 }
 
-func newReportHandler(sender reportSender) *DependencyReportHandler {
-	return NewDependencyReportHandler(config.DependencyReportConfig{
-		WebhookToken: "secret", TelegramChatID: "555", Forks: []string{testForkRepo},
-	}, sender, zap.NewNop())
+// testReportConfig is the config of the handler tests: the defaults of config.Load.
+func testReportConfig() config.DependencyReportConfig {
+	return config.DependencyReportConfig{
+		WebhookToken:   testToken,
+		TelegramChatID: testChatID,
+		Forks:          []string{testForkRepo},
+		Path:           "/webhook/dependency-report",
+		TokenHeader:    "X-Report-Token",
+		MaxBodyBytes:   testMaxBody,
+		DocumentName:   "dependency-report-{date}.html",
+		DateLayout:     "2006-01-02",
+	}
 }
 
-// fixedClock is the time the hub "receives" the report in the handler tests: 2026-10-12 09:07 Guayaquil.
-var fixedClock = time.Date(2026, 10, 12, 14, 7, 0, 0, time.UTC)
-
-func newReportHandlerAt(sender reportSender, now time.Time, logger *zap.Logger) *DependencyReportHandler {
-	h := NewDependencyReportHandler(config.DependencyReportConfig{
-		WebhookToken: "secret", TelegramChatID: "555", Forks: []string{testForkRepo},
-	}, sender, logger)
+// newReportHandlerAt returns the handler with the default texts, the Guayaquil zone and the fixed clock.
+func newReportHandlerAt(t *testing.T, sender depreport.ReportSender, now time.Time, logger *zap.Logger) *DependencyReportHandler {
+	t.Helper()
+	cat, err := messages.Load(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	loc, err := time.LoadLocation("America/Guayaquil")
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := NewDependencyReportHandler(testReportConfig(), cat, loc, sender, logger)
 	h.now = func() time.Time { return now }
 	return h
 }
 
-// reportHandlerCase is one request to the dependency report handler and what it must answer and send.
+func newReportHandler(t *testing.T, sender depreport.ReportSender) *DependencyReportHandler {
+	t.Helper()
+	return newReportHandlerAt(t, sender, fixedClock, zap.NewNop())
+}
+
+func fixture(t *testing.T) string {
+	t.Helper()
+	data, err := os.ReadFile("testdata/renovate-report.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(data)
+}
+
+// validReport is a successful request for the fixture.
+func validReport(t *testing.T) reportRequest {
+	t.Helper()
+	return reportRequest{token: testToken, fields: map[string]string{"exit_code": "0", "pod": "p"}, files: map[string]string{"report": fixture(t)}}
+}
+
+// postReport posts req and requires 202.
+func postReport(t *testing.T, h *DependencyReportHandler, req reportRequest) {
+	t.Helper()
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req.build(t))
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status = %d, want 202 (%s)", rec.Code, rec.Body.String())
+	}
+}
+
+// reportHandlerCase is one request to the handler and what it must answer and send.
 type reportHandlerCase struct {
 	name       string
 	req        reportRequest
@@ -224,7 +216,7 @@ func runReportHandlerCase(t *testing.T, tt reportHandlerCase) {
 	t.Helper()
 	sender := &fakeSender{}
 	rec := httptest.NewRecorder()
-	newReportHandler(sender).ServeHTTP(rec, tt.req.build(t))
+	newReportHandler(t, sender).ServeHTTP(rec, tt.req.build(t))
 	if rec.Code != tt.wantStatus {
 		t.Fatalf("status = %d, want %d (%s)", rec.Code, tt.wantStatus, rec.Body.String())
 	}
@@ -236,7 +228,7 @@ func runReportHandlerCase(t *testing.T, tt reportHandlerCase) {
 		t.Fatalf("calls = %q, want %d", kinds(calls), tt.wantCalls)
 	}
 	for _, c := range calls {
-		if c.chatID != "555" {
+		if c.chatID != testChatID {
 			t.Errorf("chat = %q, want the configured one", c.chatID)
 		}
 	}
@@ -246,22 +238,19 @@ func runReportHandlerCase(t *testing.T, tt reportHandlerCase) {
 }
 
 func TestDependencyReportHandler(t *testing.T) {
-	fixture, err := os.ReadFile("testdata/renovate-report.json")
-	if err != nil {
-		t.Fatal(err)
-	}
+	fix := fixture(t)
 	tests := []reportHandlerCase{
-		{name: "missing token", req: reportRequest{fields: map[string]string{"exit_code": "0"}, files: map[string]string{"report": string(fixture)}}, wantStatus: http.StatusUnauthorized},
-		{name: "wrong token", req: reportRequest{token: "nope", fields: map[string]string{"exit_code": "0"}, files: map[string]string{"report": string(fixture)}}, wantStatus: http.StatusUnauthorized},
-		{name: "non-integer exit code", req: reportRequest{token: "secret", fields: map[string]string{"exit_code": "abc"}}, wantStatus: http.StatusBadRequest},
-		{name: "missing exit code", req: reportRequest{token: "secret", fields: map[string]string{"pod": "p"}}, wantStatus: http.StatusBadRequest},
-		{name: "invalid report json", req: reportRequest{token: "secret", fields: map[string]string{"exit_code": "0"}, files: map[string]string{"report": "{not json"}}, wantStatus: http.StatusBadRequest},
+		{name: "missing token", req: reportRequest{fields: map[string]string{"exit_code": "0"}, files: map[string]string{"report": fix}}, wantStatus: http.StatusUnauthorized},
+		{name: "wrong token", req: reportRequest{token: "nope", fields: map[string]string{"exit_code": "0"}, files: map[string]string{"report": fix}}, wantStatus: http.StatusUnauthorized},
+		{name: "non-integer exit code", req: reportRequest{token: testToken, fields: map[string]string{"exit_code": "abc"}}, wantStatus: http.StatusBadRequest},
+		{name: "missing exit code", req: reportRequest{token: testToken, fields: map[string]string{"pod": "p"}}, wantStatus: http.StatusBadRequest},
+		{name: "invalid report json", req: reportRequest{token: testToken, fields: map[string]string{"exit_code": "0"}, files: map[string]string{"report": "{not json"}}, wantStatus: http.StatusBadRequest},
 		{
 			name: "valid report; forks come from config, not the request",
 			req: reportRequest{
-				token:  "secret",
+				token:  testToken,
 				fields: map[string]string{"exit_code": "0", "pod": "p", "forks": `["devidence-dev/QuantWarden"]`},
-				files:  map[string]string{"report": string(fixture), "log_tail": "ignored"},
+				files:  map[string]string{"report": fix, "log_tail": "ignored"},
 			},
 			wantStatus: http.StatusAccepted, wantCalls: 1,
 			check: func(t *testing.T, calls []sentCall) {
@@ -276,7 +265,7 @@ func TestDependencyReportHandler(t *testing.T) {
 		},
 		{
 			name:       "renovate failure",
-			req:        reportRequest{token: "secret", fields: map[string]string{"exit_code": "1", "pod": "pod-x"}, files: map[string]string{"log_tail": "<html>"}},
+			req:        reportRequest{token: testToken, fields: map[string]string{"exit_code": "1", "pod": "pod-x"}, files: map[string]string{"log_tail": "<html>"}},
 			wantStatus: http.StatusAccepted, wantCalls: 1,
 			check: func(t *testing.T, calls []sentCall) {
 				if calls[0].kind != "message" || !strings.HasPrefix(calls[0].text, "❌ Renovate falló (exit 1) en el pod pod-x") || !strings.Contains(calls[0].text, "&lt;html&gt;") {
@@ -286,7 +275,7 @@ func TestDependencyReportHandler(t *testing.T) {
 		},
 		{
 			name:       "exit 0 without report is a failure",
-			req:        reportRequest{token: "secret", fields: map[string]string{"exit_code": "0", "pod": "pod-x"}},
+			req:        reportRequest{token: testToken, fields: map[string]string{"exit_code": "0", "pod": "pod-x"}},
 			wantStatus: http.StatusAccepted, wantCalls: 1,
 			check: func(t *testing.T, calls []sentCall) {
 				if calls[0].kind != "message" || !strings.HasPrefix(calls[0].text, "❌ Renovate falló (exit 0)") {
@@ -302,11 +291,43 @@ func TestDependencyReportHandler(t *testing.T) {
 	}
 }
 
-func TestDependencyReportHandlerRejectsOversizedBody(t *testing.T) {
+func TestAuthRejectsMissingToken(t *testing.T) {
 	sender := &fakeSender{}
 	rec := httptest.NewRecorder()
-	req := reportRequest{token: "secret", fields: map[string]string{"exit_code": "1"}, files: map[string]string{"log_tail": strings.Repeat("x", maxReportBody+1)}}.build(t)
-	newReportHandler(sender).ServeHTTP(rec, req)
+	req := reportRequest{fields: map[string]string{"exit_code": "1"}, files: map[string]string{"log_tail": "x"}}.build(t)
+	newReportHandler(t, sender).ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", rec.Code)
+	}
+	time.Sleep(20 * time.Millisecond)
+	if got := sender.snapshot(); len(got) != 0 {
+		t.Errorf("calls = %q, want none", kinds(got))
+	}
+}
+
+func TestCustomTokenHeader(t *testing.T) {
+	cfg := testReportConfig()
+	cfg.TokenHeader = "X-Deps-Token"
+	h := newReportHandler(t, &fakeSender{})
+	h.cfg = cfg
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, reportRequest{token: testToken, fields: map[string]string{"exit_code": "1"}, files: map[string]string{"log_tail": "x"}}.build(t))
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("default header accepted: status = %d, want 401", rec.Code)
+	}
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, reportRequest{token: testToken, header: "X-Deps-Token", fields: map[string]string{"exit_code": "1"}, files: map[string]string{"log_tail": "x"}}.build(t))
+	if rec.Code != http.StatusAccepted {
+		t.Errorf("configured header refused: status = %d, want 202", rec.Code)
+	}
+}
+
+func TestBodyTooLargeGets413(t *testing.T) {
+	sender := &fakeSender{}
+	rec := httptest.NewRecorder()
+	req := reportRequest{token: testToken, fields: map[string]string{"exit_code": "1"}, files: map[string]string{"log_tail": strings.Repeat("x", testMaxBody+1)}}.build(t)
+	newReportHandler(t, sender).ServeHTTP(rec, req)
 	if rec.Code != http.StatusRequestEntityTooLarge {
 		t.Fatalf("status = %d, want 413", rec.Code)
 	}
@@ -315,93 +336,84 @@ func TestDependencyReportHandlerRejectsOversizedBody(t *testing.T) {
 	}
 }
 
-func TestDependencyReportHandlerNotMultipart(t *testing.T) {
-	req := httptest.NewRequest(http.MethodPost, "/webhook/dependency-report", strings.NewReader("exit_code=0"))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("X-Report-Token", "secret")
+func TestMalformedExitCodeGets400(t *testing.T) {
 	rec := httptest.NewRecorder()
-	newReportHandler(&fakeSender{}).ServeHTTP(rec, req)
+	req := reportRequest{token: testToken, fields: map[string]string{"exit_code": "abc"}}.build(t)
+	newReportHandler(t, &fakeSender{}).ServeHTTP(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", rec.Code)
 	}
 }
 
-func TestDependencyReportHandlerTelegramFailureDoesNotPanicOrBlock(t *testing.T) {
-	sender := &fakeSender{err: errors.New("telegram down")}
+func TestNotMultipartGets400(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/webhook/dependency-report", strings.NewReader("exit_code=0"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("X-Report-Token", testToken)
 	rec := httptest.NewRecorder()
-	req := reportRequest{token: "secret", fields: map[string]string{"exit_code": "1"}, files: map[string]string{"log_tail": "x"}}.build(t)
-	newReportHandler(sender).ServeHTTP(rec, req)
-	if rec.Code != http.StatusAccepted {
-		t.Fatalf("status = %d, want 202 even when Telegram fails", rec.Code)
+	newReportHandler(t, &fakeSender{}).ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
 	}
-	sender.waitForCalls(t, 1) // the failed send was attempted and only logged
 }
 
-// findDep returns the dep named depName under one package manager of a repository.
-func findDep(t *testing.T, repo repoReport, manager, depName string) reportDep {
-	t.Helper()
-	for _, file := range repo.PackageFiles[manager] {
-		for _, dep := range file.Deps {
-			if dep.DepName != nil && *dep.DepName == depName {
-				return dep
-			}
-		}
-	}
-	t.Fatalf("dep %s not found under %s", depName, manager)
-	return reportDep{}
-}
-
-func TestParseReportDatasource(t *testing.T) {
-	rep := loadFixture(t)
-	homelab := rep.Repositories["devidence-dev/homelab"]
-
-	t.Run("docker dep", func(t *testing.T) {
-		dep := findDep(t, homelab, "helm-values", "ghcr.io/immich-app/immich-server")
-		if dep.Datasource == nil || *dep.Datasource != "docker" {
-			t.Errorf("datasource = %v, want docker", dep.Datasource)
-		}
-	})
-	t.Run("missing datasource is nil", func(t *testing.T) {
-		if dep := findDep(t, homelab, "ansible-galaxy", "legacy-tool"); dep.Datasource != nil {
-			t.Errorf("datasource = %q, want nil", *dep.Datasource)
-		}
-	})
-	t.Run("package file name", func(t *testing.T) {
-		files := homelab.PackageFiles["helm-values"]
-		if len(files) != 1 || files[0].PackageFile != "kubernetes/apps/immich/values.yaml" {
-			t.Errorf("package files = %+v", files)
-		}
-	})
-}
-
-func postReport(t *testing.T, h *DependencyReportHandler, req reportRequest) {
-	t.Helper()
+func TestAcceptsBeforeSending(t *testing.T) {
+	gate := make(chan struct{})
+	sender := &gatedSender{fakeSender: &fakeSender{}, gate: gate}
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, req.build(t))
+	newReportHandler(t, sender).ServeHTTP(rec, validReport(t).build(t))
 	if rec.Code != http.StatusAccepted {
-		t.Fatalf("status = %d, want 202 (%s)", rec.Code, rec.Body.String())
+		t.Fatalf("status = %d, want 202", rec.Code)
 	}
+	if got := sender.snapshot(); len(got) != 0 {
+		t.Errorf("sent %q before the 202 was read; want none yet", kinds(got))
+	}
+	close(gate)
+	sender.waitForCalls(t, 1)
 }
 
-func validReport(t *testing.T) reportRequest {
-	t.Helper()
-	fixture, err := os.ReadFile("testdata/renovate-report.json")
-	if err != nil {
-		t.Fatal(err)
+// gatedSender holds every send until gate is closed.
+type gatedSender struct {
+	*fakeSender
+	gate chan struct{}
+}
+
+func (g *gatedSender) SendDocument(chatID, filename, caption string, data []byte) error {
+	<-g.gate
+	return g.fakeSender.SendDocument(chatID, filename, caption, data)
+}
+
+// countingAggregate wraps depreport.Aggregate and counts its calls.
+type countingAggregate struct{ calls int }
+
+func (c *countingAggregate) aggregate(rep depreport.Report, forks []string) depreport.Summary {
+	c.calls++
+	return depreport.Aggregate(rep, forks)
+}
+
+func TestAggregatesOnce(t *testing.T) {
+	h := newReportHandler(t, &fakeSender{})
+	counter := &countingAggregate{}
+	h.aggregate = counter.aggregate
+	postReport(t, h, validReport(t))
+	deadline := time.Now().Add(2 * time.Second)
+	for counter.calls == 0 && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
 	}
-	return reportRequest{token: "secret", fields: map[string]string{"exit_code": "0", "pod": "p"}, files: map[string]string{"report": string(fixture)}}
+	if counter.calls != 1 {
+		t.Errorf("aggregate calls = %d, want 1", counter.calls)
+	}
 }
 
 func TestDeliverSendsDocumentWithCaption(t *testing.T) {
 	sender := &fakeSender{}
-	postReport(t, newReportHandlerAt(sender, fixedClock, zap.NewNop()), validReport(t))
+	postReport(t, newReportHandler(t, sender), validReport(t))
 
 	doc := onlyDocument(t, sender.waitForCalls(t, 1))
-	if doc.filename != "dependency-report-2026-10-12.html" || doc.chatID != "555" {
+	if doc.filename != "dependency-report-2026-10-12.html" || doc.chatID != testChatID {
 		t.Errorf("document = %q to chat %q", doc.filename, doc.chatID)
 	}
-	if doc.text != fixtureCaption {
-		t.Errorf("caption =\n%s\nwant\n%s", doc.text, fixtureCaption)
+	if want := readGolden(t, "caption.txt"); doc.text != want {
+		t.Errorf("caption =\n%s\nwant\n%s", doc.text, want)
 	}
 	if !strings.Contains(string(doc.data), "2026-10-12 09:07 America/Guayaquil") {
 		t.Error("document header lacks the Guayaquil scan time")
@@ -413,13 +425,13 @@ func TestNoDocumentOnRenovateFailure(t *testing.T) {
 		name string
 		req  reportRequest
 	}{
-		{name: "exit code 1 with a report", req: reportRequest{token: "secret", fields: map[string]string{"exit_code": "1", "pod": "p"}, files: map[string]string{"report": "{}", "log_tail": "x"}}},
-		{name: "exit code 0 without a report", req: reportRequest{token: "secret", fields: map[string]string{"exit_code": "0", "pod": "p"}}},
+		{name: "exit code 1 with a report", req: reportRequest{token: testToken, fields: map[string]string{"exit_code": "1", "pod": "p"}, files: map[string]string{"report": "{}", "log_tail": "x"}}},
+		{name: "exit code 0 without a report", req: reportRequest{token: testToken, fields: map[string]string{"exit_code": "0", "pod": "p"}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sender := &fakeSender{}
-			postReport(t, newReportHandlerAt(sender, fixedClock, zap.NewNop()), tt.req)
+			postReport(t, newReportHandler(t, sender), tt.req)
 			sender.waitForCalls(t, 1)
 			time.Sleep(20 * time.Millisecond) // give a wrong document send a chance to show up
 			if got := kinds(sender.snapshot()); !reflect.DeepEqual(got, []string{"message"}) {
@@ -431,8 +443,8 @@ func TestNoDocumentOnRenovateFailure(t *testing.T) {
 
 func TestDocumentWhenAllUpToDate(t *testing.T) {
 	sender := &fakeSender{}
-	req := reportRequest{token: "secret", fields: map[string]string{"exit_code": "0", "pod": "p"}, files: map[string]string{"report": `{"repositories":{}}`}}
-	postReport(t, newReportHandlerAt(sender, fixedClock, zap.NewNop()), req)
+	req := reportRequest{token: testToken, fields: map[string]string{"exit_code": "0", "pod": "p"}, files: map[string]string{"report": `{"repositories":{}}`}}
+	postReport(t, newReportHandler(t, sender), req)
 
 	doc := onlyDocument(t, sender.waitForCalls(t, 1))
 	if doc.filename != "dependency-report-2026-10-12.html" {
@@ -447,7 +459,8 @@ func TestDocumentWhenAllUpToDate(t *testing.T) {
 func TestDocumentFailureFallsBackToCaptionText(t *testing.T) {
 	core, logs := observer.New(zap.ErrorLevel)
 	sender := &fakeSender{docErr: errors.New("telegram rejected the document")}
-	postReport(t, newReportHandlerAt(sender, fixedClock, zap.New(core)), validReport(t))
+	h := newReportHandlerAt(t, sender, fixedClock, zap.New(core))
+	postReport(t, h, validReport(t))
 
 	calls := sender.waitForCalls(t, 2)
 	if got := kinds(calls); !reflect.DeepEqual(got, []string{"document", "message"}) {
@@ -459,4 +472,15 @@ func TestDocumentFailureFallsBackToCaptionText(t *testing.T) {
 	if n := logs.FilterMessage("Failed to send dependency report document").Len(); n != 1 {
 		t.Errorf("document failure logged %d times, want once", n)
 	}
+}
+
+func TestDependencyReportHandlerTelegramFailureDoesNotPanicOrBlock(t *testing.T) {
+	sender := &fakeSender{err: errors.New("telegram down")}
+	rec := httptest.NewRecorder()
+	req := reportRequest{token: testToken, fields: map[string]string{"exit_code": "1"}, files: map[string]string{"log_tail": "x"}}.build(t)
+	newReportHandler(t, sender).ServeHTTP(rec, req)
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status = %d, want 202 even when Telegram fails", rec.Code)
+	}
+	sender.waitForCalls(t, 1) // the failed send was attempted and only logged
 }

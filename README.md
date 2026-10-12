@@ -125,7 +125,7 @@ The example config registers these commands:
 
 - `/run_cleanup` dispatches `ops-github-runner-cleanup.yml` in `devidence-dev/workflows`.
 
-An entry can also carry an optional `schedule`, a 5-field cron expression (minute, hour, day of month, month, day of week) evaluated in `America/Guayaquil`. For example, `schedule: "0 9 * * 1,3,5"` dispatches the workflow every Monday, Wednesday and Friday at 09:00. Scheduled dispatches use the same path as the Telegram command, and the log records the run URL GitHub returns. If a scheduled dispatch fails, every chat in that entry's `allowed_chat_ids` gets a failure message. The timezone is embedded in the binary, so it does not depend on the container image. An invalid `schedule` stops startup. Entries without `schedule` run only from Telegram.
+An entry can also carry an optional `schedule`, a 5-field cron expression (minute, hour, day of month, month, day of week) evaluated in the top-level `timezone` (default `America/Guayaquil`). For example, `schedule: "0 9 * * 1,3,5"` dispatches the workflow every Monday, Wednesday and Friday at 09:00. Scheduled dispatches use the same path as the Telegram command, and the log records the run URL GitHub returns. If a scheduled dispatch fails, every chat in that entry's `allowed_chat_ids` gets a failure message. The timezone is embedded in the binary, so it does not depend on the container image. An invalid `schedule` stops startup. Entries without `schedule` run only from Telegram.
 
 Each command has its own `allowed_chat_ids`; requests from other chats are rejected before GitHub is called. To add another ad-hoc workflow, add an entry under `workflows` with a unique lowercase `command` (letters, digits, underscores; 1–32 characters), its repository details, branch (`ref`), and allowlist. Restarting the hub synchronizes the Telegram command menu and restarts long polling. Only one process may consume updates for this bot token; a second `getUpdates` consumer or webhook would cause Telegram to return a `409 Conflict`.
 
@@ -194,23 +194,38 @@ jobs:
 
 ### 📦 Dependency report webhook
 
-When `dependency_report:` is configured, the hub exposes `POST /webhook/dependency-report`. The Job's reporter container posts a `multipart/form-data` body (`exit_code`, `pod`, file `log_tail`, optional file `report`) with header `X-Report-Token`. The hub answers `202` and sends one Telegram message to `telegram_chat_id`, through the notifications bot (`telegram.bot_token`): the HTML document `dependency-report-<YYYY-MM-DD>.html`, named after the day the hub received the report in `America/Guayaquil`, with a short Spanish summary as its caption. Its header shows the scan time in the same zone. The caption lists the repos with pending updates (🔴 when one has a major update), with the count per update type, then how many repos are up to date, the totals of the two tabs and the scan errors. Telegram caps captions at 1024 characters, so when the list is too long the hub drops repo lines from the end and adds `… y N repos más (ver reporte)`. If Telegram rejects the document, the caption is sent as a text message instead. A wrong token gets `401`, a malformed request `400`, and the body is capped at 10 MiB. A Renovate failure (`exit_code` not `0`, or no `report`) sends only the failure message, never a document.
+When `dependency_report:` is configured, the hub exposes `POST` on `dependency_report.path` (default `/webhook/dependency-report`). The Job's reporter container posts a `multipart/form-data` body (`exit_code`, `pod`, file `log_tail`, optional file `report`) with the token in the header `dependency_report.token_header` (default `X-Report-Token`). The hub answers `202` and sends one Telegram message to `telegram_chat_id`, through the notifications bot (`telegram.bot_token`): the HTML document `dependency-report-<YYYY-MM-DD>.html`, named from `dependency_report.document_name` with the day the hub received the report in the top-level `timezone` (default `America/Guayaquil`), formatted with `dependency_report.date_layout`, with a short Spanish summary as its caption. Its header shows the scan time in the same zone. The caption lists the repos with pending updates (🔴 when one has a major update), with the count per update type, then how many repos are up to date, the totals of the two tabs and the scan errors. Telegram caps captions at 1024 characters (the hub also keeps messages under 4096), so when the list is too long the hub drops repo lines from the end and adds `… y N repos más (ver reporte)`. If Telegram rejects the document, the caption is sent as a text message instead. A wrong token gets `401`, a malformed request `400`, and a body over `dependency_report.max_body_bytes` (default 10 MiB) gets `413`. A Renovate failure (`exit_code` not `0`, or no `report`) sends only the failure message, never a document.
 
 The document has two tabs:
 
 - **Imágenes** lists dependencies whose Renovate `datasource` is `docker` (container images), with the current and latest image.
 - **Dependencias** lists every other dependency, including those without a `datasource`, with the current and new version.
 
-Each tab shows its totals and a count per update type (`patch`, `minor`, `major`). Only those three update types are listed (`digest` and `pin` are not), and a fork in `dependency_report.forks` is tagged in its rows. Problems with level 50 or more appear in an Errors section at the bottom (report-level problems as `root: <msg>`). The document is one self-contained file that loads Bootstrap 5.3.2 and bootstrap-icons from `cdn.jsdelivr.net`, so it needs internet access when opened, and its tabs need JavaScript. The template is `internal/handlers/assets/dependency_report.html`, embedded in the binary and rendered with `html/template`, so report text is always escaped.
+Each tab shows its totals and a count per update type (`patch`, `minor`, `major`). Only those three update types are listed (`digest` and `pin` are not), and a fork in `dependency_report.forks` is tagged in its rows. Problems with level 50 or more appear in an Errors section at the bottom (report-level problems as `raíz: <msg>`). The document is one self-contained file that loads Bootstrap 5.3.2 and bootstrap-icons from `cdn.jsdelivr.net`, so it needs internet access when opened, and its tabs need JavaScript. The template is `internal/services/depreport/assets/dependency_report.html`, embedded in the binary and rendered with `html/template`, so report text is always escaped. Its `lang` and every label are Spanish by default (`lang="es"`), from the message catalog.
+
+Caption and document texts come from one catalog: the embedded defaults are in `internal/messages/default.yaml`. Override single keys under `messages:` with the same nested keys; an unknown key, a map where a text is expected, or a changed placeholder (such as `{date}` or `{count}`) stops startup. The two fork tags are catalog keys too: `fork.tag_caption` (default ` (fork)`) for caption lines and `fork.tag_document` (default ` (fork, solo informativo)`) for document rows. Protocol limits (1024 characters for captions, 4096 for messages) are not configurable.
 
 ```yaml
+timezone: "America/Guayaquil"                    # schedules, document date and header
+
 dependency_report:
   webhook_token: "${DEPENDENCY_REPORT_TOKEN}"   # Infisical reference inside CONFIG_YAML
   telegram_chat_id: "123456789"
   # Do not quote this reference. It holds a JSON array, so unquoted YAML reads a
   # list. A quoted reference is a string and config loading fails.
   forks: ${DEPENDENCY_REPORT_FORKS}              # e.g. ["devidence-dev/discord-tts-bot"]
+  path: "/webhook/dependency-report"             # route; must start with /
+  token_header: "X-Report-Token"                 # header carrying webhook_token
+  max_body_bytes: 10485760                       # 10 MiB, must be positive
+  document_name: "dependency-report-{date}.html" # must contain {date}, no / or \
+  date_layout: "2006-01-02"                      # Go time layout of {date}
+
+messages:                                        # optional: override single texts
+  caption:
+    header: "🔔 <b>Deps</b> · {date}"
 ```
+
+Changing `timezone` moves the schedules and the report date. Without a `messages:` section, the texts are the defaults.
 
 ---
 

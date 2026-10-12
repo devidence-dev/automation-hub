@@ -75,9 +75,9 @@ The go-imap client sits behind a small `imapSession` interface (Login, Select, S
 
 ## Coordination with sibling changes
 
-- `bot-command-registry` task 6.1 changes `processor.NewTorrentProcessor` to take its own `messenger` interface. This change already gives that constructor `messageSender`. Only one of the two should land; see task 6.3.
+- `processor.NewTorrentProcessor` and `processor.GetWebhookConfig` belong to this change (decided 2026-10-11). `bot-command-registry` no longer touches them; it lands first and passes `*telegram.Client` to the handler, which satisfies `messageSender`.
 - `bot-command-registry` design item 9 moves the hook lookup to route registration and passes the hook config to the handler. The cap in D9 reads the same config either way, so whichever change lands second adapts the lookup only.
-- `bot-command-registry` task 6.4 (remove `GetWebhookConfig`) is satisfied by task 1.4 here, which moves it to `config.FindWebhook`.
+- `GetWebhookConfig` moves to `config.FindWebhook` in task 1.4 here; `bot-command-registry` leaves it in place.
 - `main.go` edits are on different lines from `http-clients-hardening` (server timeouts, client construction) and `refactor-dependency-report` (`registerRoutes`, sender interface). Whichever lands later rebases the wiring.
 - `http-clients-hardening` changes outbound limits and server timeouts. Its `httpx` request caps are not used by the processors or the torrent handler here.
 

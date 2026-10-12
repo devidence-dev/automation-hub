@@ -33,7 +33,7 @@ No breaking change.
 
 ## Impact
 
-- `internal/handlers/telegram_bot.go` (split), `webhook.go`, `cmd/automation-hub/main.go`, `internal/services/processor` (one-method messenger).
+- `internal/handlers/telegram_bot.go` (split), `webhook.go`, `cmd/automation-hub/main.go`. `internal/services/processor` is not touched; `email-processing-cleanup` owns it.
 - `internal/config/config.go`: new keys, defaults, fail-fast validation.
 - `internal/messages`: new bot keys only.
 - Tests: table-driven with fakes; existing handler tests pass unchanged.

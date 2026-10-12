@@ -1,0 +1,11 @@
+📦 <b>Dependency report</b> · 2026-10-12
+
+🔴 QuantWarden — 2 major · 1 patch
+🟡 big-monorepo — 45 minor
+🟡 homelab — 1 minor · 3 patch
+🟡 discord-tts-bot (fork) — 1 minor
+✅ 2 repos al día
+
+📊 53 desactualizadas · 5 al día
+🐳 Imágenes: 1 · 📚 Paquetes: 52
+⚠️ 3 errores en el scan

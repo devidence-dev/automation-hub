@@ -183,22 +183,27 @@ func TestValidateSchedules(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateSchedules([]WorkflowCommandConfig{tt.workflow}, []JobCommandConfig{tt.job})
-			if len(tt.wantErr) == 0 {
-				if err != nil {
-					t.Fatalf("validateSchedules() error = %v, want nil", err)
-				}
-				return
-			}
-			if err == nil {
-				t.Fatal("validateSchedules() error = nil, want error")
-			}
-			for _, want := range tt.wantErr {
-				if !strings.Contains(err.Error(), want) {
-					t.Errorf("error %q does not contain %q", err, want)
-				}
-			}
+			assertScheduleError(t, validateSchedules([]WorkflowCommandConfig{tt.workflow}, []JobCommandConfig{tt.job}), tt.wantErr)
 		})
+	}
+}
+
+// assertScheduleError requires no error when wantErr is empty, else an error containing each wantErr text.
+func assertScheduleError(t *testing.T, err error, wantErr []string) {
+	t.Helper()
+	if len(wantErr) == 0 {
+		if err != nil {
+			t.Fatalf("validateSchedules() error = %v, want nil", err)
+		}
+		return
+	}
+	if err == nil {
+		t.Fatal("validateSchedules() error = nil, want error")
+	}
+	for _, want := range wantErr {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error %q does not contain %q", err, want)
+		}
 	}
 }
 

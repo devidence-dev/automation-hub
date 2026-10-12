@@ -28,7 +28,7 @@
 
 **8. Webhook registry.** A `map[string]RouteFactory` in `internal/handlers/webhook_registry.go` maps a route name to a factory `func(hook config.WebhookConfig, env RouteEnv) (Route, error)`, where `Route` holds the path and the `http.Handler`. `qbittorrent` is registered there. `dependency-report` is registered in the same map, and its factory reads the `dependency_report:` section and uses the fixed path. `registerRoutes` becomes one loop: for each configured hook, and for `dependency-report` when its section is set, look up the factory, log unknown names as warnings, and mount the route. Alternative rejected: a separate special case for dependency-report, which is the code the change removes.
 
-**9. Webhook handler gets its inputs at registration.** `NewWebhookHandler(sender, hook config.WebhookProcessorConfig, logger)` takes a consumer-defined one-method `messenger` interface. It no longer looks up the hook per request, so the 500 "configuration not found" branch goes away with it. `processor.NewTorrentProcessor` takes the same one-method interface instead of `*telegram.Client`. The existing `processor.GetWebhookConfig` loses its only caller and is removed if the `unused` linter flags it.
+**9. Webhook handler gets its inputs at registration.** `NewWebhookHandler(telegramClient *telegram.Client, hook config.WebhookProcessorConfig, logger)` receives the hook config from the registry factory. It no longer looks up the hook per request, so the 500 "configuration not found" branch goes away with it. The processor side is out of scope (decided 2026-10-11): `email-processing-cleanup` owns `processor.NewTorrentProcessor`, its sender interface (`messageSender`) and `processor.GetWebhookConfig`. That change lands later and replaces the concrete client with its interface.
 
 ## Risks / Trade-offs
 
@@ -43,6 +43,6 @@ No config migration: every new key is optional with a default. Rollback is rever
 
 ## Open Questions
 
-- Language of the catalog. `refactor-dependency-report` describes its catalog as Spanish by default and its `lang` as the document language. The bot texts are English. Proposed: the catalog stays one key-to-text map, `bot.*` defaults are English, and that spec's wording becomes "dependency-report texts are Spanish by default". This needs agreement with that change before task 3.1, and the user should confirm it.
+- Language of the catalog. Resolved on 2026-10-11: each key keeps its current text, so `bot.*` defaults are English. `refactor-dependency-report` states the same rule.
 - Exact catalog API and the name of the override section (`messages:` assumed) come from refactor-dependency-report. Gate: task 1.1 confirms them before any other task starts.
 - Whether `restart_ready` should also be settable per restart entry. Current proposal: global only.

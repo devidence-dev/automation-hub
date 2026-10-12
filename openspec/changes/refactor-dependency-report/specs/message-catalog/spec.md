@@ -6,7 +6,7 @@ Holds the user-facing texts of the hub's Telegram and HTML output in one embedde
 ## ADDED Requirements
 
 ### Requirement: Embedded default catalog
-The system SHALL embed one default message catalog in the binary, in Spanish, holding every user-facing text of the dependency report: the caption, the failure message, the document labels, the tab labels, the emoji and `lang`. The catalog MUST NOT be read from the host filesystem. Without a `messages:` section, the rendered texts SHALL equal the texts stated in the `dependency-report` requirements. Protocol limits (Telegram's 4096 and 1024 characters) are not catalog entries.
+The system SHALL embed one default message catalog in the binary, holding every user-facing text of the dependency report: the caption, the failure message, the fork tags, the document labels, the tab labels, the emoji and `lang`. Each default SHALL keep the text the hub sends today, so the report texts are Spanish and the caption header keeps `Dependency report`; the document labels are Spanish and `lang` is `es`. The catalog MUST NOT be read from the host filesystem. Without a `messages:` section, the rendered texts SHALL equal the texts stated in the `dependency-report` requirements. Protocol limits (Telegram's 4096 and 1024 characters) are not catalog entries.
 
 #### Scenario: Defaults render today's caption
 - **WHEN** the config has no `messages:` section and the report has no pending update on 2026-10-12 with 42 up-to-date dependencies and no images or packages listed

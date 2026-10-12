@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-	_ "time/tzdata" // embedded zone database: the image may have no /usr/share/zoneinfo
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/gorilla/mux"
@@ -17,6 +16,7 @@ import (
 
 	"automation-hub/internal/config"
 	"automation-hub/internal/handlers"
+	"automation-hub/internal/services/depreport"
 	"automation-hub/internal/services/email"
 	"automation-hub/internal/services/github"
 	"automation-hub/internal/services/kube"
@@ -38,11 +38,8 @@ func main() {
 		logger.Fatal("Failed to load config", zap.Error(err))
 	}
 
-	// Schedules are evaluated in this fixed zone, whatever the host or image provides.
-	loc, err := time.LoadLocation("America/Guayaquil")
-	if err != nil {
-		logger.Fatal("Failed to load timezone", zap.Error(err))
-	}
+	// The zone is validated by config.Load and loaded from the embedded database.
+	loc := cfg.Location
 	logger.Info("Timezone loaded", zap.String("timezone", loc.String()))
 
 	// Initialize services
@@ -216,14 +213,8 @@ func shutdownServer(srv *http.Server, sched *scheduler.Scheduler, logger *zap.Lo
 	}
 }
 
-// reportSender is what the dependency-report webhook needs from the notifications bot.
-type reportSender interface {
-	SendHTML(chatID, text string) error
-	SendDocument(chatID, filename, caption string, data []byte) error
-}
-
 // registerRoutes wires the webhook routes from the configuration.
-func registerRoutes(router *mux.Router, cfg *config.Config, webhookHandler *handlers.WebhookHandler, sender reportSender, logger *zap.Logger) {
+func registerRoutes(router *mux.Router, cfg *config.Config, webhookHandler *handlers.WebhookHandler, sender depreport.ReportSender, logger *zap.Logger) {
 	for _, hook := range cfg.Hook {
 		switch hook.Name {
 		case "qbittorrent":
@@ -236,9 +227,11 @@ func registerRoutes(router *mux.Router, cfg *config.Config, webhookHandler *hand
 		}
 	}
 
-	// Not part of the switch above: the section is top-level with a fixed path.
+	// Not part of the switch above: the section is top-level and its route comes from its settings.
 	if cfg.DependencyReport != nil {
-		router.Handle("/webhook/dependency-report", handlers.NewDependencyReportHandler(*cfg.DependencyReport, sender, logger)).Methods("POST")
-		logger.Info("Registered webhook route", zap.String("name", "dependency-report"), zap.String("path", "/webhook/dependency-report"))
+		path := cfg.DependencyReport.Path
+		handler := handlers.NewDependencyReportHandler(*cfg.DependencyReport, cfg.Catalog, cfg.Location, sender, logger)
+		router.Handle(path, handler).Methods("POST")
+		logger.Info("Registered webhook route", zap.String("name", "dependency-report"), zap.String("path", path))
 	}
 }

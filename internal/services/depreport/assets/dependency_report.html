@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{.Lang}}">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Dependency Report - Devidence</title>
+    <title>{{.Title}}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
         crossorigin="anonymous">
@@ -436,11 +436,11 @@
     </style>
 </head>
 
-<body>
+<body data-copied="{{.Labels.Copied}}" data-copied-before="{{.Labels.CopiedBefore}}">
     <nav class="navbar navbar-dark">
         <div class="container-fluid">
             <span class="navbar-brand mb-0 h1">
-                <i class="bi bi-stack me-2"></i>Dependency Report
+                <i class="bi bi-stack me-2"></i>{{.Brand}}
             </span>
             <span class="navbar-text" style="color: var(--text-secondary); font-size: 0.85rem;">
                 <i class="bi bi-clock me-1"></i>{{.ScanTimestamp}}
@@ -450,28 +450,111 @@
 
     <div class="container-fluid">
         <ul class="nav nav-tabs mt-3" id="reportTabs" role="tablist">
+            {{range $i, $tab := .Tabs}}
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="images-tab" data-bs-toggle="tab" data-bs-target="#images" type="button" role="tab" aria-controls="images" aria-selected="true">Imágenes</button>
+                <button class="nav-link{{if eq $i 0}} active{{end}}" id="{{$tab.ID}}-tab" data-bs-toggle="tab" data-bs-target="#{{$tab.ID}}" type="button" role="tab" aria-controls="{{$tab.ID}}" aria-selected="{{if eq $i 0}}true{{else}}false{{end}}">{{$tab.Label}}</button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="deps-tab" data-bs-toggle="tab" data-bs-target="#deps" type="button" role="tab" aria-controls="deps" aria-selected="false">Dependencias</button>
-            </li>
+            {{end}}
         </ul>
 
         <div class="tab-content">
-            <div class="tab-pane fade show active" id="images" role="tabpanel" aria-labelledby="images-tab" tabindex="0">
-                {{template "images-pane" .Images}}
+            {{range $i, $tab := .Tabs}}
+            <div class="tab-pane fade{{if eq $i 0}} show active{{end}}" id="{{$tab.ID}}" role="tabpanel" aria-labelledby="{{$tab.ID}}-tab" tabindex="0">
+                <div class="row g-0">
+                    <div class="col-md-4 col-lg-3 sidebar">
+                        <div class="metric-box">
+                            <div class="metric-value" style="color: var(--accent-blue);">{{$tab.Total}}</div>
+                            <div class="metric-label">{{$.Labels.Total}}</div>
+                        </div>
+
+                        <div class="metric-box">
+                            <div class="metric-value" style="color: var(--accent-yellow);">{{$tab.Updates}}</div>
+                            <div class="metric-label">{{$.Labels.Pending}}</div>
+                        </div>
+
+                        <div class="metric-box">
+                            <div class="metric-value" style="color: var(--accent-green);">{{$tab.UpToDate}}</div>
+                            <div class="metric-label">{{$.Labels.UpToDate}}</div>
+                        </div>
+
+                        <div class="mt-4 pt-3" style="border-top: 1px solid var(--border-color);">
+                            <h6 class="text-uppercase mb-3" style="color: var(--text-secondary); font-size: 0.75rem;">{{$.Labels.Distribution}}</h6>
+                            {{range $tab.Distribution}}
+                            <div class="d-flex justify-content-between mb-2">
+                                <span style="color: var(--text-secondary); font-size: 0.85rem;">{{.Label}}</span>
+                                <span class="{{.Class}}">{{.Count}}</span>
+                            </div>
+                            {{end}}
+                        </div>
+                    </div>
+                    <div class="col-md-8 col-lg-9 content-area">
+                        {{if $tab.Updates}}
+                        <div class="status-badge warning">
+                            <i class="bi bi-exclamation-triangle-fill" style="color: var(--accent-yellow);"></i>
+                            <span><strong>{{$tab.StatusText}}</strong></span>
+                        </div>
+                        {{else}}
+                        <div class="status-badge success">
+                            <i class="bi bi-check-circle-fill" style="color: var(--accent-green);"></i>
+                            <span><strong>{{$tab.StatusText}}</strong></span>
+                        </div>
+                        {{end}}
+                        {{if $tab.Rows}}
+                        <div class="section-header">
+                            <i class="bi bi-arrow-repeat" style="color: var(--accent-blue);"></i>
+                            <h5>{{$.Labels.Available}}</h5>
+                        </div>
+
+                        <div class="table-devops">
+                            <table class="table mb-0">
+                                <thead>
+                                    <tr>
+                                        {{range $tab.Columns}}
+                                        <th style="width: {{.Width}};">{{.Header}}</th>
+                                        {{end}}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{range $tab.Rows}}
+                                    <tr>
+                                        {{range .Cells}}
+                                        <td>
+                                            {{- if eq .Kind "file"}}
+                                            <div class="service-name">
+                                                <i class="bi bi-file-earmark-code"></i>
+                                                {{.Text}}
+                                            </div>
+                                            {{- else if eq .Kind "repo"}}
+                                            <div class="file-path">{{.Text}}</div>
+                                            {{- else if eq .Kind "copy"}}
+                                            <code class="image-tag">{{.Text}}</code>
+                                            <button class="copy-btn" title="{{.Title}}" data-copy="{{.Text}}">
+                                                <i class="bi bi-clipboard"></i>
+                                            </button>
+                                            {{- else if eq .Kind "badge"}}
+                                            <span class="badge-type {{.Class}}">{{.Text}}</span>
+                                            {{- else}}
+                                            <code class="image-tag">{{.Text}}</code>
+                                            {{- end}}
+                                        </td>
+                                        {{end}}
+                                    </tr>
+                                    {{end}}
+                                </tbody>
+                            </table>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
             </div>
-            <div class="tab-pane fade" id="deps" role="tabpanel" aria-labelledby="deps-tab" tabindex="0">
-                {{template "deps-pane" .Deps}}
-            </div>
+            {{end}}
         </div>
 
         {{if .Errors}}
         <div class="content-area">
             <div class="section-header mt-4">
                 <i class="bi bi-exclamation-triangle" style="color: var(--accent-red);"></i>
-                <h5>Errors</h5>
+                <h5>{{.Labels.ErrorsHeading}}</h5>
             </div>
             <div
                 style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem;">
@@ -484,160 +567,6 @@
         </div>
         {{end}}
     </div>
-
-{{define "sidebar"}}
-            <div class="col-md-4 col-lg-3 sidebar">
-                <div class="metric-box">
-                    <div class="metric-value" style="color: var(--accent-blue);">{{.Total}}</div>
-                    <div class="metric-label">Total</div>
-                </div>
-
-                <div class="metric-box">
-                    <div class="metric-value" style="color: var(--accent-yellow);">{{.Updates}}</div>
-                    <div class="metric-label">Pending Updates</div>
-                </div>
-
-                <div class="metric-box">
-                    <div class="metric-value" style="color: var(--accent-green);">{{.UpToDate}}</div>
-                    <div class="metric-label">Up to Date</div>
-                </div>
-
-                <div class="mt-4 pt-3" style="border-top: 1px solid var(--border-color);">
-                    <h6 class="text-uppercase mb-3" style="color: var(--text-secondary); font-size: 0.75rem;">Update
-                        Distribution</h6>
-                    {{range .Distribution}}
-                    <div class="d-flex justify-content-between mb-2">
-                        <span style="color: var(--text-secondary); font-size: 0.85rem;">{{.Type}}</span>
-                        <span class="{{.Class}}">{{.Count}}</span>
-                    </div>
-                    {{end}}
-                </div>
-            </div>
-{{end}}
-
-{{define "status"}}
-                {{if .Updates}}
-                <div class="status-badge warning">
-                    <i class="bi bi-exclamation-triangle-fill" style="color: var(--accent-yellow);"></i>
-                    <span><strong>{{.Updates}} updates available</strong> for {{.WithUpdates}} dependencies</span>
-                </div>
-                {{else}}
-                <div class="status-badge success">
-                    <i class="bi bi-check-circle-fill" style="color: var(--accent-green);"></i>
-                    <span><strong>All dependencies are up to date</strong></span>
-                </div>
-                {{end}}
-{{end}}
-
-{{define "images-pane"}}
-        <div class="row g-0">
-            {{template "sidebar" .}}
-            <div class="col-md-8 col-lg-9 content-area">
-                {{template "status" .}}
-                {{if .Rows}}
-                <div class="section-header">
-                    <i class="bi bi-arrow-repeat" style="color: var(--accent-blue);"></i>
-                    <h5>Available Updates</h5>
-                </div>
-
-                <div class="table-devops">
-                    <table class="table mb-0">
-                        <thead>
-                            <tr>
-                                <th style="width: 15%;">Package File</th>
-                                <th style="width: 15%;">Repository</th>
-                                <th style="width: 30%;">Current Image</th>
-                                <th style="width: 30%;">Latest Image</th>
-                                <th style="width: 10%;">Type</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {{range .Rows}}
-                            <tr>
-                                <td>
-                                    <div class="service-name">
-                                        <i class="bi bi-file-earmark-code"></i>
-                                        {{.PackageFile}}
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="file-path">{{.Repo}}</div>
-                                </td>
-                                <td>
-                                    <code class="image-tag">{{.CurrentImage}}</code>
-                                    <button class="copy-btn" title="Copy current image" data-copy="{{.CurrentImage}}">
-                                        <i class="bi bi-clipboard"></i>
-                                    </button>
-                                </td>
-                                <td>
-                                    <code class="image-tag">{{.LatestImage}}</code>
-                                    <button class="copy-btn" title="Copy latest image" data-copy="{{.LatestImage}}">
-                                        <i class="bi bi-clipboard"></i>
-                                    </button>
-                                </td>
-                                <td>
-                                    <span class="badge-type {{.BadgeClass}}">{{.UpdateType}}</span>
-                                </td>
-                            </tr>
-                            {{end}}
-                        </tbody>
-                    </table>
-                </div>
-                {{end}}
-            </div>
-        </div>
-{{end}}
-
-{{define "deps-pane"}}
-        <div class="row g-0">
-            {{template "sidebar" .}}
-            <div class="col-md-8 col-lg-9 content-area">
-                {{template "status" .}}
-                {{if .Rows}}
-                <div class="section-header">
-                    <i class="bi bi-arrow-repeat" style="color: var(--accent-blue);"></i>
-                    <h5>Available Updates</h5>
-                </div>
-
-                <div class="table-devops">
-                    <table class="table mb-0">
-                        <thead>
-                            <tr>
-                                <th style="width: 15%;">Package File</th>
-                                <th style="width: 15%;">Repository</th>
-                                <th style="width: 20%;">Dependency</th>
-                                <th style="width: 15%;">Current</th>
-                                <th style="width: 15%;">New</th>
-                                <th style="width: 10%;">Type</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {{range .Rows}}
-                            <tr>
-                                <td>
-                                    <div class="service-name">
-                                        <i class="bi bi-file-earmark-code"></i>
-                                        {{.PackageFile}}
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="file-path">{{.Repo}}</div>
-                                </td>
-                                <td><code class="image-tag">{{.Name}}</code></td>
-                                <td><code class="image-tag">{{.Version}}</code></td>
-                                <td><code class="image-tag">{{.NewVersion}}</code></td>
-                                <td>
-                                    <span class="badge-type {{.BadgeClass}}">{{.UpdateType}}</span>
-                                </td>
-                            </tr>
-                            {{end}}
-                        </tbody>
-                    </table>
-                </div>
-                {{end}}
-            </div>
-        </div>
-{{end}}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
@@ -668,13 +597,13 @@
                     btn.classList.remove('copied-prev');
                     btn.classList.add('copied-just');
                     icon.className = 'bi bi-clipboard-check-fill';
-                    btn.title = 'Copied!';
+                    btn.title = document.body.dataset.copied;
 
                     setTimeout(() => {
                         btn.classList.remove('copied-just');
                         btn.classList.add('copied-prev');
                         icon.className = 'bi bi-clipboard-check';
-                        btn.title = 'Copy (copied before)';
+                        btn.title = document.body.dataset.copiedBefore;
                     }, 2000);
                 });
             });

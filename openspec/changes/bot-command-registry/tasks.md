@@ -32,13 +32,11 @@
 
 ## 6. Webhook registry
 
-- [ ] 6.1 Change `processor.NewTorrentProcessor` to take a one-method `messenger` interface (`SendMessage`) instead of `*telegram.Client`. Verify with the existing processor tests passing in Docker.
-- [ ] 6.2 Change `NewWebhookHandler` to take `(sender, hook config.WebhookProcessorConfig, logger)`, with no per-request hook lookup and no `*config.Config`. Verify with the updated `webhook_test.go` cases: a valid POST returns 200 with `{"status":"success"}`, a processing error returns 500 with `Processing failed`, and a wrong method is rejected by the route.
-- [ ] 6.3 Add `internal/handlers/webhook_registry.go` with a name to factory map (`qbittorrent`, `dependency-report`) and make `registerRoutes` a single loop over the configured hooks and the dependency report section. Verify with `TestRegisterRoutesDependencyReport` (updated call), `TestRegisterRoutesUnknownHookWarns` (observer logger: warning logged, no route, 404), and `TestRegisterRoutesQbittorrent` (POST routed, GET rejected).
-- [ ] 6.4 Remove `processor.GetWebhookConfig` if it has no caller left. Verify with the `unused` linter in task 7.2 passing.
+- [ ] 6.1 Change `NewWebhookHandler` to take `(telegramClient *telegram.Client, hook config.WebhookProcessorConfig, logger)`, with no per-request hook lookup and no `*config.Config`. Verify with the updated `webhook_test.go` cases: a valid POST returns 200 with `{"status":"success"}`, a processing error returns 500 with `Processing failed`, and a wrong method is rejected by the route.
+- [ ] 6.2 Add `internal/handlers/webhook_registry.go` with a name to factory map (`qbittorrent`, `dependency-report`) and make `registerRoutes` a single loop over the configured hooks and the dependency report section. Verify with `TestRegisterRoutesDependencyReport` (updated call), `TestRegisterRoutesUnknownHookWarns` (observer logger: warning logged, no route, 404), and `TestRegisterRoutesQbittorrent` (POST routed, GET rejected).
 
 ## 7. Validation
 
 - [ ] 7.1 Run `docker run --rm -v "$PWD":/app -w /app golang:$(cat .go-version) sh -c 'go vet ./... && go test -race ./...'`. The task passes only when both commands succeed on the current code.
-- [ ] 7.2 Run golangci-lint v2.14.0 in Docker with `--enable=errcheck,govet,staticcheck,unused,misspell,gosec`, and gocognit v1.2.0 in Docker with `-over 15 -test` on `internal/handlers`, `internal/config`, `internal/services/processor` and `cmd/automation-hub`. Verify that golangci-lint reports no issues and gocognit lists no function above 15.
+- [ ] 7.2 Run golangci-lint v2.14.0 in Docker with `--enable=errcheck,govet,staticcheck,unused,misspell,gosec`, and gocognit v1.2.0 in Docker with `-over 15 -test` on `internal/handlers`, `internal/config` and `cmd/automation-hub`. Verify that golangci-lint reports no issues and gocognit lists no function above 15.
 - [ ] 7.3 Run `openspec validate --strict bot-command-registry` and confirm it reports the change as valid.
