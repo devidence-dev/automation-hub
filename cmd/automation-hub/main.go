@@ -173,6 +173,7 @@ func main() {
 // reportSender is what the dependency-report webhook needs from the notifications bot.
 type reportSender interface {
 	SendHTML(chatID, text string) error
+	SendDocument(chatID, filename string, data []byte) error
 }
 
 // registerRoutes wires the webhook routes from the configuration.

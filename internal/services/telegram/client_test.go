@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -279,5 +280,93 @@ func TestStartPollingReceivesUpdatesUntilContextIsCancelled(t *testing.T) {
 	case <-done:
 	case <-time.After(time.Second):
 		t.Fatal("polling did not stop after context cancellation")
+	}
+}
+
+// maxDocumentBody bounds the multipart upload the fake endpoint reads.
+const maxDocumentBody = 1 << 20
+
+func TestSendDocumentSuccess(t *testing.T) {
+	data := []byte("<html>\n<b>report</b> & more\n</html>")
+	client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/bottest-token/getMe":
+			writeTelegramResponse(w, map[string]interface{}{"id": 1, "is_bot": true, "first_name": "Test"})
+		case strings.HasSuffix(r.URL.Path, "/sendDocument"):
+			r.Body = http.MaxBytesReader(w, r.Body, maxDocumentBody)
+			mr, err := r.MultipartReader()
+			if err != nil {
+				t.Fatal(err)
+			}
+			form, err := mr.ReadForm(maxDocumentBody)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := form.Value["chat_id"]; len(got) != 1 || got[0] != "-1001234567890" {
+				t.Errorf("chat_id = %q", got)
+			}
+			files := form.File["document"]
+			if len(files) != 1 || files[0].Filename != "dependency-report-2026-10-12.html" {
+				t.Fatalf("document part = %+v", files)
+			}
+			f, err := files[0].Open()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() { _ = f.Close() }()
+			got, err := io.ReadAll(f)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(got) != string(data) {
+				t.Errorf("file bytes = %q, want %q", got, data)
+			}
+			writeTelegramResponse(w, map[string]interface{}{"message_id": 1, "date": 1, "chat": map[string]interface{}{"id": -1001234567890, "type": "supergroup"}})
+		default:
+			t.Errorf("unexpected path %s", r.URL.Path)
+		}
+	})
+
+	if err := client.SendDocument("-1001234567890", "dependency-report-2026-10-12.html", data); err != nil {
+		t.Fatalf("SendDocument() error = %v", err)
+	}
+}
+
+func TestSendDocumentInvalidChatID(t *testing.T) {
+	client := &Client{bot: &tgbotapi.BotAPI{Client: failingHTTPClient{}}, logger: zap.NewNop()}
+	if err := client.SendDocument("not-a-number", "r.html", []byte("x")); err == nil {
+		t.Fatal("SendDocument() error = nil, want an error for an invalid chat ID")
+	}
+}
+
+func TestSendDocumentNilClient(t *testing.T) {
+	var nilClient *Client
+	if err := nilClient.SendDocument("123", "r.html", []byte("x")); err != nil {
+		t.Errorf("SendDocument() on nil client = %v, want nil", err)
+	}
+	if err := (&Client{logger: zap.NewNop()}).SendDocument("123", "r.html", []byte("x")); err != nil {
+		t.Errorf("SendDocument() on client without bot = %v, want nil", err)
+	}
+}
+
+func TestSendDocumentReturnsErrorAfterRetries(t *testing.T) {
+	attempts := 0
+	client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/bottest-token/getMe":
+			writeTelegramResponse(w, map[string]interface{}{"id": 1, "is_bot": true, "first_name": "Test"})
+		case strings.HasSuffix(r.URL.Path, "/sendDocument"):
+			attempts++
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"ok": false, "description": "Bad Request"})
+		default:
+			t.Errorf("unexpected path %s", r.URL.Path)
+		}
+	})
+
+	if err := client.SendDocument("123", "r.html", []byte("x")); err == nil {
+		t.Fatal("SendDocument() error = nil, want an error")
+	}
+	if attempts != 3 {
+		t.Errorf("sendDocument attempts = %d, want 3", attempts)
 	}
 }

@@ -15,14 +15,6 @@ workflows:
   # Optional "schedule" on any entry: a 5-field cron expression (minute hour
   # day-of-month month day-of-week) evaluated in America/Guayaquil. The hub
   # dispatches the workflow at those times. Omit it to run only from Telegram.
-  - command: "run_check_updates"
-    description: "Check Docker Updates & Notify"
-    owner: "devidence-dev"
-    repo: "workflows"
-    workflow_file: "ops-github-runner-check-updates.yml"
-    ref: "main"
-    allowed_chat_ids: ["{{TELEGRAM_ADMIN_CHAT_ID}}"]
-    # schedule: "0 9 * * 1,3,5"  # Mondays, Wednesdays and Fridays at 09:00
   - command: "run_cleanup"
     description: "Cleanup unused images"
     owner: "devidence-dev"
@@ -55,8 +47,10 @@ jobs:
 
 # Enables POST /webhook/dependency-report, called by the Job's reporter container
 # (multipart: exit_code, pod, log_tail, report; header X-Report-Token). The report
-# goes to telegram_chat_id through the "telegram" bot above. Values are Infisical
-# references resolved inside CONFIG_YAML (shown here as ${...} placeholders).
+# goes to telegram_chat_id through the "telegram" bot above: one message per repo
+# (or "todo al día"), then one HTML document, dependency-report-<YYYY-MM-DD>.html.
+# The document loads Bootstrap from cdn.jsdelivr.net when opened in a browser.
+# Values are Infisical references resolved inside CONFIG_YAML (shown here as ${...} placeholders).
 # Do NOT quote the forks reference: it holds a JSON array, so unquoted YAML reads a
 # list. Quoting it turns the array into a string and config loading fails.
 dependency_report:

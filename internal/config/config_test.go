@@ -295,8 +295,9 @@ func TestLoadExampleConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
-	if len(cfg.Workflows) != 2 {
-		t.Errorf("workflows = %d, want 2", len(cfg.Workflows))
+	// run_check_updates was retired with icr (the example lists run_cleanup only).
+	if len(cfg.Workflows) != 1 || cfg.Workflows[0].Command != "run_cleanup" {
+		t.Errorf("workflows = %+v, want only run_cleanup", cfg.Workflows)
 	}
 	if len(cfg.Jobs) != 1 || cfg.Jobs[0].Schedule != "0 9 * * 1" {
 		t.Errorf("jobs = %+v, want run_dependency_report with schedule 0 9 * * 1", cfg.Jobs)

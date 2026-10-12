@@ -58,15 +58,29 @@ func newHTTPClient() *http.Client {
 
 // SendMessage sends a Markdown message.
 func (c *Client) SendMessage(chatID, message string) error {
-	return c.send(chatID, message, tgbotapi.ModeMarkdown)
+	return c.sendText(chatID, message, tgbotapi.ModeMarkdown)
 }
 
 // SendHTML sends a message with HTML parse mode. The caller must escape variable text.
 func (c *Client) SendHTML(chatID, message string) error {
-	return c.send(chatID, message, tgbotapi.ModeHTML)
+	return c.sendText(chatID, message, tgbotapi.ModeHTML)
 }
 
-func (c *Client) send(chatID, message, parseMode string) error {
+// SendDocument sends data as a file named filename.
+func (c *Client) SendDocument(chatID, filename string, data []byte) error {
+	if c == nil || c.bot == nil {
+		return nil
+	}
+
+	chatIDInt, err := parseInt64(chatID)
+	if err != nil {
+		return fmt.Errorf("invalid chat ID: %w", err)
+	}
+
+	return c.send(chatID, tgbotapi.NewDocument(chatIDInt, tgbotapi.FileBytes{Name: filename, Bytes: data}))
+}
+
+func (c *Client) sendText(chatID, message, parseMode string) error {
 	if c == nil || c.bot == nil {
 		return nil
 	}
@@ -78,13 +92,17 @@ func (c *Client) send(chatID, message, parseMode string) error {
 
 	msg := tgbotapi.NewMessage(chatIDInt, message)
 	msg.ParseMode = parseMode
+	return c.send(chatID, msg)
+}
 
+// send retries a request on any error, with exponential backoff.
+func (c *Client) send(chatID string, chattable tgbotapi.Chattable) error {
 	// Retry logic for transient network errors
 	maxRetries := 3
 	var lastErr error
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		_, err = c.bot.Send(msg)
+		_, err := c.bot.Send(chattable)
 		if err == nil {
 			c.logger.Info("Telegram message sent successfully",
 				zap.String("chatID", chatID),

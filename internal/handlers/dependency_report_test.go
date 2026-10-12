@@ -8,12 +8,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 
 	"automation-hub/internal/config"
 )
@@ -52,9 +54,9 @@ func messageFor(t *testing.T, messages []string, repo string) string {
 func TestBuildMessagesFixture(t *testing.T) {
 	messages := buildMessages(loadFixture(t), []string{testForkRepo})
 
-	// digest-only and warn-only repos produce nothing: 3 of the 5 repos remain.
-	if len(messages) != 3 {
-		t.Fatalf("messages = %d, want 3: %q", len(messages), messages)
+	// digest-only and warn-only repos produce nothing: 4 of the 6 repos remain.
+	if len(messages) != 4 {
+		t.Fatalf("messages = %d, want 4: %q", len(messages), messages)
 	}
 	for _, msg := range messages {
 		if len(msg) > telegramLimit {
@@ -76,6 +78,20 @@ func TestBuildMessagesFixture(t *testing.T) {
 			"🟡 <code>go.uber.org/zap</code> 1.27.0 → 1.27.1 (patch)",
 		}, "\n")
 		if got := messageFor(t, messages, "devidence-dev/QuantWarden"); got != want {
+			t.Errorf("message =\n%s\nwant\n%s", got, want)
+		}
+	})
+
+	t.Run("homelab escapes names and keeps datasource out of the text", func(t *testing.T) {
+		want := strings.Join([]string{
+			"<b>📦 devidence-dev/homelab</b>",
+			"",
+			"🟡 <code>&lt;script&gt;alert(1)&lt;/script&gt;</code> 1.0.0 → 1.0.1 (patch)",
+			"🟡 <code>actions/checkout</code> v4.2.0 → v4.2.2 (patch)",
+			"🟡 <code>ghcr.io/immich-app/immich-server</code> v1.118.0 → v1.119.0 (minor)",
+			"🟡 <code>legacy-tool</code> 1.0.0 → 1.0.1 (patch)",
+		}, "\n")
+		if got := messageFor(t, messages, "devidence-dev/homelab"); got != want {
 			t.Errorf("message =\n%s\nwant\n%s", got, want)
 		}
 	})
@@ -233,37 +249,70 @@ func TestBuildFailureMessage(t *testing.T) {
 	})
 }
 
-// fakeHTMLSender records messages and can fail every send.
+// sentDocument is one document send recorded by fakeHTMLSender.
+type sentDocument struct {
+	chatID, filename string
+	data             []byte
+}
+
+// fakeHTMLSender records calls in order. err fails message sends (only the
+// first failFirst of them when failFirst > 0); docErr fails document sends.
 type fakeHTMLSender struct {
-	mu       sync.Mutex
-	chatIDs  []string
-	messages []string
-	err      error
+	mu        sync.Mutex
+	order     []string // "message" or "document", in call order
+	chatIDs   []string
+	messages  []string
+	docs      []sentDocument
+	err       error
+	failFirst int
+	docErr    error
 }
 
 func (f *fakeHTMLSender) SendHTML(chatID, text string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	f.order = append(f.order, "message")
 	f.chatIDs = append(f.chatIDs, chatID)
 	f.messages = append(f.messages, text)
-	return f.err
+	if f.err != nil && (f.failFirst == 0 || len(f.messages) <= f.failFirst) {
+		return f.err
+	}
+	return nil
 }
 
-func (f *fakeHTMLSender) waitFor(t *testing.T, n int) []string {
+func (f *fakeHTMLSender) SendDocument(chatID, filename string, data []byte) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.order = append(f.order, "document")
+	f.chatIDs = append(f.chatIDs, chatID)
+	f.docs = append(f.docs, sentDocument{chatID: chatID, filename: filename, data: data})
+	return f.docErr
+}
+
+// waitForCalls waits until n calls (messages and documents) were recorded and returns the order.
+func (f *fakeHTMLSender) waitForCalls(t *testing.T, n int) []string {
 	t.Helper()
 	deadline := time.Now().Add(2 * time.Second)
 	for {
 		f.mu.Lock()
-		got := append([]string(nil), f.messages...)
+		got := append([]string(nil), f.order...)
 		f.mu.Unlock()
 		if len(got) >= n {
 			return got
 		}
 		if time.Now().After(deadline) {
-			t.Fatalf("messages = %q after 2s, want at least %d", got, n)
+			t.Fatalf("calls = %q after 2s, want at least %d", got, n)
 		}
 		time.Sleep(5 * time.Millisecond)
 	}
+}
+
+func (f *fakeHTMLSender) waitFor(t *testing.T, n int) []string {
+	t.Helper()
+	f.waitForCalls(t, n)
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]string(nil), f.messages...)
 }
 
 type reportRequest struct {
@@ -297,10 +346,21 @@ func (rr reportRequest) build(t *testing.T) *http.Request {
 	return req
 }
 
-func newReportHandler(sender htmlSender) *DependencyReportHandler {
+func newReportHandler(sender reportSender) *DependencyReportHandler {
 	return NewDependencyReportHandler(config.DependencyReportConfig{
 		WebhookToken: "secret", TelegramChatID: "555", Forks: []string{testForkRepo},
 	}, sender, zap.NewNop())
+}
+
+// fixedClock is the time the hub "receives" the report in the handler tests: 2026-10-12 09:07 Guayaquil.
+var fixedClock = time.Date(2026, 10, 12, 14, 7, 0, 0, time.UTC)
+
+func newReportHandlerAt(sender reportSender, now time.Time, logger *zap.Logger) *DependencyReportHandler {
+	h := NewDependencyReportHandler(config.DependencyReportConfig{
+		WebhookToken: "secret", TelegramChatID: "555", Forks: []string{testForkRepo},
+	}, sender, logger)
+	h.now = func() time.Time { return now }
+	return h
 }
 
 func TestDependencyReportHandler(t *testing.T) {
@@ -327,7 +387,7 @@ func TestDependencyReportHandler(t *testing.T) {
 				fields: map[string]string{"exit_code": "0", "pod": "p", "forks": `["devidence-dev/QuantWarden"]`},
 				files:  map[string]string{"report": string(fixture), "log_tail": "ignored"},
 			},
-			wantStatus: http.StatusAccepted, wantMessages: 3,
+			wantStatus: http.StatusAccepted, wantMessages: 4,
 			check: func(t *testing.T, messages []string) {
 				if !strings.Contains(messageFor(t, messages, testForkRepo), testForkTag) {
 					t.Error("configured fork not tagged")
@@ -428,4 +488,166 @@ func TestDependencyReportHandlerTelegramFailureDoesNotPanicOrBlock(t *testing.T)
 		t.Fatalf("status = %d, want 202 even when Telegram fails", rec.Code)
 	}
 	sender.waitFor(t, 1) // the failed send was attempted and only logged
+}
+
+func TestParseReportDatasource(t *testing.T) {
+	rep := loadFixture(t)
+	homelab := rep.Repositories["devidence-dev/homelab"]
+
+	find := func(t *testing.T, manager, depName string) reportDep {
+		t.Helper()
+		for _, file := range homelab.PackageFiles[manager] {
+			for _, dep := range file.Deps {
+				if dep.DepName != nil && *dep.DepName == depName {
+					return dep
+				}
+			}
+		}
+		t.Fatalf("dep %s not found under %s", depName, manager)
+		return reportDep{}
+	}
+
+	t.Run("docker dep", func(t *testing.T) {
+		dep := find(t, "helm-values", "ghcr.io/immich-app/immich-server")
+		if dep.Datasource == nil || *dep.Datasource != "docker" {
+			t.Errorf("datasource = %v, want docker", dep.Datasource)
+		}
+	})
+	t.Run("missing datasource is nil", func(t *testing.T) {
+		if dep := find(t, "ansible-galaxy", "legacy-tool"); dep.Datasource != nil {
+			t.Errorf("datasource = %q, want nil", *dep.Datasource)
+		}
+	})
+	t.Run("package file name", func(t *testing.T) {
+		files := homelab.PackageFiles["helm-values"]
+		if len(files) != 1 || files[0].PackageFile != "kubernetes/apps/immich/values.yaml" {
+			t.Errorf("package files = %+v", files)
+		}
+	})
+}
+
+func postReport(t *testing.T, h *DependencyReportHandler, req reportRequest) {
+	t.Helper()
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req.build(t))
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status = %d, want 202 (%s)", rec.Code, rec.Body.String())
+	}
+}
+
+func validReport(t *testing.T) reportRequest {
+	t.Helper()
+	fixture, err := os.ReadFile("testdata/renovate-report.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return reportRequest{token: "secret", fields: map[string]string{"exit_code": "0", "pod": "p"}, files: map[string]string{"report": string(fixture)}}
+}
+
+func TestDeliverMessagesThenDocument(t *testing.T) {
+	sender := &fakeHTMLSender{}
+	h := newReportHandlerAt(sender, fixedClock, zap.NewNop())
+	postReport(t, h, validReport(t))
+
+	order := sender.waitForCalls(t, 5)
+	want := []string{"message", "message", "message", "message", "document"}
+	if !reflect.DeepEqual(order, want) {
+		t.Fatalf("call order = %q, want %q", order, want)
+	}
+	sender.mu.Lock()
+	defer sender.mu.Unlock()
+	if len(sender.docs) != 1 {
+		t.Fatalf("documents = %d, want 1", len(sender.docs))
+	}
+	doc := sender.docs[0]
+	if doc.filename != "dependency-report-2026-10-12.html" || doc.chatID != "555" {
+		t.Errorf("document = %q to chat %q", doc.filename, doc.chatID)
+	}
+	if !strings.Contains(string(doc.data), "2026-10-12 09:07 America/Guayaquil") {
+		t.Error("document header lacks the Guayaquil scan time")
+	}
+}
+
+func TestNoDocumentOnRenovateFailure(t *testing.T) {
+	tests := []struct {
+		name string
+		req  reportRequest
+	}{
+		{name: "exit code 1 with a report", req: reportRequest{token: "secret", fields: map[string]string{"exit_code": "1", "pod": "p"}, files: map[string]string{"report": "{}", "log_tail": "x"}}},
+		{name: "exit code 0 without a report", req: reportRequest{token: "secret", fields: map[string]string{"exit_code": "0", "pod": "p"}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sender := &fakeHTMLSender{}
+			postReport(t, newReportHandlerAt(sender, fixedClock, zap.NewNop()), tt.req)
+			if got := sender.waitFor(t, 1); len(got) != 1 {
+				t.Fatalf("messages = %q, want one failure message", got)
+			}
+			time.Sleep(20 * time.Millisecond) // give a wrong document send a chance to show up
+			if docs := sender.waitForDocs(); len(docs) != 0 {
+				t.Errorf("documents sent = %d, want none", len(docs))
+			}
+		})
+	}
+}
+
+func TestDocumentWhenAllUpToDate(t *testing.T) {
+	sender := &fakeHTMLSender{}
+	req := reportRequest{token: "secret", fields: map[string]string{"exit_code": "0", "pod": "p"}, files: map[string]string{"report": `{"repositories":{}}`}}
+	postReport(t, newReportHandlerAt(sender, fixedClock, zap.NewNop()), req)
+
+	order := sender.waitForCalls(t, 2)
+	if !reflect.DeepEqual(order, []string{"message", "document"}) {
+		t.Fatalf("call order = %q", order)
+	}
+	sender.mu.Lock()
+	defer sender.mu.Unlock()
+	if sender.messages[0] != "✅ Dependency report: todo al día." {
+		t.Errorf("message = %q", sender.messages[0])
+	}
+	if sender.docs[0].filename != "dependency-report-2026-10-12.html" {
+		t.Errorf("document = %q", sender.docs[0].filename)
+	}
+}
+
+func TestDocumentFailureIsLogged(t *testing.T) {
+	core, logs := observer.New(zap.ErrorLevel)
+	sender := &fakeHTMLSender{docErr: errors.New("telegram rejected the document")}
+	postReport(t, newReportHandlerAt(sender, fixedClock, zap.New(core)), validReport(t))
+
+	sender.waitForCalls(t, 5)
+	deadline := time.Now().Add(2 * time.Second)
+	for logs.FilterMessage("Failed to send dependency report document").Len() == 0 {
+		if time.Now().After(deadline) {
+			t.Fatal("document failure was not logged as an error")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if got := len(sender.waitFor(t, 4)); got != 4 {
+		t.Errorf("messages recorded = %d, want 4", got)
+	}
+}
+
+func TestMessageFailureStillSendsDocument(t *testing.T) {
+	core, logs := observer.New(zap.ErrorLevel)
+	sender := &fakeHTMLSender{err: errors.New("telegram down"), failFirst: 1}
+	postReport(t, newReportHandlerAt(sender, fixedClock, zap.New(core)), validReport(t))
+
+	order := sender.waitForCalls(t, 5)
+	if !reflect.DeepEqual(order, []string{"message", "message", "message", "message", "document"}) {
+		t.Fatalf("call order = %q, want every message and the document", order)
+	}
+	if logs.FilterMessage("Failed to send dependency report message").Len() != 1 {
+		t.Errorf("failed message not logged once")
+	}
+	if docs := sender.waitForDocs(); len(docs) != 1 {
+		t.Errorf("documents = %d, want 1", len(docs))
+	}
+}
+
+// waitForDocs returns the documents recorded so far.
+func (f *fakeHTMLSender) waitForDocs() []sentDocument {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]sentDocument(nil), f.docs...)
 }

@@ -132,7 +132,7 @@
                 "depName": "golang",
                 "currentValue": "1.26",
                 "currentVersion": "1.26",
-                "datasource": "go",
+                "datasource": "docker",
                 "depType": "require",
                 "packageName": "golang",
                 "updates": [
@@ -152,7 +152,7 @@
                 "depName": "debian",
                 "currentValue": "12",
                 "currentVersion": "12",
-                "datasource": "go",
+                "datasource": "docker",
                 "depType": "require",
                 "packageName": "debian",
                 "updates": [
@@ -248,7 +248,7 @@
                 "depName": "alpine",
                 "currentValue": "3.20",
                 "currentVersion": "3.20",
-                "datasource": "go",
+                "datasource": "docker",
                 "depType": "require",
                 "packageName": "alpine",
                 "updates": [
@@ -1175,6 +1175,128 @@
           "outdated": 45,
           "total": 60
         }
+      }
+    },
+    "devidence-dev/homelab": {
+      "problems": [],
+      "branches": [],
+      "packageFiles": {
+        "helm-values": [
+          {
+            "packageFile": "kubernetes/apps/immich/values.yaml",
+            "deps": [
+              {
+                "depName": "ghcr.io/immich-app/immich-server",
+                "currentValue": "v1.118.0",
+                "currentVersion": "v1.118.0",
+                "datasource": "docker",
+                "depType": "require",
+                "packageName": "ghcr.io/immich-app/immich-server",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "v1.119.0",
+                    "newValue": "v1.119.0",
+                    "updateType": "minor",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "ghcr.io/example/digest-img",
+                "currentValue": "1.0",
+                "currentVersion": "1.0",
+                "datasource": "docker",
+                "depType": "require",
+                "packageName": "ghcr.io/example/digest-img",
+                "updates": [
+                  {
+                    "bucket": "digest",
+                    "newVersion": "1.0",
+                    "newValue": "1.0",
+                    "updateType": "digest",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1,
+                    "newDigest": "sha256:def"
+                  }
+                ],
+                "warnings": []
+              }
+            ]
+          }
+        ],
+        "github-actions": [
+          {
+            "packageFile": ".github/workflows/ci.yml",
+            "deps": [
+              {
+                "depName": "actions/checkout",
+                "currentValue": "v4.2.0",
+                "currentVersion": "v4.2.0",
+                "datasource": "github-tags",
+                "depType": "require",
+                "packageName": "actions/checkout",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "v4.2.2",
+                    "newValue": "v4.2.2",
+                    "updateType": "patch",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              }
+            ]
+          }
+        ],
+        "ansible-galaxy": [
+          {
+            "packageFile": "ansible/requirements.yml",
+            "deps": [
+              {
+                "depName": "<script>alert(1)</script>",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "datasource": "npm",
+                "depType": "require",
+                "packageName": "<script>alert(1)</script>",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.0.1",
+                    "newValue": "1.0.1",
+                    "updateType": "patch",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              },
+              {
+                "depName": "legacy-tool",
+                "currentValue": "1.0.0",
+                "currentVersion": "1.0.0",
+                "depType": "require",
+                "packageName": "legacy-tool",
+                "updates": [
+                  {
+                    "bucket": "non-major",
+                    "newVersion": "1.0.1",
+                    "newValue": "1.0.1",
+                    "updateType": "patch",
+                    "releaseTimestamp": "2026-09-01T00:00:00.000Z",
+                    "newMajor": 1
+                  }
+                ],
+                "warnings": []
+              }
+            ]
+          }
+        ]
       }
     }
   }

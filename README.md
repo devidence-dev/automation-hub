@@ -123,7 +123,6 @@ Configure `workflow_bot.bot_token` with the existing bot token used by `github-r
 
 The example config registers these commands:
 
-- `/run_check_updates` dispatches `ops-github-runner-check-updates.yml` in `devidence-dev/workflows`.
 - `/run_cleanup` dispatches `ops-github-runner-cleanup.yml` in `devidence-dev/workflows`.
 
 An entry can also carry an optional `schedule`, a 5-field cron expression (minute, hour, day of month, month, day of week) evaluated in `America/Guayaquil`. For example, `schedule: "0 9 * * 1,3,5"` dispatches the workflow every Monday, Wednesday and Friday at 09:00. Scheduled dispatches use the same path as the Telegram command, and the log records the run URL GitHub returns. If a scheduled dispatch fails, every chat in that entry's `allowed_chat_ids` gets a failure message. The timezone is embedded in the binary, so it does not depend on the container image. An invalid `schedule` stops startup. Entries without `schedule` run only from Telegram.
@@ -195,7 +194,14 @@ jobs:
 
 ### 📦 Dependency report webhook
 
-When `dependency_report:` is configured, the hub exposes `POST /webhook/dependency-report`. The Job's reporter container posts a `multipart/form-data` body (`exit_code`, `pod`, file `log_tail`, optional file `report`) with header `X-Report-Token`. The hub answers `202` and sends the formatted report (HTML, Spanish) through the notifications bot (`telegram.bot_token`) to `telegram_chat_id`. A wrong token gets `401`, a malformed request `400`, and the body is capped at 10 MiB.
+When `dependency_report:` is configured, the hub exposes `POST /webhook/dependency-report`. The Job's reporter container posts a `multipart/form-data` body (`exit_code`, `pod`, file `log_tail`, optional file `report`) with header `X-Report-Token`. The hub answers `202` and sends the report through the notifications bot (`telegram.bot_token`) to `telegram_chat_id`. First come the Spanish messages, one per repository with pending updates (or `✅ Dependency report: todo al día.`). Then comes one HTML document, `dependency-report-<YYYY-MM-DD>.html`, named after the day the hub received the report in `America/Guayaquil`. Its header shows the scan time in the same zone. A wrong token gets `401`, a malformed request `400`, and the body is capped at 10 MiB. A Renovate failure (`exit_code` not `0`, or no `report`) sends only the failure message, never a document.
+
+The document has two tabs:
+
+- **Imágenes** lists dependencies whose Renovate `datasource` is `docker` (container images), with the current and latest image.
+- **Dependencias** lists every other dependency, including those without a `datasource`, with the current and new version.
+
+Each tab shows its totals and a count per update type (`patch`, `minor`, `major`). Only those three update types are listed (`digest` and `pin` are not), and a fork in `dependency_report.forks` is tagged in its rows. Problems with level 50 or more appear in an Errors section at the bottom. The document is one self-contained file that loads Bootstrap 5.3.2 and bootstrap-icons from `cdn.jsdelivr.net`, so it needs internet access when opened, and its tabs need JavaScript. The template is `internal/handlers/assets/dependency_report.html`, embedded in the binary and rendered with `html/template`, so report text is always escaped.
 
 ```yaml
 dependency_report:

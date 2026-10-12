@@ -37,23 +37,32 @@ const forkTag = " (fork, solo informativo)" //nolint:misspell // Spanish text fi
 
 var htmlEscaper = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;")
 
-type htmlSender interface {
+type reportSender interface {
 	SendHTML(chatID, text string) error
+	SendDocument(chatID, filename string, data []byte) error
 }
 
 // DependencyReportHandler receives the Renovate report posted by the
 // dependency-report Job and delivers it to Telegram.
 type DependencyReportHandler struct {
 	cfg    config.DependencyReportConfig
-	sender htmlSender
+	sender reportSender
 	logger *zap.Logger
+	now    func() time.Time // when the report was received; a field so tests can set it
 }
 
-func NewDependencyReportHandler(cfg config.DependencyReportConfig, sender htmlSender, logger *zap.Logger) *DependencyReportHandler {
+func NewDependencyReportHandler(cfg config.DependencyReportConfig, sender reportSender, logger *zap.Logger) *DependencyReportHandler {
 	if logger == nil {
 		logger = zap.NewNop()
 	}
-	return &DependencyReportHandler{cfg: cfg, sender: sender, logger: logger}
+	return &DependencyReportHandler{cfg: cfg, sender: sender, logger: logger, now: time.Now}
+}
+
+// reportDocument is the HTML report, built before the response so a template
+// error is logged without losing the messages.
+type reportDocument struct {
+	name string
+	data []byte
 }
 
 // ServeHTTP validates the request, answers 202 and sends the messages in the
@@ -95,6 +104,7 @@ func (h *DependencyReportHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	}
 
 	var messages []string
+	var doc *reportDocument // only on the success path
 	if exitCode != 0 || !hasReport {
 		messages = []string{buildFailureMessage(exitCode, pod, string(logTail))}
 	} else {
@@ -105,15 +115,33 @@ func (h *DependencyReportHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 			return
 		}
 		messages = buildMessages(rep, h.cfg.Forks)
+		doc = h.buildDocument(rep)
 	}
 
 	w.WriteHeader(http.StatusAccepted)
 	h.logger.Info("Dependency report accepted", zap.String("pod", pod), zap.Int("exit_code", exitCode), zap.Int("messages", len(messages)))
-	go h.deliver(messages)
+	go h.deliver(messages, doc)
+}
+
+// buildDocument renders the HTML report. A failure is logged and returns nil, so the messages still go out.
+func (h *DependencyReportHandler) buildDocument(rep renovateReport) *reportDocument {
+	receivedAt := h.now()
+	name, err := documentName(receivedAt)
+	if err != nil {
+		h.logger.Error("Failed to name the dependency report document", zap.Error(err))
+		return nil
+	}
+	data, err := buildReportDocument(rep, h.cfg.Forks, receivedAt)
+	if err != nil {
+		h.logger.Error("Failed to build the dependency report document", zap.Error(err))
+		return nil
+	}
+	return &reportDocument{name: name, data: data}
 }
 
 // deliver runs after the response, so it uses its own context instead of the request's.
-func (h *DependencyReportHandler) deliver(messages []string) {
+// The messages go first, then the document; a failed send is logged and the rest still go out.
+func (h *DependencyReportHandler) deliver(messages []string, doc *reportDocument) {
 	ctx, cancel := context.WithTimeout(context.Background(), sendTimeout)
 	defer cancel()
 	for i, msg := range messages {
@@ -124,6 +152,16 @@ func (h *DependencyReportHandler) deliver(messages []string) {
 		if err := h.sender.SendHTML(h.cfg.TelegramChatID, msg); err != nil {
 			h.logger.Error("Failed to send dependency report message", zap.Int("message", i+1), zap.Int("total", len(messages)), zap.Error(err))
 		}
+	}
+	if doc == nil {
+		return
+	}
+	if err := ctx.Err(); err != nil {
+		h.logger.Error("Dependency report document skipped: delivery timed out", zap.String("file", doc.name), zap.Error(err))
+		return
+	}
+	if err := h.sender.SendDocument(h.cfg.TelegramChatID, doc.name, doc.data); err != nil {
+		h.logger.Error("Failed to send dependency report document", zap.String("file", doc.name), zap.Error(err))
 	}
 }
 
@@ -148,18 +186,27 @@ type renovateReport struct {
 }
 
 type repoReport struct {
-	Problems     []struct{ Level int } `json:"problems"`
-	PackageFiles map[string][]struct {
-		Deps []reportDep `json:"deps"`
-	} `json:"packageFiles"`
+	Problems           []problem                `json:"problems"`
+	PackageFiles       map[string][]packageFile `json:"packageFiles"`
 	LibYearsWithStatus *struct {
 		LibYears         struct{ Total float64 } `json:"libYears"`
 		DependencyStatus struct{ Outdated, Total int }
 	} `json:"libYearsWithStatus"`
 }
 
+type problem struct {
+	Level int    `json:"level"`
+	Msg   string `json:"msg"`
+}
+
+type packageFile struct {
+	PackageFile string      `json:"packageFile"`
+	Deps        []reportDep `json:"deps"`
+}
+
 type reportDep struct {
 	DepName        *string `json:"depName"`
+	Datasource     *string `json:"datasource"`
 	CurrentVersion *string `json:"currentVersion"`
 	CurrentValue   *string `json:"currentValue"`
 	Updates        []struct {
