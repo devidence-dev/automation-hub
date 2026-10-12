@@ -368,16 +368,6 @@ func (c WebhookProcessorConfig) EffectiveMaxBodyBytes() int64 {
 	return c.MaxBodyBytes
 }
 
-// FindWebhook returns the config of the hook entry named name, or nil when no entry has that name.
-func FindWebhook(cfg *Config, name string) *WebhookProcessorConfig {
-	for i := range cfg.Hook {
-		if cfg.Hook[i].Name == name {
-			return &cfg.Hook[i].Config
-		}
-	}
-	return nil
-}
-
 // defaultConfigPaths are searched in order: container paths first, then the working directory.
 var defaultConfigPaths = []string{"/app", "./configs", "/app/configs", "."}
 
@@ -811,10 +801,13 @@ func validateReportSettings(r *DependencyReportConfig) error {
 	return nil
 }
 
-// validateEmail rejects a negative poll interval and checks each email service's extractor settings.
+// validateEmail rejects a negative poll interval or log preview length and checks each email service.
 func validateEmail(e EmailConfig) error {
 	if e.PollingInterval < 0 {
 		return fmt.Errorf("email.polling_interval must not be negative, got %d", e.PollingInterval)
+	}
+	if e.LogPreviewLength < 0 {
+		return fmt.Errorf("email.log_preview_length must not be negative, got %d", e.LogPreviewLength)
 	}
 	for _, service := range e.Services {
 		if err := validateService(service); err != nil {
@@ -824,9 +817,13 @@ func validateEmail(e EmailConfig) error {
 	return nil
 }
 
-// validateService checks the extractor of one email service. Each error names the service and the key.
+// validateService checks the sender and the extractor of one email service. Each error names the service and the key.
 func validateService(service ServiceConfig) error {
 	c := service.Config
+	// An empty email_from matches every sender, because strings.Contains(from, "") is true.
+	if c.EmailFrom == "" {
+		return fmt.Errorf("service %q: email_from is required", service.Name)
+	}
 	switch c.EffectiveExtractor() {
 	case ExtractorPattern:
 	case ExtractorMarker:

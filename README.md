@@ -395,10 +395,10 @@ Each service's behavior comes from its keys, not from its name. All keys are opt
 | `code_pattern` | `\b[a-zA-Z0-9]{4,8}\b` | The code pattern; with `marker` it is the fallback after the candidates, and absent means no fallback |
 | `strip_mime_headers` | `true` | Removes the header block before extraction; set `false` when the code is in the headers |
 | `not_found_text` | `Not found` | Sent in place of the code when none is found |
-| `log_preview_length` (under `email:`) | `200` | Characters of the searched text shown in not-found warnings |
+| `log_preview_length` (under `email:`) | `200` | Characters of the searched text shown in not-found warnings; zero or absent means `200`, a negative value stops startup |
 | `polling_interval` (under `email:`) | `60` | Seconds between mailbox polls |
 
-An invalid regex, an unknown `extractor`, or `marker` without `code_markers` stops startup, and the error names the service.
+`email_from` is the one required key: every service needs a non-empty value, because an empty one would match every sender. An empty or missing `email_from`, an invalid regex, an unknown `extractor`, or `marker` without `code_markers` stops startup, and the error names the service.
 
 ---
 

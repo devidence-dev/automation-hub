@@ -27,6 +27,7 @@ func TestPatternExtractor(t *testing.T) {
 		{name: "whole match without a group", pattern: `\b\d{6}\b`, text: "Code: 123456", wantCode: "123456", wantFound: true},
 		{name: "default pattern", pattern: "", text: "Use 4821 now", wantCode: "4821", wantFound: true},
 		{name: "no match", pattern: `\b\d{6}\b`, text: "no digits here", wantFound: false},
+		{name: "empty match is not found", pattern: `\d*`, text: "abc", wantFound: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -99,6 +100,57 @@ func TestMarkerExtractor_FallsBackToCodePattern(t *testing.T) {
 	code, found := extractor.Extract("Log in directly: abc")
 	if !found || code != "abc" {
 		t.Errorf("Extract() = (%q, %v), want (abc, true)", code, found)
+	}
+}
+
+// TestMarkerExtractor_FallbackReturnsWholeMatch checks that the code_pattern fallback keeps the whole match,
+// which the Perplexity extractor returned before, even when the pattern has a capture group.
+func TestMarkerExtractor_FallbackReturnsWholeMatch(t *testing.T) {
+	cfg := config.ServiceProcessorConfig{
+		Extractor:   config.ExtractorMarker,
+		CodeMarkers: []string{"directly:"},
+		CodePattern: `x([a-z]{3})`,
+	}
+	extractor := newTestExtractor(t, cfg, config.DefaultLogPreviewLength)
+	code, found := extractor.Extract("Log in directly: xabc")
+	if !found || code != "xabc" {
+		t.Errorf("Extract() = (%q, %v), want (xabc, true)", code, found)
+	}
+}
+
+// TestMarkerExtractor_EmptyMatchIsNotFound checks that an empty candidate or fallback match falls through.
+func TestMarkerExtractor_EmptyMatchIsNotFound(t *testing.T) {
+	tests := []struct {
+		name      string
+		cfg       config.ServiceProcessorConfig
+		wantCode  string
+		wantFound bool
+	}{
+		{
+			name:      "empty candidate falls through to the fallback",
+			cfg:       config.ServiceProcessorConfig{Extractor: config.ExtractorMarker, CodeMarkers: []string{"directly:"}, CodeCandidates: []string{""}, CodePattern: `[a-z]{3}`},
+			wantCode:  "abc",
+			wantFound: true,
+		},
+		{
+			name:      "empty candidate without a fallback is not found",
+			cfg:       config.ServiceProcessorConfig{Extractor: config.ExtractorMarker, CodeMarkers: []string{"directly:"}, CodeCandidates: []string{""}},
+			wantFound: false,
+		},
+		{
+			name:      "empty fallback match is not found",
+			cfg:       config.ServiceProcessorConfig{Extractor: config.ExtractorMarker, CodeMarkers: []string{"directly:"}, CodePattern: `\d*`},
+			wantFound: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			extractor := newTestExtractor(t, tt.cfg, config.DefaultLogPreviewLength)
+			code, found := extractor.Extract("Log in directly: abc")
+			if found != tt.wantFound || code != tt.wantCode {
+				t.Errorf("Extract() = (%q, %v), want (%q, %v)", code, found, tt.wantCode, tt.wantFound)
+			}
+		})
 	}
 }
 

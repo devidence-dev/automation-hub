@@ -23,6 +23,9 @@ type GenericEmailProcessor struct {
 	notFoundText string
 }
 
+// The poller finds mark-as-read with a runtime type assertion to models.ReadMarker.
+var _ models.ReadMarker = (*GenericEmailProcessor)(nil)
+
 // NewGenericEmailProcessor builds the processor of one service. logPreviewLength caps the text shown in
 // not-found warnings. It fails when the service's regexes do not compile.
 func NewGenericEmailProcessor(name string, serviceConfig config.ServiceProcessorConfig, logPreviewLength int, sender messageSender, logger *zap.Logger) (*GenericEmailProcessor, error) {

@@ -11,7 +11,7 @@ Code extraction is keyed by service name in code (`cloudflare`, `perplexity`, `d
 - The IMAP client is split into a `MailSource` transport (dial, search, fetch, parse, flag) and a poller. Dispatch goes only through the processor Manager.
 - `ShouldMarkAsRead` becomes a named optional interface in `models`.
 - Dead code is removed: `NewTorrentProcessorLegacy`, `markAsUnread`, `ProcessEmailsConcurrently`, `processEmailAsync`.
-- Hardcoded values move to config with defaults: polling interval (60 s), `not_found_text` ("Not found"), `log_preview_length` (200). The torrent lookup moves into `config`.
+- Hardcoded values move to config with defaults: polling interval (60 s), `not_found_text` ("Not found"), `log_preview_length` (200). The torrent hook is resolved once, at route registration (`bot-command-registry`).
 - Poll-cycle failures are logged. A nil IMAP envelope no longer panics.
 - The torrent webhook JSON body is capped by `max_body_bytes` (default 1 MiB).
 - **Config migration:** CONFIG_YAML must add the Cloudflare and Perplexity keys listed in the tasks before rollout.

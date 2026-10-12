@@ -133,8 +133,9 @@ email:
   username: "{{EMAIL_USERNAME}}"
   password: "{{EMAIL_PASSWORD}}"
   polling_interval: 20 # Polling interval in seconds
-  # log_preview_length: 200  # Optional: characters of the searched text shown in not-found warnings
+  # log_preview_length: 200  # Optional: characters of the searched text shown in not-found warnings; must not be negative
   services:
+    # Every service needs a non-empty email_from. An empty one would match every sender, so startup fails.
     - name: "cloudflare"
       config:
         email_from: "noreply@notify.cloudflare.com"

@@ -2,9 +2,12 @@ package processor
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 
 	"automation-hub/internal/config"
 	"automation-hub/internal/models"
@@ -146,6 +149,57 @@ func TestShouldProcess(t *testing.T) {
 				t.Errorf("ShouldProcess() = %v, expected %v", result, tt.expected)
 			}
 		})
+	}
+}
+
+func TestShouldMarkAsRead(t *testing.T) {
+	tests := []struct {
+		name       string
+		markAsRead *bool
+		want       bool
+	}{
+		{name: "unset means read", markAsRead: nil, want: true},
+		{name: "explicit true", markAsRead: boolPtr(true), want: true},
+		{name: "explicit false", markAsRead: boolPtr(false), want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := newTestProcessor(t, "service", config.ServiceProcessorConfig{MarkAsRead: tt.markAsRead})
+			if got := p.ShouldMarkAsRead(); got != tt.want {
+				t.Errorf("ShouldMarkAsRead() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestExtractedCodeIsNotLogged checks that the Info log of a found code has the code length, and no field
+// or message holds the code.
+func TestExtractedCodeIsNotLogged(t *testing.T) {
+	const code = "654321"
+	core, logs := observer.New(zap.InfoLevel)
+	p, err := NewGenericEmailProcessor("cloudflare", migratedCloudflare, config.DefaultLogPreviewLength, &fakeSender{}, zap.New(core))
+	if err != nil {
+		t.Fatalf("NewGenericEmailProcessor() error = %v", err)
+	}
+	if got := p.extractCode("Your code is " + code); got != code {
+		t.Fatalf("extractCode() = %q, want %q", got, code)
+	}
+
+	entries := logs.FilterMessage("Code extracted successfully").All()
+	if len(entries) != 1 {
+		t.Fatalf("got %d extraction logs, want 1", len(entries))
+	}
+	fields := entries[0].ContextMap()
+	if fields["code_length"] != int64(len(code)) || fields["service"] != "cloudflare" {
+		t.Errorf("fields = %v, want service cloudflare and code_length %d", fields, len(code))
+	}
+	for key, value := range fields {
+		if strings.Contains(fmt.Sprint(value), code) {
+			t.Errorf("field %s holds the code", key)
+		}
+	}
+	if strings.Contains(entries[0].Message, code) {
+		t.Errorf("message holds the code")
 	}
 }
 

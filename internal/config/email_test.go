@@ -67,31 +67,51 @@ func TestLoad_EmailDefaults(t *testing.T) {
 }
 
 func TestValidateEmailServices(t *testing.T) {
-	const header = "email:\n  services:\n"
+	const from = "        email_from: noreply@example.com\n"
 	tests := []struct {
 		name    string
+		setting string // email-level key, indented under email:
 		service string
 		wantErr string
 	}{
 		{
 			name:    "invalid pattern names the service",
-			service: "    - name: github\n      config:\n        code_pattern: \"[invalid regex (\"\n",
+			service: "    - name: github\n      config:\n" + from + "        code_pattern: \"[invalid regex (\"\n",
 			wantErr: `service "github"`,
 		},
 		{
 			name:    "unknown extractor names the value",
-			service: "    - name: perplexity\n      config:\n        extractor: regex\n",
+			service: "    - name: perplexity\n      config:\n" + from + "        extractor: regex\n",
 			wantErr: `"regex"`,
 		},
 		{
 			name:    "marker without markers names the service",
-			service: "    - name: perplexity\n      config:\n        extractor: marker\n",
+			service: "    - name: perplexity\n      config:\n" + from + "        extractor: marker\n",
 			wantErr: `service "perplexity"`,
 		},
 		{
 			name:    "invalid candidate names the service",
-			service: "    - name: perplexity\n      config:\n        extractor: marker\n        code_markers: [\"directly:\"]\n        code_candidates: [\"(\"]\n",
+			service: "    - name: perplexity\n      config:\n" + from + "        extractor: marker\n        code_markers: [\"directly:\"]\n        code_candidates: [\"(\"]\n",
 			wantErr: `service "perplexity"`,
+		},
+		{
+			name:    "missing email_from names the service",
+			service: "    - name: github\n      config:\n        telegram_chat_id: \"1\"\n",
+			wantErr: `service "github": email_from`,
+		},
+		{
+			name:    "empty email_from names the service",
+			service: "    - name: github\n      config:\n        email_from: \"\"\n",
+			wantErr: `service "github": email_from`,
+		},
+		{
+			name:    "negative log preview length names the key",
+			setting: "  log_preview_length: -1\n",
+			wantErr: "email.log_preview_length",
+		},
+		{
+			name:    "zero log preview length means the default",
+			setting: "  log_preview_length: 0\n",
 		},
 		{
 			name: "minimal service loads with defaults",
@@ -102,7 +122,7 @@ func TestValidateEmailServices(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := loadYAML(t, header+tt.service)
+			_, err := loadYAML(t, "email:\n"+tt.setting+"  services:\n"+tt.service)
 			if tt.wantErr == "" {
 				if err != nil {
 					t.Fatalf("Load() error = %v", err)
@@ -176,21 +196,62 @@ func TestLoad_MigratedEmailServices(t *testing.T) {
 	}
 }
 
-func TestFindWebhook(t *testing.T) {
-	cfg := &Config{
-		Hook: []WebhookConfig{
-			{Name: "qbittorrent", Path: "/webhook/qbittorrent", Config: WebhookProcessorConfig{TelegramChatID: "123", TelegramMessage: "Download finished: %s"}},
-			{Name: "sonarr", Path: "/webhook/sonarr", Config: WebhookProcessorConfig{TelegramChatID: "456", TelegramMessage: "Series imported: %s"}},
-		},
+// TestLoad_ExampleEmailServices checks that the shipped example resolves the task 6.1 keys, so the
+// example and the migration cannot drift apart unnoticed.
+func TestLoad_ExampleEmailServices(t *testing.T) {
+	cfg := loadExampleConfig(t)
+	byName := make(map[string]ServiceProcessorConfig, len(cfg.Email.Services))
+	for _, service := range cfg.Email.Services {
+		byName[service.Name] = service.Config
 	}
-	qbit := FindWebhook(cfg, "qbittorrent")
-	if qbit == nil {
-		t.Fatal("qbittorrent not found")
+
+	cloudflare, ok := byName["cloudflare"]
+	if !ok {
+		t.Fatal("example has no cloudflare service")
 	}
-	if qbit.TelegramChatID != "123" {
-		t.Errorf("TelegramChatID = %s, want 123", qbit.TelegramChatID)
+	if cloudflare.EffectiveStripMIMEHeaders() {
+		t.Error("cloudflare strips its MIME headers, want strip_mime_headers false")
 	}
-	if FindWebhook(cfg, "non_existent") != nil {
-		t.Error("non_existent found, want nil")
+	if got := cloudflare.EffectiveCodePattern(); got != `\b\d{6}\b` {
+		t.Errorf("cloudflare code pattern = %q, want %q", got, `\b\d{6}\b`)
+	}
+
+	perplexity, ok := byName["perplexity"]
+	if !ok {
+		t.Fatal("example has no perplexity service")
+	}
+	if got := perplexity.EffectiveExtractor(); got != ExtractorMarker {
+		t.Errorf("perplexity extractor = %q, want marker", got)
+	}
+	if want := []string{"directly:", "directamente:"}; !reflect.DeepEqual(perplexity.CodeMarkers, want) {
+		t.Errorf("perplexity markers = %q, want %q", perplexity.CodeMarkers, want)
+	}
+	wantCandidates := []string{`\b(\d{5,6})\b`, `\b([a-zA-Z0-9]+-[a-zA-Z0-9]+)\b`}
+	if !reflect.DeepEqual(perplexity.CodeCandidates, wantCandidates) {
+		t.Errorf("perplexity candidates = %q, want %q", perplexity.CodeCandidates, wantCandidates)
+	}
+	if want := `(?:\d{5,6}|[a-zA-Z0-9]+-[a-zA-Z0-9]+)`; perplexity.CodePattern != want {
+		t.Errorf("perplexity fallback pattern = %q, want %q", perplexity.CodePattern, want)
+	}
+}
+
+func TestShouldMarkAsRead(t *testing.T) {
+	yes, no := true, false
+	tests := []struct {
+		name string
+		mark *bool
+		want bool
+	}{
+		{"unset means read", nil, true},
+		{"explicit true", &yes, true},
+		{"explicit false", &no, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ServiceProcessorConfig{MarkAsRead: tt.mark}.ShouldMarkAsRead()
+			if got != tt.want {
+				t.Errorf("ShouldMarkAsRead() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

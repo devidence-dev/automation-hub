@@ -45,10 +45,6 @@ func logLoaded(logger *zap.Logger, service config.ServiceConfig) {
 	}
 }
 
-func (pm *Manager) GetProcessors() []models.EmailProcessor {
-	return pm.processors
-}
-
 // Senders returns the email_from of every service that sets one, in config order.
 func (pm *Manager) Senders() []string {
 	var senders []string

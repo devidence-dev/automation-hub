@@ -208,6 +208,24 @@ func assertScheduleError(t *testing.T, err error, wantErr []string) {
 	}
 }
 
+// loadExampleConfig loads configs/config.yaml.example with its placeholders filled, as TestLoadExampleConfig does.
+func loadExampleConfig(t *testing.T) *Config {
+	t.Helper()
+	example, err := os.ReadFile(filepath.Join("..", "..", "configs", "config.yaml.example"))
+	if err != nil {
+		t.Fatalf("read example config: %v", err)
+	}
+	filled := regexp.MustCompile(`\{\{[A-Z_]+\}\}`).ReplaceAll(example, []byte("123"))
+	filled = bytes.ReplaceAll(filled, []byte("${DEPENDENCY_REPORT_FORKS}"), []byte(`["devidence-dev/discord-tts-bot"]`))
+	filled = regexp.MustCompile(`\$\{[A-Z_]+\}`).ReplaceAll(filled, []byte("123"))
+
+	cfg, err := loadYAML(t, string(filled))
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	return cfg
+}
+
 // loadYAML writes content as config.yaml in a temp dir and loads it.
 func loadYAML(t *testing.T, content string) (*Config, error) {
 	t.Helper()
@@ -296,18 +314,7 @@ func assertJobsAndReportLoad(t *testing.T, content, wantErr string, wantJobs int
 // not valid YAML until replaced. The ${INFISICAL_REFERENCE} values are
 // substituted by Infisical in production: the forks one becomes a JSON array.
 func TestLoadExampleConfig(t *testing.T) {
-	example, err := os.ReadFile(filepath.Join("..", "..", "configs", "config.yaml.example"))
-	if err != nil {
-		t.Fatalf("read example config: %v", err)
-	}
-	filled := regexp.MustCompile(`\{\{[A-Z_]+\}\}`).ReplaceAll(example, []byte("123"))
-	filled = bytes.ReplaceAll(filled, []byte("${DEPENDENCY_REPORT_FORKS}"), []byte(`["devidence-dev/discord-tts-bot"]`))
-	filled = regexp.MustCompile(`\$\{[A-Z_]+\}`).ReplaceAll(filled, []byte("123"))
-
-	cfg, err := loadYAML(t, string(filled))
-	if err != nil {
-		t.Fatalf("Load() error = %v", err)
-	}
+	cfg := loadExampleConfig(t)
 	// run_check_updates was retired with icr (the example lists run_cleanup only).
 	if len(cfg.Workflows) != 1 || cfg.Workflows[0].Command != "run_cleanup" {
 		t.Errorf("workflows = %+v, want only run_cleanup", cfg.Workflows)

@@ -1,10 +1,9 @@
-# Spec Delta
+# email-code-forwarding Specification
 
 ## Purpose
-
 Forwards one-time codes from unread emails to Telegram. The hub polls an IMAP inbox, matches each unread email to a configured service by sender and subject, extracts the code with that service's configured strategy, and sends the service's message. Documents the current behavior and the per-service settings that replace the built-in, name-based defaults.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Polling interval
 The system SHALL poll the IMAP inbox every `email.polling_interval` seconds. When the key is absent or `0`, the interval MUST be 60 seconds. A negative value MUST fail config loading with an error that names `email.polling_interval`.
@@ -22,7 +21,7 @@ The system SHALL poll the IMAP inbox every `email.polling_interval` seconds. Whe
 - **THEN** config loading fails with an error that names `email.polling_interval`
 
 ### Requirement: Unread email search
-Each poll SHALL search the INBOX for unread emails whose From address contains each configured service's `email_from`, and process the union of the results. When no service is configured, the poll SHALL search all unread emails. A failed search for one sender MUST be logged with that sender, and the remaining senders MUST still be searched. A failed connection, login or INBOX select MUST be logged with the IMAP host and error, and the poll MUST end without processing anything. The next poll retries.
+Each poll SHALL search the INBOX for unread emails whose From address contains each configured service's `email_from`, and process the union of the results. When no service is configured, the poll SHALL search all unread emails. A failed search for one sender MUST be logged with that sender, and the remaining senders MUST still be searched. A failed connection, login or INBOX select MUST be logged with the IMAP host and error, and the poll MUST end without processing anything. The next poll retries. Every email service MUST have a non-empty `email_from`, because an empty value would match every sender; config loading MUST fail otherwise, with an error that names the service.
 
 #### Scenario: Two services, one unrelated email
 - **WHEN** service `cloudflare` has `email_from: "noreply@notify.cloudflare.com"`, service `openai` has `email_from: "noreply@tm.openai.com"`, and the inbox holds one unread email from each sender plus one unread email from `news@example.org`
@@ -35,6 +34,10 @@ Each poll SHALL search the INBOX for unread emails whose From address contains e
 #### Scenario: Login fails
 - **WHEN** the IMAP server rejects the login for `imap.gmail.com` at 09:00:00 America/Guayaquil
 - **THEN** an error naming host `imap.gmail.com` is logged, no email is processed, and the next poll at 09:00:20 retries
+
+#### Scenario: Service without email_from
+- **WHEN** service `github` has no `email_from` key, or an empty one
+- **THEN** config loading fails with an error that names service `github`
 
 ### Requirement: Processor dispatch
 Each fetched email SHALL be offered to the configured services in config order. The first service whose `email_from` is contained in the From address, and whose `email_subject` list contains a value contained in the Subject, handles the email. An email that no service handles MUST be left unread and MUST NOT be sent to Telegram.
@@ -113,7 +116,7 @@ A service with `extractor: marker` SHALL find the first entry of `code_markers`,
 - **THEN** config loading fails with an error that names the value `regex`
 
 ### Requirement: Not-found text
-When no code is found, the service SHALL send its `not_found_text` through its `telegram_message` instead of a code. `not_found_text` defaults to `Not found`. The processor MUST log a warning with a preview of at most `email.log_preview_length` characters (default 200) of the text it searched. A not-found result is a successful processing run, so the mark-as-read policy applies.
+When no code is found, the service SHALL send its `not_found_text` through its `telegram_message` instead of a code. `not_found_text` defaults to `Not found`. The processor MUST log a warning with a preview of at most `email.log_preview_length` characters (default 200) of the text it searched. A negative `email.log_preview_length` MUST fail config loading with an error that names `email.log_preview_length`; zero or absent means 200. A not-found result is a successful processing run, so the mark-as-read policy applies.
 
 #### Scenario: Configured not-found text
 - **WHEN** service `openai` has `not_found_text: "No code in email"`, its template is `🤖 ChatGPT Code: ` followed by a code block holding `%s`, and the text contains no code

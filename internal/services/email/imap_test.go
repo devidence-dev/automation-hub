@@ -3,6 +3,7 @@ package email
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -38,12 +39,25 @@ func (f *fakeSession) Search(criteria *imap.SearchCriteria) ([]uint32, error) {
 	return f.results[sender], nil
 }
 
-func (f *fakeSession) Fetch(_ *imap.SeqSet, _ []imap.FetchItem, ch chan *imap.Message) error {
+// Fetch sends the fetched messages whose sequence number was requested, as a server does.
+func (f *fakeSession) Fetch(seqset *imap.SeqSet, _ []imap.FetchItem, ch chan *imap.Message) error {
 	defer close(ch)
 	for _, msg := range f.fetched {
-		ch <- msg
+		if inSeqSet(seqset, msg.SeqNum) {
+			ch <- msg
+		}
 	}
 	return f.fetchErr
+}
+
+// inSeqSet reports whether num is in set.
+func inSeqSet(set *imap.SeqSet, num uint32) bool {
+	for _, seq := range set.Set {
+		if seq.Start <= num && num <= seq.Stop {
+			return true
+		}
+	}
+	return false
 }
 
 func (f *fakeSession) Store(*imap.SeqSet, imap.StoreItem, interface{}, chan *imap.Message) error {
@@ -72,8 +86,9 @@ func messageFrom(seqNum uint32, mailbox, host string) *imap.Message {
 	return &imap.Message{
 		SeqNum: seqNum,
 		Envelope: &imap.Envelope{
-			Subject: "Your login code",
-			From:    []*imap.Address{{MailboxName: mailbox, HostName: host}},
+			MessageId: fmt.Sprintf("<%d@test>", seqNum),
+			Subject:   "Your login code",
+			From:      []*imap.Address{{MailboxName: mailbox, HostName: host}},
 		},
 	}
 }
@@ -113,6 +128,44 @@ func TestUnreadOneSenderFails(t *testing.T) {
 	entries := logs.FilterMessage("Failed to search emails for sender").All()
 	if len(entries) != 1 || entries[0].ContextMap()["sender"] != openai {
 		t.Errorf("want one search error logged with sender %s, got %+v", openai, entries)
+	}
+}
+
+// TestUnreadTwoServicesOneUnrelated checks that two senders' searches offer each email once, when one ID
+// is returned by both searches. The unrelated email (ID 4) is not returned by either search.
+func TestUnreadTwoServicesOneUnrelated(t *testing.T) {
+	const cloudflare = "noreply@notify.cloudflare.com"
+	const openai = "noreply@tm.openai.com"
+	session := &fakeSession{
+		results: map[string][]uint32{cloudflare: {1, 2}, openai: {2, 3}},
+		fetched: []*imap.Message{
+			messageFrom(1, "noreply", "notify.cloudflare.com"),
+			messageFrom(2, "noreply", "notify.cloudflare.com"),
+			messageFrom(3, "noreply", "tm.openai.com"),
+			messageFrom(4, "news", "example.org"),
+		},
+	}
+	source := newFakeSource(session, zap.NewNop())
+
+	offered := make(map[string]int)
+	err := source.Unread([]string{cloudflare, openai}, func(email models.Email) bool {
+		offered[email.ID]++
+		return true
+	})
+	if err != nil {
+		t.Fatalf("Unread() error = %v", err)
+	}
+	want := []string{"<1@test>", "<2@test>", "<3@test>"}
+	if len(offered) != len(want) {
+		t.Errorf("offered %v, want exactly %v", offered, want)
+	}
+	for _, id := range want {
+		if offered[id] != 1 {
+			t.Errorf("email %s offered %d times, want 1", id, offered[id])
+		}
+	}
+	if session.stores != len(want) {
+		t.Errorf("stores = %d, want %d (handle returned true for each offered email)", session.stores, len(want))
 	}
 }
 

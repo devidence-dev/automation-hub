@@ -12,9 +12,9 @@
     "semantic_hash": ""
   },
   "internal/config/config.go": {
-    "mtime": 1791815596.6274228,
-    "seen": 1791815777.996215,
-    "ast_hash": "6a83bbcec902fdeb7b3b4429f0119dbd",
+    "mtime": 1791819907.3435109,
+    "seen": 1791820052.1156058,
+    "ast_hash": "d25e6ffff88a1e19e30dcaf604c93361",
     "semantic_hash": ""
   },
   "internal/handlers/webhook.go": {
@@ -42,15 +42,15 @@
     "semantic_hash": ""
   },
   "internal/services/processor/generic.go": {
-    "mtime": 1791815435.9658651,
-    "seen": 1791815777.9962566,
-    "ast_hash": "cb467fb9a7b5148636128a7c03958351",
+    "mtime": 1791819940.6293602,
+    "seen": 1791820052.1156454,
+    "ast_hash": "e344a5f59c9e49099d3531940c4cb606",
     "semantic_hash": ""
   },
   "internal/services/processor/manager.go": {
-    "mtime": 1791815437.049795,
-    "seen": 1791815777.9962578,
-    "ast_hash": "2469c05eec14c1d6d800877d8c19d628",
+    "mtime": 1791819941.729289,
+    "seen": 1791820052.1156468,
+    "ast_hash": "54b2ba6e36410ea34f1c83b0e39c9c9e",
     "semantic_hash": ""
   },
   "internal/services/processor/torrent.go": {
@@ -90,9 +90,9 @@
     "semantic_hash": "82efb97a359f5c7290bf2513d14686be"
   },
   "README.md": {
-    "mtime": 1791815773.7038977,
-    "seen": 1791815777.996268,
-    "ast_hash": "75d600548bc5e25626f91975a304d901",
+    "mtime": 1791820001.817405,
+    "seen": 1791820052.1156576,
+    "ast_hash": "0c62aea6503af52c48c6f648f4299841",
     "semantic_hash": ""
   },
   "docker-compose.yml": {
@@ -102,9 +102,9 @@
     "semantic_hash": "ba7f05cf54fca04f4ac97196a3fa2cd1"
   },
   "internal/config/config_test.go": {
-    "mtime": 1791778560.5271919,
-    "seen": 1791778918.96183,
-    "ast_hash": "7e268505833b93d3b78182d42ede4dc9",
+    "mtime": 1791819926.718259,
+    "seen": 1791820052.1156065,
+    "ast_hash": "4b0dd5a7bc7e470e4181d0d3b43fba9f",
     "semantic_hash": ""
   },
   "internal/handlers/webhook_test.go": {
@@ -114,21 +114,21 @@
     "semantic_hash": ""
   },
   "internal/services/email/imap_test.go": {
-    "mtime": 1791815590.3718295,
-    "seen": 1791815777.9962504,
-    "ast_hash": "e7bf1b7a280a0510d0ec9a9b756f99ed",
+    "mtime": 1791820006.1771233,
+    "seen": 1791820052.1156394,
+    "ast_hash": "9b5f780d3222ba6d7052fd2eb2e8a01e",
     "semantic_hash": ""
   },
   "internal/services/processor/generic_test.go": {
-    "mtime": 1791815527.3399282,
-    "seen": 1791815777.996257,
-    "ast_hash": "86ec5d9b31287eabe2ff62864b69328d",
+    "mtime": 1791819958.536203,
+    "seen": 1791820052.1156461,
+    "ast_hash": "e9d224023cd68897feb4db4cb2602b59",
     "semantic_hash": ""
   },
   "internal/services/processor/manager_test.go": {
-    "mtime": 1791815679.7020175,
-    "seen": 1791815777.9962583,
-    "ast_hash": "61dd7880fd4f4ff6e32949c9a682e6b9",
+    "mtime": 1791819949.1648085,
+    "seen": 1791820052.1156473,
+    "ast_hash": "0bba233035c85c946875735bf4ee4b5c",
     "semantic_hash": ""
   },
   "internal/services/processor/torrent_test.go": {
@@ -258,9 +258,9 @@
     "semantic_hash": ""
   },
   "cmd/automation-hub/main_test.go": {
-    "mtime": 1791781486.4806752,
-    "seen": 1791808810.8253012,
-    "ast_hash": "47440d92e64b0c2d3ed4376720ae293d",
+    "mtime": 1791815844.3512962,
+    "seen": 1791820052.1156032,
+    "ast_hash": "e9f111abcd80cb271eb3a6d4154f0ac0",
     "semantic_hash": ""
   },
   "openspec/changes/archive/2026-10-11-add-dependency-report-job/.openspec.yaml": {
@@ -534,33 +534,33 @@
     "semantic_hash": ""
   },
   "openspec/changes/email-processing-cleanup/design.md": {
-    "mtime": 1791815646.4761798,
-    "seen": 1791815777.9962983,
-    "ast_hash": "4549de51281414772dbdad5144e0cbf9",
+    "mtime": 1791819985.0304904,
+    "seen": 1791820052.1156893,
+    "ast_hash": "f2b8d3b47b5a8ae98474a2736098dcf3",
     "semantic_hash": ""
   },
   "openspec/changes/email-processing-cleanup/proposal.md": {
-    "mtime": 1791772298.1426513,
-    "seen": 1791775043.1371806,
-    "ast_hash": "41bfd93d4702de2627a0c3f5580d1bac",
+    "mtime": 1791819994.1818986,
+    "seen": 1791820052.1156898,
+    "ast_hash": "607e0e2aefeb223d66439bbbf4313ba7",
     "semantic_hash": ""
   },
   "openspec/changes/email-processing-cleanup/specs/email-code-forwarding/spec.md": {
-    "mtime": 1791772345.7075837,
-    "seen": 1791775043.1371813,
-    "ast_hash": "939b6a483bbd93aaee5822fa7d3c97da",
+    "mtime": 1791819997.2656994,
+    "seen": 1791820052.1156902,
+    "ast_hash": "1098b6a3ffada6601b70ca8e4ab9c38d",
     "semantic_hash": ""
   },
   "openspec/changes/email-processing-cleanup/specs/torrent-webhook-notification/spec.md": {
-    "mtime": 1791772350.615267,
-    "seen": 1791775043.1371818,
-    "ast_hash": "94e6f660c6d6584cc9cd7039efb7b13b",
+    "mtime": 1791815844.3472965,
+    "seen": 1791820052.1156907,
+    "ast_hash": "aea1189c0dca5542fac1ac3cc1870521",
     "semantic_hash": ""
   },
   "openspec/changes/email-processing-cleanup/tasks.md": {
-    "mtime": 1791815751.509343,
-    "seen": 1791815777.9963007,
-    "ast_hash": "76b0ffe91f1689bf80ba2b30c216f135",
+    "mtime": 1791819971.1673865,
+    "seen": 1791820052.1156912,
+    "ast_hash": "aca4f2aafb6c43d740a7e03a799fb338",
     "semantic_hash": ""
   },
   "openspec/config.yaml": {
@@ -756,9 +756,9 @@
     "semantic_hash": ""
   },
   "internal/config/email_test.go": {
-    "mtime": 1791815596.623423,
-    "seen": 1791815777.9962175,
-    "ast_hash": "77e6ea7f11711aae47c9e314c3a7bd3c",
+    "mtime": 1791819931.7739322,
+    "seen": 1791820052.1156075,
+    "ast_hash": "607149c8f9d55263c3d6c2a825f1035c",
     "semantic_hash": ""
   },
   "internal/services/email/poller.go": {
@@ -774,15 +774,15 @@
     "semantic_hash": ""
   },
   "internal/services/processor/extractor.go": {
-    "mtime": 1791815433.8220043,
-    "seen": 1791815777.9962552,
-    "ast_hash": "92bc16993b21e18bd04abedd2bacedae",
+    "mtime": 1791819937.6975496,
+    "seen": 1791820052.1156445,
+    "ast_hash": "8a1d0d83d3431658422eaefb6012a37f",
     "semantic_hash": ""
   },
   "internal/services/processor/extractor_test.go": {
-    "mtime": 1791815506.0453122,
-    "seen": 1791815777.9962556,
-    "ast_hash": "3349b3ac66dba102c0a54383baea4fd6",
+    "mtime": 1791819966.4036944,
+    "seen": 1791820052.115645,
+    "ast_hash": "6c7f2362a4a4b3cea10b25817c578015",
     "semantic_hash": ""
   },
   "internal/services/processor/notifier.go": {

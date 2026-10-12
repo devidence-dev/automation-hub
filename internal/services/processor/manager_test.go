@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 
 	"automation-hub/internal/config"
 	"automation-hub/internal/models"
@@ -40,7 +41,7 @@ func TestProcessorManager(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewProcessorManager() error = %v", err)
 	}
-	if got := len(mgr.GetProcessors()); got != 2 {
+	if got := len(mgr.processors); got != 2 {
 		t.Fatalf("Expected 2 processors, got %d", got)
 	}
 
@@ -63,6 +64,37 @@ func TestProcessorManager(t *testing.T) {
 	}
 	if len(sender.messages) != 1 {
 		t.Errorf("unrelated email sent a message: %q", sender.messages)
+	}
+}
+
+// TestManagerDispatch_LogsSubjectWhenSendFails checks that a failed send is logged with the email subject.
+func TestManagerDispatch_LogsSubjectWhenSendFails(t *testing.T) {
+	boom := errors.New("telegram unavailable")
+	core, logs := observer.New(zap.ErrorLevel)
+	emailCfg := config.EmailConfig{
+		Services: []config.ServiceConfig{{Name: "cloudflare", Config: migratedCloudflare}},
+	}
+	mgr, err := NewProcessorManager(emailCfg, &fakeSender{err: boom}, zap.New(core))
+	if err != nil {
+		t.Fatalf("NewProcessorManager() error = %v", err)
+	}
+
+	const subject = "Your Verification Code for devidence.dev"
+	processor, err := mgr.Dispatch(models.Email{
+		From:      "noreply@notify.cloudflare.com",
+		Subject:   subject,
+		TextPlain: "Use this code directly: 123456",
+	})
+	if !errors.Is(err, boom) || processor == nil {
+		t.Fatalf("Dispatch() = (%v, %v), want the processor and the send error", processor, err)
+	}
+
+	entries := logs.FilterMessage("Failed to process email").All()
+	if len(entries) != 1 {
+		t.Fatalf("got %d failure logs, want 1", len(entries))
+	}
+	if got := entries[0].ContextMap()["subject"]; got != subject {
+		t.Errorf("logged subject = %v, want %q", got, subject)
 	}
 }
 

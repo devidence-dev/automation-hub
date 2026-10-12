@@ -75,19 +75,20 @@ The hook is read once at registration (`bot-command-registry` D9), so the handle
 
 ## Coordination with sibling changes
 
-- `processor.NewTorrentProcessor` and `processor.GetWebhookConfig` belong to this change (decided 2026-10-11). `bot-command-registry` no longer touches them; it lands first and passes `*telegram.Client` to the handler, which satisfies `messageSender`.
+- `processor.NewTorrentProcessor` belongs to this change, and this change removes `processor.GetWebhookConfig` (decided 2026-10-11). `bot-command-registry` no longer touches them; it lands first and passes `*telegram.Client` to the handler, which satisfies `messageSender`.
 - `bot-command-registry` design item 9 moves the hook lookup to route registration and passes the hook config to the handler. The cap in D9 reads the same config either way, so whichever change lands second adapts the lookup only.
-- `GetWebhookConfig` moves to `config.FindWebhook` in task 1.4 here; `bot-command-registry` leaves it in place.
+- The hook lookup has no `config` replacement: it happens at route registration, as task 1.4 records.
 - `main.go` edits are on different lines from `http-clients-hardening` (server timeouts, client construction) and `refactor-dependency-report` (`registerRoutes`, sender interface). Whichever lands later rebases the wiring.
 - `http-clients-hardening` changes outbound limits and server timeouts. Its `httpx` request caps are not used by the processors or the torrent handler here.
 
 ## Risks / Trade-offs
 
-- **Unmigrated CONFIG_YAML changes Cloudflare extraction.** Without `strip_mime_headers: false` and `code_pattern`, Cloudflare would use the generic pattern on headers. → Mitigation: the migration YAML in task 6.1 is applied before deploy. It is backward compatible, because the current binary ignores unknown keys (mapstructure default), so applying it first is safe. A startup warning fires when a service uses the generic default pattern, and the "Loaded email processor" log gains `extractor` and effective pattern fields.
+- **Unmigrated CONFIG_YAML changes Cloudflare extraction.** Without `strip_mime_headers: false` and `code_pattern`, Cloudflare would use the generic pattern on headers. → Mitigation: the migration YAML in task 6.1 is applied before deploy. It is backward compatible, because the current binary ignores unknown keys (mapstructure default), so applying it first is safe. The "Loaded email processor" log carries `extractor`, and a startup warning fires when a pattern service uses the generic default pattern.
 - **Invalid regexes now stop startup** (previously a warning and a fallback). → Mitigation: stated in the proposal, tested in task 1.3. It is a deliberate tightening.
 - **Negative `polling_interval` is rejected** (today `time.NewTicker` panics). → Mitigation: explicit error at load.
 - **Logs change:** the Perplexity search-text preview drops from 300 to the configured 200 characters. Logs only, no behavior change.
-- **No request-time hook lookup.** A hook absent from `hook:` mounts no route, so a POST to its path gets the mux's 404 and not the spec's 500 `Webhook configuration not found`. Producing that 500 would need a per-request lookup, which D9 rules out. → Open question below.
+- **Extracted codes are not logged.** Only the code's length is logged, because one-time codes must not persist in log sinks.
+- **No request-time hook lookup.** A hook absent from `hook:` mounts no route, so a POST to its path gets the mux's 404. Producing a 500 instead would need a per-request lookup, which D9 rules out. → Resolved below.
 - **Shared wiring in `cmd/automation-hub/main.go`.** Sibling changes also edit it. → Keep the edit to the constructor and poller lines, and rebase carefully.
 - **Test churn.** Tests keyed on the removed name defaults (`BuiltInPatterns`, the Cloudflare and Perplexity cases in `TestExtractCode` and `TestExtractPerplexityCode`) get explicit config with the same expectations. `TestExtractCode_IgnoresHexColor` keeps its body and assertion.
 
@@ -98,8 +99,8 @@ The hook is read once at registration (`bot-command-registry` D9), so the handle
 3. Deploy the new image. Check the startup log: `extractor=pattern`/`marker` per service, and no "generic default pattern" warning for cloudflare or perplexity.
 4. Rollback: redeploy the previous image. The migrated keys are harmless to it.
 
-## Open Questions
+## Resolved Questions
 
-- Hook configuration lookup (`specs/torrent-webhook-notification`): the spec requires `500 Webhook configuration not found` for a missing `qbittorrent` hook. With the hook fixed at registration, that case is a missing route (404). Decide: amend the spec to the 404, or accept a per-request lookup against D9.
+- Missing hook status (`specs/torrent-webhook-notification`, "Hook configuration lookup"): **404.** `bot-command-registry` moved the hook lookup to route registration, so a missing `qbittorrent` hook has no route and the mux answers 404. No per-request lookup is added against D9. The spec already states 404.
 
 Possible later work (not in this change): `IDLE` instead of polling, and per-service body caps for other webhooks.

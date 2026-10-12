@@ -100,7 +100,9 @@ func (e *markerExtractor) find(text string) (string, bool) {
 	if e.fallback == nil {
 		return "", false
 	}
-	return matchCode(e.fallback, after)
+	// The fallback takes the whole match, as the Perplexity extractor did before this change.
+	code := e.fallback.FindString(after)
+	return code, code != ""
 }
 
 // textAfterMarker returns the text after the first marker, in marker order, that occurs in text.
@@ -115,21 +117,24 @@ func textAfterMarker(text string, markers []*regexp.Regexp) (string, bool) {
 
 // matchCode returns the first match of pattern. Capture group 1 is the code when it matched a non-empty
 // value, so a pattern can anchor on a character it must not return, such as "[^#]\b(\d{6})\b".
+// An empty code is not found.
 func matchCode(pattern *regexp.Regexp, text string) (string, bool) {
 	matches := pattern.FindStringSubmatch(text)
 	if len(matches) == 0 {
 		return "", false
 	}
+	code := matches[0]
 	if len(matches) > 1 && matches[1] != "" {
-		return matches[1], true
+		code = matches[1]
 	}
-	return matches[0], true
+	return code, code != ""
 }
 
-// reportResult logs the outcome of an extraction. A miss logs at most previewLength characters of the text.
+// reportResult logs the outcome of an extraction. The code itself is never logged; a miss logs at most
+// previewLength characters of the text.
 func reportResult(logger *zap.Logger, code string, found bool, text string, previewLength int) {
 	if found {
-		logger.Info("Code extracted successfully", zap.String("code", code))
+		logger.Info("Code extracted successfully", zap.Int("code_length", len(code)))
 		return
 	}
 	logger.Warn("Code not found in email", zap.String("text_preview", truncateString(text, previewLength)))
