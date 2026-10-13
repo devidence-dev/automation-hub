@@ -15,9 +15,9 @@ type sender interface {
 	Send(c tgbotapi.Chattable) (tgbotapi.Message, error)
 }
 
-// Backoff decides whether a failed attempt is retried and how long to wait before the next one.
+// Delayer decides whether a failed attempt is retried and how long to wait before the next one.
 // attempt is the 1-based number of the attempt that failed.
-type Backoff interface {
+type Delayer interface {
 	Delay(attempt int, err error) (time.Duration, bool)
 }
 
@@ -69,14 +69,14 @@ func retryable(err error) bool {
 // waits chosen by backoff. Waits go through sleep, so tests can record them instead of sleeping.
 type RetryingSender struct {
 	next        sender
-	backoff     Backoff
+	backoff     Delayer
 	maxAttempts int
 	sleep       func(time.Duration)
 	logger      *zap.Logger
 }
 
 // NewRetryingSender wraps next with the retry policy described on RetryingSender.
-func NewRetryingSender(next sender, backoff Backoff, maxAttempts int, sleep func(time.Duration), logger *zap.Logger) RetryingSender {
+func NewRetryingSender(next sender, backoff Delayer, maxAttempts int, sleep func(time.Duration), logger *zap.Logger) RetryingSender {
 	return RetryingSender{next: next, backoff: backoff, maxAttempts: maxAttempts, sleep: sleep, logger: logger}
 }
 

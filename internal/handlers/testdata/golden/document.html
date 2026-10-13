@@ -61,7 +61,7 @@
 		if (choice === "light" || choice === "dark") {
 			root.dataset.theme = choice;
 		} else {
-			root.removeAttribute("data-theme");
+			delete root.dataset.theme;
 		}
 		const shown = choice === "light" || choice === "dark" ? choice : "system";
 		for (const button of themeButtons) {
@@ -180,11 +180,11 @@
 		ta.select();
 		ta.setSelectionRange(0, text.length);
 		try {
-			document.execCommand("copy");
+			document.execCommand("copy"); // NOSONAR iOS WebKit fallback: no non-deprecated copy path exists for it.
 		} catch {
 			// Without a copy command the button still shows the check icon.
 		}
-		document.body.removeChild(ta);
+		ta.remove();
 	};
 
 	const announce = (text) => {
@@ -206,7 +206,7 @@
 		timers.set(
 			btn,
 			setTimeout(() => {
-				btn.removeAttribute("data-state");
+				delete btn.dataset.state;
 				// Clear the announcement only when it is still this button's text.
 				const status = document.getElementById(STATUS_ID);
 				if (status && status.textContent === text) {
@@ -223,7 +223,7 @@
 		if (!btn) {
 			return;
 		}
-		const text = btn.getAttribute("data-copy");
+		const text = btn.dataset.copy;
 		if (navigator.clipboard?.writeText) {
 			navigator.clipboard.writeText(text).then(
 				() => flash(btn),
@@ -252,7 +252,8 @@
 	placePills();
 	addEventListener("resize", placePills);
 	if (document.fonts) {
-		document.fonts.ready.then(placePills);
+		// The pills are placed above already; a rejected font load keeps that placement, so the error is ignored.
+		document.fonts.ready.then(placePills, () => {});
 	}
 })();
 </script></body></html>

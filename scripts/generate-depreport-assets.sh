@@ -40,9 +40,10 @@ verify_sha256() {
 # fetch URL SUMS_URL NAME OUT downloads an asset and its checksum file, and keeps the asset at OUT
 # only after it verifies against NAME.
 fetch() {
-	curl -fsSL -o "$4" "$1"
-	curl -fsSL -o "$4.sums" "$2"
-	verify_sha256 "$4" "$4.sums" "$3"
+	local url="$1" sums_url="$2" name="$3" out="$4"
+	curl -fsSL -o "$out" "$url"
+	curl -fsSL -o "$out.sums" "$sums_url"
+	verify_sha256 "$out" "$out.sums" "$name"
 }
 
 # arch sets the release names of the container architecture.

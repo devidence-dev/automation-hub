@@ -9,9 +9,9 @@ import (
 	"automation-hub/internal/models"
 )
 
-// MailSource is the transport: it offers each unread email from the senders to handle, and sets the
+// UnreadReader is the transport: it offers each unread email from the senders to handle, and sets the
 // \Seen flag of the emails for which handle returns true.
-type MailSource interface {
+type UnreadReader interface {
 	Unread(senders []string, handle func(models.Email) bool) error
 }
 
@@ -23,13 +23,13 @@ type Dispatcher interface {
 
 // Poller runs one poll per interval and decides, for each email, whether it is marked as read.
 type Poller struct {
-	source     MailSource
+	source     UnreadReader
 	dispatcher Dispatcher
 	interval   time.Duration
 	logger     *zap.Logger
 }
 
-func NewPoller(source MailSource, dispatcher Dispatcher, interval time.Duration, logger *zap.Logger) *Poller {
+func NewPoller(source UnreadReader, dispatcher Dispatcher, interval time.Duration, logger *zap.Logger) *Poller {
 	return &Poller{
 		source:     source,
 		dispatcher: dispatcher,

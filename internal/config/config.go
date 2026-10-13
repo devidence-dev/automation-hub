@@ -17,6 +17,18 @@ import (
 
 var telegramCommandPattern = regexp.MustCompile(`^[a-z0-9_]{1,32}$`)
 
+// Config keys that more than one place uses: the defaults, the validation and the duration table.
+const (
+	keyServerReadTimeout             = "server.read_timeout"
+	keyServerWriteTimeout            = "server.write_timeout"
+	keyServerShutdownTimeout         = "server.shutdown_timeout"
+	keyTelegramPollTimeout           = "telegram.http.poll_timeout"
+	keyTelegramResponseHeaderTimeout = "telegram.http.response_header_timeout"
+	keyTelegramExpectContinueTimeout = "telegram.http.expect_continue_timeout"
+	keyTelegramRetryBackoff          = "telegram.http.retry_backoff"
+	keyTelegramMaxRetryAfter         = "telegram.http.max_retry_after"
+)
+
 // Defaults for the values the config may leave out. They keep today's behavior.
 const (
 	defaultTimezone     = "America/Guayaquil"
@@ -442,9 +454,9 @@ func loadFrom(configPaths []string) (*Config, error) {
 // The Telegram request and header timeouts are not registered: they derive from poll_timeout, and
 // applyTelegramHTTPDefaults fills them.
 func setHTTPDefaults() {
-	viper.SetDefault("server.read_timeout", defaultServerReadTimeout)
-	viper.SetDefault("server.write_timeout", defaultServerWriteTimeout)
-	viper.SetDefault("server.shutdown_timeout", defaultServerShutdownTimeout)
+	viper.SetDefault(keyServerReadTimeout, defaultServerReadTimeout)
+	viper.SetDefault(keyServerWriteTimeout, defaultServerWriteTimeout)
+	viper.SetDefault(keyServerShutdownTimeout, defaultServerShutdownTimeout)
 	viper.SetDefault("github.api_url", defaultGitHubAPIURL)
 	viper.SetDefault("github.http.timeout", defaultGitHubTimeout)
 	viper.SetDefault("github.http.dial_timeout", defaultGitHubDialTimeout)
@@ -453,11 +465,11 @@ func setHTTPDefaults() {
 	viper.SetDefault("kubernetes.http.dial_timeout", defaultDialTimeout)
 	viper.SetDefault("kubernetes.http.max_response_bytes", httpx.DefaultMaxResponseBytes)
 	viper.SetDefault("telegram.http.dial_timeout", defaultDialTimeout)
-	viper.SetDefault("telegram.http.poll_timeout", defaultTelegramPollTimeout)
-	viper.SetDefault("telegram.http.expect_continue_timeout", defaultExpectContinueTimeout)
+	viper.SetDefault(keyTelegramPollTimeout, defaultTelegramPollTimeout)
+	viper.SetDefault(keyTelegramExpectContinueTimeout, defaultExpectContinueTimeout)
 	viper.SetDefault("telegram.http.max_attempts", defaultMaxAttempts)
-	viper.SetDefault("telegram.http.retry_backoff", defaultRetryBackoff)
-	viper.SetDefault("telegram.http.max_retry_after", defaultMaxRetryAfter)
+	viper.SetDefault(keyTelegramRetryBackoff, defaultRetryBackoff)
+	viper.SetDefault(keyTelegramMaxRetryAfter, defaultMaxRetryAfter)
 	for _, section := range []string{"telegram.http", "github.http", "kubernetes.http"} {
 		viper.SetDefault(section+".tls_handshake_timeout", defaultTLSHandshakeTimeout)
 		viper.SetDefault(section+".keep_alive", defaultKeepAlive)
@@ -469,11 +481,11 @@ func setHTTPDefaults() {
 // durationKeys are the keys of every time.Duration value. A bare YAML integer decodes to nanoseconds
 // without an error, so each of these must be a quoted string with a unit.
 var durationKeys = []string{
-	"server.read_timeout", "server.write_timeout", "server.shutdown_timeout",
+	keyServerReadTimeout, keyServerWriteTimeout, keyServerShutdownTimeout,
 	"telegram.http.timeout", "telegram.http.dial_timeout", "telegram.http.tls_handshake_timeout",
-	"telegram.http.keep_alive", "telegram.http.idle_conn_timeout", "telegram.http.poll_timeout",
-	"telegram.http.response_header_timeout", "telegram.http.expect_continue_timeout",
-	"telegram.http.retry_backoff", "telegram.http.max_retry_after",
+	"telegram.http.keep_alive", "telegram.http.idle_conn_timeout", keyTelegramPollTimeout,
+	keyTelegramResponseHeaderTimeout, keyTelegramExpectContinueTimeout,
+	keyTelegramRetryBackoff, keyTelegramMaxRetryAfter,
 	"github.http.timeout", "github.http.dial_timeout", "github.http.tls_handshake_timeout",
 	"github.http.keep_alive", "github.http.idle_conn_timeout",
 	"kubernetes.http.timeout", "kubernetes.http.dial_timeout", "kubernetes.http.tls_handshake_timeout",
@@ -532,9 +544,9 @@ func validateHTTPSettings(cfg *Config) error {
 
 func validateServerTimeouts(s ServerConfig) error {
 	return requirePositive(
-		namedDuration{"server.read_timeout", s.ReadTimeout},
-		namedDuration{"server.write_timeout", s.WriteTimeout},
-		namedDuration{"server.shutdown_timeout", s.ShutdownTimeout},
+		namedDuration{keyServerReadTimeout, s.ReadTimeout},
+		namedDuration{keyServerWriteTimeout, s.WriteTimeout},
+		namedDuration{keyServerShutdownTimeout, s.ShutdownTimeout},
 	)
 }
 
@@ -582,11 +594,11 @@ func validateTelegramHTTP(h TelegramHTTPConfig) error {
 		return err
 	}
 	if err := requirePositive(
-		namedDuration{"telegram.http.poll_timeout", h.PollTimeout},
-		namedDuration{"telegram.http.response_header_timeout", h.ResponseHeaderTimeout},
-		namedDuration{"telegram.http.expect_continue_timeout", h.ExpectContinueTimeout},
-		namedDuration{"telegram.http.retry_backoff", h.RetryBackoff},
-		namedDuration{"telegram.http.max_retry_after", h.MaxRetryAfter},
+		namedDuration{keyTelegramPollTimeout, h.PollTimeout},
+		namedDuration{keyTelegramResponseHeaderTimeout, h.ResponseHeaderTimeout},
+		namedDuration{keyTelegramExpectContinueTimeout, h.ExpectContinueTimeout},
+		namedDuration{keyTelegramRetryBackoff, h.RetryBackoff},
+		namedDuration{keyTelegramMaxRetryAfter, h.MaxRetryAfter},
 	); err != nil {
 		return err
 	}
@@ -594,7 +606,7 @@ func validateTelegramHTTP(h TelegramHTTPConfig) error {
 		return fmt.Errorf("telegram.http.timeout %s must be greater than poll_timeout %s", h.Timeout, h.PollTimeout)
 	}
 	if h.ResponseHeaderTimeout <= h.PollTimeout {
-		return fmt.Errorf("telegram.http.response_header_timeout %s must be greater than poll_timeout %s", h.ResponseHeaderTimeout, h.PollTimeout)
+		return fmt.Errorf(keyTelegramResponseHeaderTimeout+" %s must be greater than poll_timeout %s", h.ResponseHeaderTimeout, h.PollTimeout)
 	}
 	if h.MaxAttempts < 1 {
 		return fmt.Errorf("telegram.http.max_attempts must be at least 1, got %d", h.MaxAttempts)
@@ -667,7 +679,7 @@ func applyTelegramHTTPDefaults(h *TelegramHTTPConfig) {
 	if !viper.IsSet("telegram.http.timeout") {
 		h.Timeout = h.PollTimeout + defaultTelegramTimeoutMargin
 	}
-	if !viper.IsSet("telegram.http.response_header_timeout") {
+	if !viper.IsSet(keyTelegramResponseHeaderTimeout) {
 		h.ResponseHeaderTimeout = h.PollTimeout + defaultTelegramHeaderMargin
 	}
 }

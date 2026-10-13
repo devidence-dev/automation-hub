@@ -114,8 +114,8 @@ func setupWorkflowBot(cfg *config.Config, loc *time.Location, logger *zap.Logger
 	return workflowBotClient, botHandler, sched
 }
 
-// commandMenu publishes the command menu to Telegram.
-type commandMenu interface {
+// menuPublisher publishes the command menu to Telegram.
+type menuPublisher interface {
 	SetMyCommands(commands []tgbotapi.BotCommand) error
 }
 
@@ -126,7 +126,7 @@ type scheduleAdder interface {
 
 // registerCommands makes one pass over specs: each command goes into the Telegram menu, and each
 // scheduled one is registered through adder. The menu is published last, in config order.
-func registerCommands(menu commandMenu, adder scheduleAdder, runner *handlers.ScheduledRunner, specs []handlers.CommandSpec) error {
+func registerCommands(menu menuPublisher, adder scheduleAdder, runner *handlers.ScheduledRunner, specs []handlers.CommandSpec) error {
 	commands := make([]tgbotapi.BotCommand, 0, len(specs))
 	for _, spec := range specs {
 		commands = append(commands, tgbotapi.BotCommand{Command: spec.Name(), Description: spec.Description()})

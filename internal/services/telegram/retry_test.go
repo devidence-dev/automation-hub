@@ -42,7 +42,7 @@ func rateLimited(retryAfter int) error {
 
 // retryTest runs a RetryingSender over src and returns the sender's call count, the recorded
 // waits and the error of Send.
-func retryTest(src *scriptedSender, maxAttempts int, backoff Backoff) (int, []time.Duration, error) {
+func retryTest(src *scriptedSender, maxAttempts int, backoff Delayer) (int, []time.Duration, error) {
 	rec := &sleepRecorder{}
 	r := NewRetryingSender(src, backoff, maxAttempts, rec.sleep, zap.NewNop())
 	_, err := r.Send(tgbotapi.NewMessage(1, "x"))

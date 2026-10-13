@@ -77,7 +77,7 @@ func TestUnusedKeyOverrideValidates(t *testing.T) {
 	}
 	// The table headers of the current document still render the column texts; the component
 	// document does not. Only the startup validation is checked here.
-	if out := presentDocument(t, overrides, summaryAt(loadFixtureReport(t))); out == "" {
+	if presentDocument(t, overrides, summaryAt(loadFixtureReport(t))) == "" {
 		t.Error("document is empty after an unused key override")
 	}
 }
