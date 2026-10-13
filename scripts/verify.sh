@@ -1,8 +1,9 @@
 #!/bin/sh
 # Local gate of this repo (openspec design D15), modelled on voraz-bot's scripts/validate.sh. It runs
-# the checks of the shared CI (devidence-dev/workflows ci-go.yml) plus Biome and OpenSpec, all in
-# Docker: gofmt, golangci-lint, go test -race with the coverage minimum, gocognit, the drift of the
-# generated assets, biome ci and openspec validate. Caches live in ~/.cache, shared by every project.
+# the checks of the shared CI (devidence-dev/workflows ci-go.yml) plus Biome and OpenSpec. In Docker:
+# gofmt, golangci-lint, go test -race with the coverage minimum, gocognit, the drift of the generated
+# assets and biome ci. openspec validate runs through the host's openspec wrapper, the one place its
+# version is pinned. Caches live in ~/.cache, shared by every project.
 #
 # Usage: scripts/verify.sh [--fix]
 #   --fix  runs gofmt -w, biome check --write and the asset generation first, then the checks.
@@ -17,8 +18,6 @@ LINTERS="errcheck,govet,staticcheck,unused,misspell,gosec"
 GOCOGNIT_PKG="github.com/uudashr/gocognit/cmd/gocognit@v1.2.0"
 COGNITIVE_MAX=15
 COGNITIVE_IGNORE='_templ\.go$'
-NODE_IMAGE="node:24.21.0-slim"
-OPENSPEC_PKG="@fission-ai/openspec@1.14.1"
 MIN_COVERAGE="${MIN_COVERAGE:-80}"
 # Biome 2.5.15 standalone binaries, pinned by SHA-256 (openspec design D16). The release publishes no
 # checksum file; these hashes equal the GitHub asset digests. A download that does not match stops the gate.
@@ -166,11 +165,15 @@ check_biome() {
 	echo "ok: biome ci passes"
 }
 
-# check_openspec validates every change and spec, in a pinned Node image.
+# check_openspec validates every change and spec with the host's openspec command. Its version is
+# pinned in one place only: the ~/.local/bin/openspec wrapper (OPENSPEC_VERSION).
 check_openspec() {
-	echo "==> openspec validate ($OPENSPEC_PKG, $NODE_IMAGE)"
-	docker run --rm --user "$USER_ID" -e HOME=/tmp -v "$HOME/.cache/npm":/tmp/.npm \
-		-v "$PWD":/app -w /app "$NODE_IMAGE" npx --yes "$OPENSPEC_PKG" validate --all --strict
+	if ! command -v openspec >/dev/null 2>&1; then
+		echo "FAIL: openspec is not on PATH (expected the ~/.local/bin/openspec wrapper)"
+		exit 1
+	fi
+	echo "==> openspec validate ($(openspec --version), host wrapper)"
+	openspec validate --all --strict
 	echo "ok: openspec validate passes"
 }
 

@@ -240,3 +240,5 @@ graphify-out/.graphify_python11
 .claude/
 
 env.yml
+# Local runtime config with real values: never commit it (use configs/config.yaml.example)
+/configs/config.yaml

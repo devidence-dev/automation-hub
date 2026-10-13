@@ -1,7 +1,7 @@
 # 🤖 Automation Hub
 
-![Go Version](https://img.shields.io/badge/Go-1.24.5-00ADD8?logo=go)
-![Docker](https://img.shields.io/badge/Docker-20.10+-2496ED?logo=docker&logoColor=white)
+![Go Version](https://img.shields.io/badge/Go-1.27.2-00ADD8?logo=go)
+![Docker](https://img.shields.io/badge/Docker-Required-2496ED?logo=docker&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-ARM64%20%7C%20AMD64-green)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=devidence-dev_automation-hub&metric=alert_status&token=<SONARCLOUD_BADGE_TOKEN>)](https://sonarcloud.io/summary/new_code?id=devidence-dev_automation-hub)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=devidence-dev_automation-hub&metric=reliability_rating&token=<SONARCLOUD_BADGE_TOKEN>)](https://sonarcloud.io/summary/new_code?id=devidence-dev_automation-hub)
@@ -14,12 +14,13 @@
 
 This project implements comprehensive **security and code quality** measures:
 
-- 🔍 **Static Code Analysis** - golangci-lint, gosec, CodeQL
-- 🕵️ **Secret Detection** - TruffleHog, GitLeaks, Semgrep
-- 🔒 **Vulnerability Scanning** - govulncheck, Nancy, Trivy
-- 🤖 **Automated Dependency Updates** - Dependabot
-- 📊 **Code Coverage** - Codecov integration
-- 🚀 **CI/CD Pipeline** - Automated testing and security checks
+- 🔍 **Static Code Analysis** - golangci-lint (errcheck, govet, staticcheck, unused, misspell, gosec) in CI; gocognit in the local gate
+- 🔒 **Vulnerability Scanning** - govulncheck in CI
+- 📊 **SonarCloud** - coverage from `go test`, with a blocking Quality Gate
+- 🧬 **Generated Assets Check** - CI regenerates the templ and Tailwind assets and fails on any drift
+- 🤖 **Automated Dependency Updates** - Dependabot for Go modules, the Docker base image and GitHub Actions
+- 🚀 **CI/CD Pipeline** - `ci.yml` (shared Go CI) and `deploy.yml` (build, push and deploy to k3s)
+- ✅ **Local gate** - `scripts/verify.sh` runs the same checks in Docker before you push
 
 ## ✨ Features
 
@@ -29,7 +30,7 @@ This project implements comprehensive **security and code quality** measures:
 - 🔗 **Configurable webhook support** - Handles qBittorrent and other webhook integrations with custom messages
 - ▶️ **GitHub Actions commands** - Authorized Telegram chats can dispatch configured workflows
 - 🏗️ **Modular architecture** - Clean, extensible, and maintainable codebase
-- 🚀 **Docker ready** - Optimized for Raspberry Pi 5 and cloud deployment
+- 🚀 **Container ready** - Alpine-based image that runs as uid 1000, deployed to k3s
 
 ## 🎯 Quick Start
 
@@ -37,11 +38,10 @@ This project implements comprehensive **security and code quality** measures:
 
 | Component | Version | Notes |
 |-----------|---------|--------|
-| **Go** | 1.24.5+ | For local development |
-| **Docker** | 20.10+ | Required for deployment |
-| **Docker Compose** | 2.0+ | Orchestration |
+| **Go** | 1.27.2 (`.go-version`) | For local development and tests |
+| **Docker** | Current release | Runs the local gate and the asset generator, and builds the image |
 
-**Supported Platforms:** ARM64 (Raspberry Pi 5), AMD64
+**Build targets:** ARM64 (CI builds the `arm64` binary) and AMD64 (the Dockerfile follows `TARGETARCH`)
 
 ---
 
@@ -99,19 +99,13 @@ email:
 # 🔗 Webhook Configuration
 hook:
   - name: "qbittorrent"
+    path: "/webhook/qbittorrent"
     config:
       telegram_chat_id: "YOUR_QBITTORRENT_CHAT_ID"
-  telegram_message: "📥 **Download completed successfully!** 🎬 \n🔍 **Name:**  \n%s\n📍 **Path:**  \n%s"
-  # Add more webhooks here:
-  # - name: "sonarr"
-  #   config:
-  #     telegram_chat_id: "YOUR_SONARR_CHAT_ID"
-  #     telegram_message: "📺 Serie descargada: %s"
+      telegram_message: "📥 **Download completed successfully!** 🎬 \n🔍 **Name:**  \n%s\n📍 **Path:**  \n%s"
 
 telegram:
   bot_token: "YOUR_BOT_TOKEN"
-  chat_ids:
-    torrent: "YOUR_TORRENT_CHAT_ID"
 ```
 
 ### 🤖 Step 3: Setup Telegram Bot
@@ -139,50 +133,40 @@ Each command has its own `allowed_chat_ids`; requests from other chats are rejec
 
 ## 🐳 Deployment
 
-### 🚀 Option 1: Docker Compose (Recommended)
+### 🚀 Production: k3s through GitHub Actions
+
+Production runs on a single-node k3s cluster. `.github/workflows/deploy.yml` is started by hand (`workflow_dispatch`) with `bump` (`patch`, `minor`, `major` or `rebuild`), an optional `custom_tag` and `prerelease`:
+
+1. `deploy.yml` reads `.go-version` into the `GO_VERSION` build argument and calls `devidence-dev/workflows/.github/workflows/cd-build-deploy-semver.yml@v1`.
+2. The shared workflow calculates the SemVer tag, builds `deployments/docker/Dockerfile` and pushes `ghcr.io/devidence-dev/automation-hub` to GHCR.
+3. Its `deploy` job runs under `environment: production` and bumps the tag and digest in `kubernetes/internal-apps/automation-hub/values.yaml` in the homelab repo. ArgoCD then syncs the Deployment.
+
+The Dockerfile is multi-stage: it builds a static binary with `CGO_ENABLED=0`, then copies it into `alpine` as uid 1000 (`appuser`). The container listens on port 8080.
+
+**Configuration.** The hub reads one `config.yaml`. In the cluster, the `CONFIG_YAML` secret comes from Infisical, and an ExternalSecret (`automation-hub-config`, in the homelab repo) renders it into `/app/config.yaml`. `configs/config.yaml.example` documents every key.
+
+### 💻 Run locally
+
+Use the Go version in `.go-version` (see Prerequisites). From the repository root:
 
 ```bash
-# Clone repository
-git clone <your-repo-url>
-cd automation-hub
+# The hub reads config.yaml from the first of /app, ./configs, /app/configs or . that has one
+cp configs/config.yaml.example configs/config.yaml   # then fill in your values
 
-# Configure
-cp configs/config.yaml.example configs/config.yaml
-# Edit configs/config.yaml with your credentials
-
-# Deploy
-docker-compose up -d
-
-# View logs
-docker-compose logs -f automation-hub
-```
-
-### 🔧 Option 2: Manual Docker
-
-```bash
-# Build for your platform
-docker build -f deployments/docker/Dockerfile -t automation-hub .
-
-# Run with volume mount
-docker run -d \
-  --name automation-hub \
-  --restart unless-stopped \
-  -v $(pwd)/configs/config.yaml:/root/configs/config.yaml:ro \
-  automation-hub
-```
-
-### � Option 3: Local Development
-
-```bash
-# Install dependencies
-go mod download
-
-# Run application
+# Run the application
 go run cmd/automation-hub/main.go
 
 # Run tests
 go test ./...
 ```
+
+Without Go on the host, run the tests in the image that matches `.go-version`:
+
+```bash
+docker run --rm -v "$PWD":/app -w /app golang:1.27.2 go test ./...
+```
+
+`configs/config.yaml` is tracked in this repository, so keep real secrets out of it.
 
 ### 🗂️ Run Kubernetes Jobs from Telegram
 
@@ -305,23 +289,23 @@ scripts/verify.sh --fix    # first runs gofmt -w, biome check --write and the as
 
 Pinned tools: golangci-lint v2.14.0, gocognit v1.2.0, Biome 2.5.15 (standalone binary, checked by SHA-256 before it runs), OpenSpec 1.14.1 and the two generation tools above. CI runs the same drift check in the `generated-assets` job of this repo's `.github/workflows/ci.yml`: it regenerates the assets and fails on a diff or on an untracked generated file.
 
-## � API & Webhooks
+## 🔌 API & Webhooks
 
 ### 📡 Available Endpoints
 
 | Endpoint | Method | Description |
 |----------|---------|-------------|
-| `/webhook/qbitorrent` | POST | qBittorrent completion notifications |
-| `/webhook/dependency-report` | POST | Renovate report from the dependency-report Job (only if `dependency_report:` is set) |
+| `/webhook/qbittorrent` | POST | qBittorrent completion notifications (the `path` of the `qbittorrent` hook; the example config uses this path) |
+| `/webhook/dependency-report` | POST | Renovate report from the dependency-report Job (only if `dependency_report:` is set; the default, changed with `dependency_report.path`) |
 
 ### 📦 qBittorrent Integration
 
-Configure qBittorrent to send webhooks on completion. The webhook now supports **custom messages** configured in your `config.yaml`:
+Configure qBittorrent to send webhooks on completion. The webhook supports **custom messages** configured in your `config.yaml`:
 
 **Tools** → **Options** → **Downloads** → **Run external program on torrent completion:**
 
 ```bash
-curl -X POST http://your-server:8080/webhook/qbitorrent \
+curl -X POST http://your-server:8080/webhook/qbittorrent \
   -H "Content-Type: application/json" \
   -d '{"torrent_name":"%N","save_path":"%F"}'
 ```
@@ -333,9 +317,10 @@ You can customize the notification message in your `config.yaml`:
 ```yaml
 hook:
   - name: "qbittorrent"
+    path: "/webhook/qbittorrent"
     config:
       telegram_chat_id: "YOUR_CHAT_ID"
-  telegram_message: "🎬 Your custom message! \n📁 File: %s\n📂 Location: %s"
+      telegram_message: "🎬 Your custom message! \n📁 File: %s\n📂 Location: %s"
 ```
 
 The `%s` placeholders will be replaced with:
@@ -352,30 +337,23 @@ hook:
       max_body_bytes: 1048576  # optional
 ```
 
-### 🆕 Adding New Webhooks
+### 🆕 Webhook Types
 
-The system now supports **configurable webhooks**! Add new webhook handlers without coding:
+Each `hook` entry is a route: its `name` selects the handler and its `path` is the URL. The handler for each name is registered in `internal/handlers/webhook_registry.go`. Today the registry has `qbittorrent` and the dependency report (`dependency-report`, configured only in its own `dependency_report:` section). An entry with any other name is logged as an unknown webhook type and skipped, so a new type needs code in the registry. The `qbittorrent` hook is configured like this:
 
 ```yaml
 hook:
   - name: "qbittorrent"
+    path: "/webhook/qbittorrent"
     config:
       telegram_chat_id: "TORRENT_CHAT_ID"
-  telegram_message: "📥 Download complete: %s in %s"
-  - name: "sonarr"
-    config:
-      telegram_chat_id: "SONARR_CHAT_ID" 
-  telegram_message: "📺 New series: %s"
-  - name: "radarr"
-    config:
-      telegram_chat_id: "RADARR_CHAT_ID"
-  telegram_message: "🎬 New movie: %s"
+      telegram_message: "📥 Download complete: %s in %s"
 ```
 
-Each webhook can have:
+Each `qbittorrent` hook can have:
 - ✅ **Custom chat destination**
 - ✅ **Personalized message format**
-- ✅ **Multiple parameter placeholders**
+- ✅ **Two parameter placeholders**
 
 ### 🔄 Adding New Email Services
 
@@ -436,7 +414,7 @@ Each service's behavior comes from its keys, not from its name. All keys are opt
 1. **Tools** → **Options** → **Downloads**
 2. **Run external program on torrent completion:**
    ```bash
-   curl -X POST http://localhost:8080/webhook/qbitorrent \
+   curl -X POST http://localhost:8080/webhook/qbittorrent \
      -H "Content-Type: application/json" \
      -d '{"torrent_name":"%N","save_path":"%F"}'
    ```
@@ -449,16 +427,13 @@ Each service's behavior comes from its keys, not from its name. All keys are opt
 
 ---
 
-## � Monitoring & Logs
+## 📊 Monitoring & Logs
 
 ### 🔍 Viewing Logs
 
 ```bash
-# Docker Compose
-docker-compose logs -f automation-hub
-
-# Docker
-docker logs -f automation-hub
+# Production (k3s): the Deployment in the internal-apps namespace
+kubectl -n internal-apps logs deploy/automation-hub -f
 
 # Local development
 # Logs output to stdout with structured JSON format
@@ -466,9 +441,8 @@ docker logs -f automation-hub
 
 ### 📁 Log Locations
 
-- **Docker**: Logs rotate automatically with size and time limits
-- **Local**: Standard output with structured logging
-- **Production**: JSON format for easy parsing and monitoring
+- **Production**: stdout of the pod, JSON format for easy parsing and monitoring
+- **Local**: Standard output with structured logging (JSON, the same logger)
 
 ---
 
@@ -521,7 +495,7 @@ curl https://api.telegram.org/bot<BOT_TOKEN>/getUpdates
 - ✅ Check application logs for errors
 - ✅ Test with curl manually:
   ```bash
-  curl -X POST http://localhost:8080/webhook/qbitorrent \
+  curl -X POST http://localhost:8080/webhook/qbittorrent \
     -H "Content-Type: application/json" \
     -d '{"torrent_name":"Test Movie","save_path":"/downloads/movies/"}'
   ```
@@ -534,6 +508,7 @@ curl https://api.telegram.org/bot<BOT_TOKEN>/getUpdates
 ```yaml
 hook:
   - name: "qbittorrent"
+    path: "/webhook/qbittorrent"
     config:
       telegram_chat_id: "123456789"  # Correct chat ID
       telegram_message: "Download: %s in %s"  # Two %s placeholders
