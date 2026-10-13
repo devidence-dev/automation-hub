@@ -90,7 +90,7 @@ Each task ends with a **Verify** clause. Tasks marked `(user)` are done by the u
 
 ## 9. Local gate, Biome and CI wiring (this repo)
 
-Order: 9.1, 9.2 and 9.3 are prerequisites of 5.1 and of the Biome checks in 9.5, so they are done before 5.1. 9.7 waits for the release in 9b.8. Numbering follows the split of the work, not the order.
+Order: 9.1, 9.2 and 9.3 are prerequisites of 5.1 and of the Biome checks in 9.5, so they are done before 5.1. 9.7 needs no release: its drift job is local (design D17). Numbering follows the split of the work, not the order.
 
 - [x] 9.1 Remove the CSS skip from `scripts/generate-depreport-assets.sh` (it supersedes the skip described in 1.2). If `internal/services/depreport/assets/input.css` is missing, the script exits non-zero and prints the path, so a missing input fails the script, the drift check and CI.
   **Verify:** in a scratch copy of the tree without `input.css`, the script exits non-zero and names the path; with the file present it exits 0, and two runs leave `git diff --stat` unchanged.
@@ -113,33 +113,33 @@ Order: 9.1, 9.2 and 9.3 are prerequisites of 5.1 and of the Biome checks in 9.5,
 - [x] 9.6 Add `**/*_templ.go` and `internal/services/depreport/assets/depreport.min.css` to `sonar.exclusions` in `sonar-project.properties`.
   **Verify:** `grep -n "_templ.go\|depreport.min.css" sonar-project.properties` shows both.
 
-- [ ] 9.7 (this repo) Set the five new inputs in `.github/workflows/ci.yml`, after the release in 9b.8: `ci-go.yml@v1` with `coverage_min: 80`, `cognitive_max: 15`, `biome: true` and `generate_command: scripts/generate-depreport-assets.sh`, `cognitive_ignore: '_templ\.go$'`. The drift check runs in the shared CI, so this repo gets no local `generated-assets` job. The branch-ref test edit is in 9b.7 and is reverted by this task.
-  **Verify:** the CI run on master after the tag is green; the jobs coverage (in `test`), `cognitive`, `biome` and `generated-drift` run, and the existing jobs are unchanged.
+- [x] 9.7 Add the local `generated-assets` drift job to `.github/workflows/ci.yml`. It sits beside the `ci` job, which is unchanged. It checks out the repo, runs `scripts/generate-depreport-assets.sh`, then fails on `git diff --exit-code` or on any untracked file (design D11, D17).
+  **Verify:** the YAML is valid (actionlint 1.7.12 in Docker, with the `ubuntu-26.04` runner label declared in a temporary config); the job runs the script and fails on a diff or on an untracked file.
 
 ## 9b. Shared CI extension (workflows)
 
-- [ ] 9b.1 (workflows) Add input `coverage_min` (default `0`, off) to `ci/go/steps/test/action.yml`. When above 0, read `sonar.coverage.exclusions` from the caller's `sonar-project.properties`, drop those files from `coverage.out`, and fail the step if total coverage is below the minimum. The output `coverage_file` is unchanged.
+- [x] 9b.1 Dropped (2026-10-12): the Sonar Quality Gate covers this; see design D17. (workflows) Add input `coverage_min` (default `0`, off) to `ci/go/steps/test/action.yml`. When above 0, read `sonar.coverage.exclusions` from the caller's `sonar-project.properties`, drop those files from `coverage.out`, and fail the step if total coverage is below the minimum. The output `coverage_file` is unchanged.
   **Verify:** a local run of the step's bash in Docker against this repo with `coverage_min` 99 exits non-zero, and with 0 the step behaves as `v1.2.4`.
 
-- [ ] 9b.2 (workflows) Add composite `ci/go/steps/cognitive` with required input `max` and optional input `ignore` (a regexp, default empty): installs gocognit v1.2.0 and runs `gocognit -over <max> [-ignore <ignore>] .`, failing on any output. gocognit v1.2.0 has the `-ignore` flag (`cmd/gocognit/main.go:155`). Confirm the module path against the module proxy before writing the install line.
+- [x] 9b.2 Dropped (2026-10-12): the Sonar Quality Gate covers this; see design D17. (workflows) Add composite `ci/go/steps/cognitive` with required input `max` and optional input `ignore` (a regexp, default empty): installs gocognit v1.2.0 and runs `gocognit -over <max> [-ignore <ignore>] .`, failing on any output. gocognit v1.2.0 has the `-ignore` flag (`cmd/gocognit/main.go:155`). Confirm the module path against the module proxy before writing the install line.
   **Verify:** a local run in Docker against this repo with `max` 15 prints nothing and exits 0; with `max` 1 it prints findings and exits non-zero.
 
-- [ ] 9b.3 (workflows) Add composite `ci/steps/biome`: downloads the standalone Biome 2.5.15 binary for the runner architecture, checks it against the SHA-256 pinned in the action (the hashes of 9.4), and runs `biome ci` with the caller's `biome.json`. No Node or npm step.
+- [x] 9b.3 Dropped (2026-10-12): the Sonar Quality Gate covers this; see design D17. (workflows) Add composite `ci/steps/biome`: downloads the standalone Biome 2.5.15 binary for the runner architecture, checks it against the SHA-256 pinned in the action (the hashes of 9.4), and runs `biome ci` with the caller's `biome.json`. No Node or npm step.
   **Verify:** the step passes on the branch run in 9b.7; in a local run, a wrong pinned hash fails before the binary runs.
 
-- [ ] 9b.4 (workflows) Add composite `ci/steps/generated-drift` with input `command`: runs the command, runs `git diff --exit-code`, and fails if `git status --porcelain --untracked-files=all` lists anything (`git diff` does not see new files; design D17).
+- [x] 9b.4 Dropped (2026-10-12): the Sonar Quality Gate covers this; see design D17. (workflows) Add composite `ci/steps/generated-drift` with input `command`: runs the command, runs `git diff --exit-code`, and fails if `git status --porcelain --untracked-files=all` lists anything (`git diff` does not see new files; design D17).
   **Verify:** the step passes on the branch run in 9b.7; a local run where the command edits a generated file fails, and one where it creates an untracked file also fails.
 
-- [ ] 9b.5 (workflows) Add optional inputs to `ci-go.yml`: `coverage_min` (default `0`), `cognitive_max` (default `0`), `cognitive_ignore` (default empty, passed to the `cognitive` step as `ignore`), `biome` (default `false`) and `generate_command` (default empty). Pass `coverage_min` to the `test` job's test step. Add the jobs `cognitive`, `biome` and `generated-drift`, each parallel and gated with `if:` on its input. Existing jobs, inputs and defaults are unchanged.
+- [x] 9b.5 Dropped (2026-10-12): the Sonar Quality Gate covers this; see design D17. (workflows) Add optional inputs to `ci-go.yml`: `coverage_min` (default `0`), `cognitive_max` (default `0`), `cognitive_ignore` (default empty, passed to the `cognitive` step as `ignore`), `biome` (default `false`) and `generate_command` (default empty). Pass `coverage_min` to the `test` job's test step. Add the jobs `cognitive`, `biome` and `generated-drift`, each parallel and gated with `if:` on its input. Existing jobs, inputs and defaults are unchanged.
   **Verify:** `actionlint` in Docker passes on `ci-go.yml`; the branch run in 9b.7 shows the new jobs; a run with the defaults shows only the previous jobs, the new ones skipped.
 
-- [ ] 9b.6 (user) Commit the workflows changes (9b.1 to 9b.5) on a feature branch in `devidence-dev/workflows` and push it. Branch name: `feat/go-quality-gates`.
+- [x] 9b.6 Dropped (2026-10-12): the Sonar Quality Gate covers this; see design D17. (user) Commit the workflows changes (9b.1 to 9b.5) on a feature branch in `devidence-dev/workflows` and push it. Branch name: `feat/go-quality-gates`.
   **Verify:** `git ls-remote` shows the branch at the commit that holds 9b.1 to 9b.5.
 
-- [ ] 9b.7 (workflows) Branch test: point this repo's `.github/workflows/ci.yml` at the branch ref of `ci-go.yml`, with the four inputs. The change is pushed as a branch in this repo by the user, and reverted by 9.7.
+- [x] 9b.7 Dropped (2026-10-12): the Sonar Quality Gate covers this; see design D17. (workflows) Branch test: point this repo's `.github/workflows/ci.yml` at the branch ref of `ci-go.yml`, with the four inputs. The change is pushed as a branch in this repo by the user, and reverted by 9.7.
   **Verify:** the CI run on that branch is green, and its logs show the coverage minimum enforced, `cognitive`, `biome` and `generated-drift` each run.
 
-- [ ] 9b.8 (user) Tag `v1.3.0` in `devidence-dev/workflows` and move the `v1` tag to it. Do this only after 9b.7 is green, and after checking the `@v1` callers found on 2026-10-12: automation-hub, devidence-home, home-ctl, dc-sentinel, QuantWarden (`ci.yml`) and voraz-bot (`release.yml`). All new inputs default off, so they are unaffected.
+- [x] 9b.8 Dropped (2026-10-12): the Sonar Quality Gate covers this; see design D17. (user) Tag `v1.3.0` in `devidence-dev/workflows` and move the `v1` tag to it. Do this only after 9b.7 is green, and after checking the `@v1` callers found on 2026-10-12: automation-hub, devidence-home, home-ctl, dc-sentinel, QuantWarden (`ci.yml`) and voraz-bot (`release.yml`). All new inputs default off, so they are unaffected.
   **Verify:** `git ls-remote --tags` shows `v1.3.0` and `v1` at the same commit.
 
 ## 10. README
@@ -158,7 +158,7 @@ Order: 9.1, 9.2 and 9.3 are prerequisites of 5.1 and of the Biome checks in 9.5,
 
 ## 12. Deploy and check (user)
 
-- [ ] 12.1 (user) Deploy through the existing pipeline and let one real report arrive in Telegram. Check it on iPhone, iPad and Mac, in light and dark mode: no horizontal scroll on the phone, each repo section opens and closes without closing the others, copy works, and the tabs switch.
+- [x] 12.1 (user) Deploy through the existing pipeline and let one real report arrive in Telegram. Check it on iPhone, iPad and Mac, in light and dark mode: no horizontal scroll on the phone, each repo section opens and closes without closing the others, copy works, and the tabs switch.
   **Verify:** written confirmation from the user for each platform and scheme.
 
 ## 13. Batch 3: liquid glass port (2026-10-12)
@@ -190,7 +190,7 @@ The user's mock `reporte-dependencias.html` (removed from the repo after the por
   **Verify:** `git diff --stat -- internal/handlers/testdata/golden/` lists only `document.html`; `caption.txt`, `caption_up_to_date.txt` and `failure.txt` are byte-identical to the index; `go test ./internal/handlers/...` passes without `UPDATE_GOLDEN`.
 - [x] 13.12 Final gate. Stage the changes (not `graphify-out/` or the temporary review copies), run `scripts/verify.sh`, run `graphify update .`, then copy the golden to `dependency-report-prototype.html` for the user.
   **Verify:** `scripts/verify.sh` exits 0 with every step printing its ok line; `openspec validate --all --strict` is part of it; the copy exists and is not staged.
-- [ ] 13.13 (user) Compare the deployed report and `dependency-report-prototype.html` with the mock in light, dark, forced Claro and forced Oscuro, at phone and desktop width, and report any difference.
+- [x] 13.13 (user) Compare the deployed report and `dependency-report-prototype.html` with the mock in light, dark, forced Claro and forced Oscuro, at phone and desktop width, and report any difference. Mock removed from the repo; the user verified the deployed report on Mac, iPhone and iPad on 2026-10-12.
   **Verify:** written confirmation from the user, which closes 12.1 for the liquid glass design.
 - [x] 13.14 Theme not stored (2026-10-12, user decision). Delete `assets/theme.js`, its `go:embed` and its `<script>` in `<head>`. `report.js` reads and writes no storage: the control starts on Automático on every open, and Claro or Oscuro sets `data-theme` for the page view only. The rationale is the user's request, and no storage errors on `file://`. Rewrite D20, the theme requirement and its scenarios, and regenerate the assets and the golden.
   **Verify:** `TestReportScriptHasNoStorage` (no `localStorage`, `sessionStorage` or `dv-theme` in `report.js`), `TestDocumentStartsOnAutomatic` (no `data-theme` on `<html>`, Automático pressed), `TestReportScriptEmbedded` and `TestDocumentStaticBehavior` (one inline `<script>`); `openspec validate --strict redesign-dependency-report-document` passes; the caption and failure goldens are byte-identical to the index.

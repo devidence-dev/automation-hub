@@ -19,3 +19,22 @@ jobs:
     permissions:
       contents: read
       id-token: write
+
+  generated-assets:
+    name: 🧬 Generated assets
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Regenerate templ and Tailwind assets
+        run: scripts/generate-depreport-assets.sh
+      - name: Fail when generated files drift
+        run: |
+          git diff --exit-code
+          untracked="$(git status --porcelain --untracked-files=all)"
+          if [ -n "$untracked" ]; then
+            echo "Generated files are not committed:"
+            echo "$untracked"
+            exit 1
+          fi

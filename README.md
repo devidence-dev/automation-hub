@@ -303,7 +303,7 @@ scripts/verify.sh          # gofmt, golangci-lint, go test -race with 80% covera
 scripts/verify.sh --fix    # first runs gofmt -w, biome check --write and the asset generation
 ```
 
-Pinned tools: golangci-lint v2.14.0, gocognit v1.2.0, Biome 2.5.15 (standalone binary, checked by SHA-256 before it runs), OpenSpec 1.14.1 and the two generation tools above. The shared CI runs the same drift check as the `generated-drift` step (the `generate_command` input of `ci-go.yml`), which fails on a diff or on an untracked generated file. That step is switched on in this repo's `ci.yml` after the workflows release.
+Pinned tools: golangci-lint v2.14.0, gocognit v1.2.0, Biome 2.5.15 (standalone binary, checked by SHA-256 before it runs), OpenSpec 1.14.1 and the two generation tools above. CI runs the same drift check in the `generated-assets` job of this repo's `.github/workflows/ci.yml`: it regenerates the assets and fails on a diff or on an untracked generated file.
 
 ## � API & Webhooks
 

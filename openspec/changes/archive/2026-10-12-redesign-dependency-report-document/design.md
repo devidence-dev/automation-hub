@@ -127,7 +127,7 @@ The handler lives in `assets/report.js` (D20). It copies `data-copy` values with
 
 ### D11. Generated files are committed and checked
 
-`*_templ.go` and the compiled CSS are committed, like dc-sentinel. A generation script runs `templ generate` and Tailwind inside Docker. The shared CI runs it through the `generated-drift` step (`generate_command` input) and then `git diff --exit-code`, and `scripts/verify.sh` runs the same check. `git diff` does not see new untracked files, so the step also fails when the command creates one (D17). The generated Go files carry templ's `Code generated ... DO NOT EDIT` header, so golangci-lint skips them. `sonar-project.properties` excludes `**/*_templ.go` and the compiled CSS.
+`*_templ.go` and the compiled CSS are committed, like dc-sentinel. A generation script runs `templ generate` and Tailwind inside Docker. The `generated-assets` job in this repo's `.github/workflows/ci.yml` runs it and then `git diff --exit-code`, and `scripts/verify.sh` runs the same check. `git diff` does not see new untracked files, so the job also fails when the script creates one (D17). The generated Go files carry templ's `Code generated ... DO NOT EDIT` header, so golangci-lint skips them. `sonar-project.properties` excludes `**/*_templ.go` and the compiled CSS.
 
 Binaries are downloaded only inside an ephemeral Docker container (`docker run --rm`), and each one is checked against the checksum file its release publishes before it runs. Verified 2026-10-12:
 - Tailwind CSS v4.3.3 publishes `sha256sums.txt` in its GitHub release; the script downloads the asset for the container architecture and its line in that file.
@@ -189,17 +189,21 @@ Configuration in `biome.json`:
 - Formatter and linter on, `css.parser.tailwindDirectives: true` (the Tailwind 4 directives in `input.css` parse; task 9.3).
 - `files.includes` limited to `internal/services/depreport/assets/**` (`input.css` and `report.js`), excluding the generated `depreport.min.css` (D11). The SVG sources are not linted.
 
-### D17. Shared CI extension (workflows)
+### D17. Shared CI extension (superseded 2026-10-12)
 
-The reusable `ci-go.yml` gains five optional inputs, all off by default: `coverage_min` (0), `cognitive_max` (0), `cognitive_ignore` (empty), `biome` (false) and `generate_command` (empty). Their jobs run in parallel, like the existing ones, and each is gated with `if:`, so existing callers see no change. The release order and the `v1` callers are unchanged from batch 2 (tasks 9b and 9.7).
+Superseded by the user decision of 2026-10-12. The shared-CI extension of `devidence-dev/workflows` is dropped: the inputs `coverage_min`, `cognitive_max`, `cognitive_ignore`, `biome` and `generate_command`, and the steps `cognitive`, `biome` and `generated-drift`. The SonarCloud scan already blocks CI on its Quality Gate (`sonar.qualitygate.wait=true`, set in the shared `sonar-scan` action and in `sonar-project.properties`). That gate enforces coverage on new code (at least 80%), cognitive complexity (rule threshold 15) and lint of the JS and CSS sources, so the shared inputs would only duplicate it.
+
+Sonar cannot check drift of the generated assets, and that is the one gap. It is covered by a local job in this repo: `generated-assets` in `.github/workflows/ci.yml`. It runs in parallel with the `ci` job, regenerates the assets with `scripts/generate-depreport-assets.sh`, runs `git diff --exit-code`, and fails when `git status --porcelain --untracked-files=all` lists a file, since `git diff` does not see new files. `scripts/verify.sh` stays unchanged as the fast local mirror of Sonar before a push.
+
+Upgrade path: when a second repo has generated code, extract the job into a composite step in `devidence-dev/workflows`. Until then no workflows release (v1.3.0) is needed, and the `@v1` callers are not affected.
 
 ### D18. Coverage minimum 80%
 
-The minimum is enforced twice, in `verify.sh` (`MIN_COVERAGE`, default 80) and in CI (`coverage_min: 80`), both after excluding `cmd/automation-hub/main.go` as `sonar-project.properties` does. Measured 2026-10-12: 93.5% total, and the lowest package is `internal/services/kube` at 85.4%.
+The minimum is enforced in `verify.sh` (`MIN_COVERAGE`, default 80), after excluding `cmd/automation-hub/main.go` as `sonar-project.properties` does. In CI the SonarCloud Quality Gate enforces 80% on new code instead (D17, decision of 2026-10-12). Measured 2026-10-12 after batch 3: 83.9% total in `verify.sh`, which counts the generated `*_templ.go` files (`depreport` 77.5%); Sonar excludes `**/*_templ.go` through `sonar.exclusions`, so its figure is higher.
 
 ### D19. Tool version pins
 
-gocognit v1.2.0, Biome 2.5.15, golangci-lint v2.14.0, templ v0.3.1070 and tailwindcss v4.3.3 are pinned in the scripts (`verify.sh`, the generation script) and in the workflow inputs and actions.
+gocognit v1.2.0, Biome 2.5.15, golangci-lint v2.14.0, templ v0.3.1070 and tailwindcss v4.3.3 are pinned in the scripts (`verify.sh`, the generation script). No workflow input pins a tool version; the `generated-assets` job in `ci.yml` pins only the checkout SHA.
 
 ### D20. Liquid glass behavior: theme, tabs, motion, scripts (amended 2026-10-12)
 
@@ -242,6 +246,7 @@ The stripped logo is 5345 bytes (from 13290), and the stripped icon 1288 bytes (
 | D20 theme | Choice stored in `localStorage` `dv-theme`, applied by `theme.js` before paint | Not stored; every open starts on Automático; one script | User decision, 2026-10-12 |
 | D14 | Palette A contrast ratios | Mock tokens, 5.08:1 minimum in light | The mock |
 | Brand gradient | Header accent line | Removed; the logo carries the brand | The mock has no accent line |
+| D17 | Shared `ci-go.yml` inputs and steps (`coverage_min`, `cognitive`, `biome`, `generated-drift`) | Local `generated-assets` job in this repo's `ci.yml`; the Sonar Quality Gate covers the rest | The Sonar Quality Gate already blocks CI; only drift is missing. User decision, 2026-10-12 |
 
 ## Risks / Trade-offs
 
@@ -251,15 +256,15 @@ The stripped logo is 5345 bytes (from 13290), and the stripped icon 1288 bytes (
 - [The white count on the selected tab badge is 3.65:1] → Kept as in the mock; recorded in D8 and in the open questions.
 - [A stored theme could open the report in the wrong scheme, as the shared `dv-theme` key did on `file://`] → Nothing is stored, and every open starts on Automático (D20).
 - [templ is pre-1.0; minor releases can change generated code] → The version is pinned in `go.mod` and in the generation script.
-- [Generated code drifts from the templates] → The shared `generated-drift` step and `verify.sh` (D11, D17).
-- [gocognit does not skip generated `*_templ.go` files by default] → `-ignore '_templ\.go$'` in `verify.sh` and the shared `cognitive` step.
+- [Generated code drifts from the templates] → The `generated-assets` job in `ci.yml` and `verify.sh` (D11, D17).
+- [gocognit does not skip generated `*_templ.go` files by default] → `-ignore '_templ\.go$'` in `verify.sh`. Sonar also excludes `**/*_templ.go` (task 9.6).
 - [Biome has no published checksum file] → The hash is computed once and checked against the API digest (D16).
 - [Counts per dependency do not match the number of entries in a section] → Documented in the spec; the entries show every update.
 - [The mock's big number and its sub line disagree] → The mock shows 53 pending and "pendientes de 53" with 52 updates in its summary line. The document uses the listed updates for the big number, the badge and the summary line, and the total dependencies in the sub line.
 
 ## Migration Plan
 
-No data, config or API migration. The change ships as one commit: regenerated assets, new components and scripts, updated goldens, removed Bootstrap and palette-A files, `verify.sh`, `biome.json` and the liquid glass files. Rollback is `git revert` of that commit. The workflows changes ship first (D17).
+No data, config or API migration. The change ships as one commit: regenerated assets, new components and scripts, updated goldens, removed Bootstrap and palette-A files, `verify.sh`, `biome.json` and the liquid glass files. Rollback is `git revert` of that commit. No workflows change is needed (D17).
 
 ## Open Questions
 
@@ -270,7 +275,7 @@ No data, config or API migration. The change ships as one commit: regenerated as
 Resolved on 2026-10-12:
 - gocognit v1.2.0 has `-ignore <regexp>`; generated `*_templ.go` files are skipped with `'_templ\.go$'`.
 - openspec in `verify.sh`: `@fission-ai/openspec@1.14.1` in a pinned `node:<LTS>-slim` image.
-- Workflows branch: `feat/go-quality-gates`.
-- `@v1` callers: automation-hub, devidence-home, home-ctl, dc-sentinel, QuantWarden (`ci.yml`) and voraz-bot (`release.yml`). New inputs default off.
-- The untracked-file check in `generated-drift` and `verify.sh` is kept.
+- Workflows branch `feat/go-quality-gates`: dropped (D17).
+- `@v1` callers: automation-hub, devidence-home, home-ctl, dc-sentinel, QuantWarden (`ci.yml`) and voraz-bot (`release.yml`). Not affected, since no workflows release is made (D17).
+- The untracked-file check is kept, in the `generated-assets` job and in `verify.sh`.
 - Batch 3 decisions a to f were accepted by the user as "acepto todo lo del mock" on 2026-10-12.
