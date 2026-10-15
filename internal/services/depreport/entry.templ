@@ -1,20 +1,28 @@
 package depreport
 
-// FileGroup is one package file of a repo card and its entries.
+// FileGroup is one package file of a repo card: its entries, then its location once, on its own line.
 templ FileGroup(f FileGroupView) {
-	<div class="mt-3.5">
-		<p class="mb-1 font-mono text-xs font-medium break-all text-file">{ f.Path }</p>
+	<div class="border-b border-line pt-[5px] pb-2 last:border-b-0">
 		for _, e := range f.Entries {
 			@DepRow(e)
 		}
+		<p class="mt-1 mb-0 flex items-center gap-1.5 font-mono text-xs text-muted" title={ f.Path }>
+			<svg class="shrink-0 fill-none stroke-muted-2 stroke-[1.1]" width="12" height="12" viewBox="0 0 12 12" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2.5 1.5h4.5l2.5 2.5v6.5h-7z"></path><path d="M7 1.5V4h2.5"></path></svg>
+			<span class="min-w-0 [overflow-wrap:anywhere]">
+				if f.Dir != "" {
+					<span class="text-muted-2">{ f.Dir }</span>
+				}
+				{ f.Short }
+			</span>
+		</p>
 	</div>
 }
 
 // DepRow is one listed update: name, versions, type chip and copy button. Every row of a file group
 // uses the same columns, so they align. Below 600px it stacks into two rows (openspec design D6, mobile first).
 templ DepRow(e EntryView) {
-	<div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3.5 gap-y-1 border-t border-line py-[9px] min-[601px]:grid-cols-[minmax(0,1fr)_auto_58px_30px] min-[601px]:gap-y-0">
-		<code class="min-w-0 text-[13px] font-medium [overflow-wrap:anywhere]">{ e.Name }</code>
+	<div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3.5 gap-y-1 py-[3px] min-[601px]:grid-cols-[minmax(0,1fr)_auto_58px_30px] min-[601px]:gap-y-0">
+		<code class="min-w-0 text-sm font-medium text-ink [overflow-wrap:anywhere]">{ e.Name }</code>
 		<span class="ver font-mono text-[13px] whitespace-nowrap text-muted tabular-nums">
 			<span class="sr-only">{ e.CurrentLabel }</span>{ e.Current } <span aria-hidden="true">→</span> <span class="sr-only">{ e.NewLabel }</span><b class="font-semibold text-ink">{ e.New }</b>
 		</span>

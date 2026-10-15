@@ -17,8 +17,7 @@ templ RepoGroup(g RepoGroupView) {
 			</span>
 			@Icon("chevron", "chev ml-auto size-3.5 shrink-0 text-muted")
 		</summary>
-		<div class="border-t border-line px-[18px] pb-3.5">
-			<p class="mt-2.5 mb-0 font-mono text-xs break-all text-muted">{ g.Repo }</p>
+		<div class="border-t border-line px-[18px]">
 			for _, f := range g.Files {
 				@FileGroup(f)
 			}

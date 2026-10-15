@@ -88,7 +88,7 @@ func TestRepoSummaryHasDotChipsAndNoEmoji(t *testing.T) {
 	}
 	out := renderOf(t, RepoGroup(g))
 	expectContains(t, out,
-		[]string{`<details class="glass group`, "tone-minor", "discord-tts-bot", "fork · solo informativo", "1 minor", `<svg class="chev`, "devidence-dev/discord-tts-bot"}, //nolint:misspell // Spanish text fixed by the spec
+		[]string{`<details class="glass group`, "tone-minor", "discord-tts-bot", "fork · solo informativo", "1 minor", `<svg class="chev`}, //nolint:misspell // Spanish text fixed by the spec
 		[]string{" open", ` name="`, "🔴", "🟡", "🚨", "⚠️", "♻️", "tone-major"})
 }
 

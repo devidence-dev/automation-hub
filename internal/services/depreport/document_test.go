@@ -212,9 +212,6 @@ func TestDocumentForkTag(t *testing.T) {
 	if !strings.Contains(out, ">fork</span>") || strings.Contains(out, "solo informativo") { //nolint:misspell // Spanish text fixed by the spec
 		t.Error("overridden fork note missing from the summary row")
 	}
-	if !strings.Contains(out, "devidence-dev/discord-tts-bot</p>") {
-		t.Error("expanded section lacks the full repo name without the fork tag")
-	}
 }
 
 func TestDocumentTimestampZone(t *testing.T) {

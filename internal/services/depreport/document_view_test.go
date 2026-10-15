@@ -69,7 +69,16 @@ func TestGroupsLayout(t *testing.T) {
 				viewRepo("acme/b", viewFile("go.mod", viewDep("z", "go", "1.0.0", "major:2.0.0"))),
 			},
 			deps: true,
-			want: []string{"acme/b go.mod: z major", "acme/a go.mod: x patch", "acme/a sub/go.mod: y minor"},
+			want: []string{"acme/b go.mod: z major", "acme/a sub/go.mod: y minor", "acme/a go.mod: x patch"},
+		},
+		{
+			name: "entries by type, files by top type then single-entry first",
+			repos: []string{viewRepo("acme/a",
+				viewFile("a.mod", viewDep("p1", "go", "1", "minor:2"), viewDep("p2", "go", "1", "minor:2")),
+				viewFile("b.mod", viewDep("q", "go", "1", "minor:2")),
+				viewFile("c.mod", viewDep("r1", "go", "1", "patch:2"), viewDep("r2", "go", "1", "major:2")))},
+			deps: true,
+			want: []string{"acme/a c.mod: r2 major, r1 patch", "acme/a b.mod: q minor", "acme/a a.mod: p1 minor, p2 minor"},
 		},
 		{
 			name: "two updates of one dep stay two entries, major first",
@@ -258,5 +267,19 @@ func TestSummaryLinesSingularAndPlural(t *testing.T) {
 				t.Errorf("summary = %+v, want %+v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestSplitPath(t *testing.T) {
+	tests := []struct{ path, dir, short string }{
+		{"go.mod", "", "go.mod"},
+		{".github/workflows/ci.yml", ".github/", "workflows/ci.yml"},
+		{"kubernetes/apps/bitwarden/values.yaml", "kubernetes/apps/", "bitwarden/values.yaml"},
+		{".github/ci.yml", "", ".github/ci.yml"},
+	}
+	for _, tt := range tests {
+		if dir, short := splitPath(tt.path); dir != tt.dir || short != tt.short {
+			t.Errorf("splitPath(%q) = (%q, %q), want (%q, %q)", tt.path, dir, short, tt.dir, tt.short)
+		}
 	}
 }

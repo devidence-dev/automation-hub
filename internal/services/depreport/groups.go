@@ -1,6 +1,7 @@
 package depreport
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -21,9 +22,12 @@ type CountChip struct {
 	Text string
 }
 
-// FileGroupView is one package file of a repo card and its entries.
+// FileGroupView is one package file of a repo card and its entries. The location shows once, under the
+// entries: Dir is the muted folder part (empty for a path of one or two segments), Short the rest.
 type FileGroupView struct {
 	Path    string
+	Dir     string
+	Short   string
 	Entries []EntryView
 }
 
@@ -60,7 +64,8 @@ func groupTab(r *renderer, tab Tab, labels labelSet, images bool) []RepoGroupVie
 			byRepo[row.Repo] = g
 		}
 		if n := len(g.Files); n == 0 || g.Files[n-1].Path != row.PackageFile {
-			g.Files = append(g.Files, FileGroupView{Path: row.PackageFile})
+			dir, short := splitPath(row.PackageFile)
+			g.Files = append(g.Files, FileGroupView{Path: row.PackageFile, Dir: dir, Short: short})
 		}
 		f := &g.Files[len(g.Files)-1]
 		f.Entries = append(f.Entries, entryOf(row, labels, images))
@@ -74,11 +79,38 @@ func groupTab(r *renderer, tab Tab, labels labelSet, images bool) []RepoGroupVie
 		if p.Fork {
 			g.Note = strings.TrimSpace(r.text(KeyForkTagDocument, nil))
 		}
+		sortFiles(g.Files)
 		g.Dot = dotOf(p)
 		g.Chips = chipsOf(r, p)
 		groups = append(groups, *g)
 	}
 	return groups
+}
+
+// splitPath splits a package file path into its folder, which is every segment but the last two, and the
+// rest. A path of one or two segments has no folder.
+func splitPath(path string) (dir, short string) {
+	parts := strings.Split(path, "/")
+	if len(parts) <= 2 {
+		return "", path
+	}
+	n := len(parts) - 2
+	return strings.Join(parts[:n], "/") + "/", strings.Join(parts[n:], "/")
+}
+
+// sortFiles orders the entries of each file major before minor before patch, then the files by their
+// highest type and, on a tie, the files of one entry first. The sorts are stable, so equal keys keep the
+// order of the rows.
+func sortFiles(files []FileGroupView) {
+	for _, f := range files {
+		slices.SortStableFunc(f.Entries, func(a, b EntryView) int { return a.Type.Rank() - b.Type.Rank() })
+	}
+	slices.SortStableFunc(files, func(a, b FileGroupView) int {
+		if d := a.Entries[0].Type.Rank() - b.Entries[0].Type.Rank(); d != 0 {
+			return d
+		}
+		return min(len(a.Entries), 2) - min(len(b.Entries), 2)
+	})
 }
 
 // dotOf is the type of the summary dot: major when a dependency has a major update, otherwise minor,
