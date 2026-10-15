@@ -98,19 +98,13 @@ func splitPath(path string) (dir, short string) {
 	return strings.Join(parts[:n], "/") + "/", strings.Join(parts[n:], "/")
 }
 
-// sortFiles orders the entries of each file major before minor before patch, then the files by their
-// highest type and, on a tie, the files of one entry first. The sorts are stable, so equal keys keep the
-// order of the rows.
+// sortFiles orders the entries of each file major before minor before patch. The files keep the order of
+// the rows, which are sorted by package file, so kubernetes/apps comes before kubernetes/infrastructure.
+// The sort is stable, so equal types keep the order of the rows.
 func sortFiles(files []FileGroupView) {
 	for _, f := range files {
 		slices.SortStableFunc(f.Entries, func(a, b EntryView) int { return a.Type.Rank() - b.Type.Rank() })
 	}
-	slices.SortStableFunc(files, func(a, b FileGroupView) int {
-		if d := a.Entries[0].Type.Rank() - b.Entries[0].Type.Rank(); d != 0 {
-			return d
-		}
-		return min(len(a.Entries), 2) - min(len(b.Entries), 2)
-	})
 }
 
 // dotOf is the type of the summary dot: major when a dependency has a major update, otherwise minor,

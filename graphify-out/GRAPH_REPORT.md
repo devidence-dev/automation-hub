@@ -1,28 +1,28 @@
 # Graph Report - automation-hub  (2026-10-15)
 
 ## Corpus Check
-- 153 files · ~135,424 words
+- 153 files · ~135,856 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2063 nodes · 3766 edges · 139 communities (124 shown, 10 thin omitted)
-- Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 312 edges (avg confidence: 0.85)
+- 2070 nodes · 3783 edges · 144 communities (131 shown, 8 thin omitted)
+- Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 314 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `1b32be49`
+- Built from commit: `6ecc0ccb`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- UpdateType
+- time.Duration
 - Requirements
 - Requirement: Document tabs
 - 🤖 Automation Hub
 - config.go
 - net/http.Request
 - ADDED Requirements
-- telegram_webhook_test.go
+- NewCommandSpecs
 - generic_test.go
 - Requirements
 - ADDED Requirements
@@ -46,11 +46,11 @@
 - Requirement: Document tabs
 - ADDED Requirements
 - Proposal
-- Catalog
+- Load
 - Design
 - Tasks
 - testing.T
-- Aggregate
+- Report
 - Requirements
 - Requirement: Configurable readiness wait
 - telegram/client_test.go
@@ -73,10 +73,10 @@
 - Decisions
 - automation-hub
 - imap_test.go
-- components_test.go
+- Client
 - aggregate.go
 - main_test.go
-- Tab
+- StatsView
 - go.uber.org/zap.Logger
 - Tasks
 - Design
@@ -108,8 +108,8 @@
 - Design
 - Tasks
 - Requirement: Copy buttons
-- notifier_test.go
-- time.Location
+- Settings
+- Scheduler
 - Requirement: Body size cap
 - Requirement: Body size cap
 - Requirement: Document theme
@@ -126,7 +126,7 @@
 - Requirement: Theme control
 - Proposal
 - Tasks
-- presentCaption
+- reportOf
 - Requirement: Repo sections
 - generate-depreport-assets.sh
 - Requirement: Summary panel
@@ -135,23 +135,28 @@
 - Requirement: Header and logo
 - Requirement: Motion
 - Requirement: Renovate failure message
-- NewCommandSpecs
+- Catalog
 - document_view_test.go
 - Requirement: Summary caption
 - context.Context
-- renderer
+- Summary
 - NewDeliverer
-- workflowCommand
-- fakeMessenger
-- Send
+- WorkflowCommandConfig
+- settings_test.go
+- Client
 - Requirement: Safe document content
 - jobCommand
 - restartCommand
-- models_test.go
-- TestParseUpdateType
+- .Send
+- keys_test.go
+- BuildFailure
+- ⚙️ Configuration
+- fakeMenu
+- assets_test.go
+- renovate_test.go
 
 ## God Nodes (most connected - your core abstractions)
-1. `loadYAML()` - 33 edges
+1. `loadYAML()` - 34 edges
 2. `summaryAt()` - 31 edges
 3. `Config` - 28 edges
 4. `loadFixtureReport()` - 25 edges
@@ -180,11 +185,11 @@
 ## Hyperedges (group relationships)
 - **Dependabot Multi-Ecosystem Update Strategy (gomod, docker, github-actions)** — _github_dependabot_gomod_updates, _github_dependabot_docker_updates, _github_dependabot_github_actions_updates [EXTRACTED 1.00]
 
-## Communities (139 total, 10 thin omitted)
+## Communities (144 total, 8 thin omitted)
 
-### Community 0 - "UpdateType"
-Cohesion: 0.18
-Nodes (16): CopyView, CountChip, EntryView, FileGroupView, RepoGroupView, UpdateType, chipsOf(), countKey() (+8 more)
+### Community 0 - "time.Duration"
+Cohesion: 0.17
+Nodes (11): namedDuration, time.Duration, fakeRestarter, noSleep(), NewRetryingSender(), retryable(), Delayer, ExponentialBackoff (+3 more)
 
 ### Community 1 - "Requirements"
 Cohesion: 0.09
@@ -195,24 +200,24 @@ Cohesion: 0.04
 Nodes (45): ADDED Requirements, dependency-report Specification, MODIFIED Requirements, Requirement: Authenticated endpoint, Requirement: Document tabs, Requirement: HTML report document, Requirement: Renovate failure message, Requirement: Request handling (+37 more)
 
 ### Community 3 - "🤖 Automation Hub"
-Cohesion: 0.06
-Nodes (32): CI Job: Devidence Go CI, CI Pipeline Workflow, Devidence Go CI Reusable Workflow, Deploy Job: Build, Push & Deploy, Deploy Job: Resolve Build Args, Devidence CD Build Deploy Reusable Workflow, Build and Deploy Workflow, README (+24 more)
+Cohesion: 0.07
+Nodes (31): CI Job: Devidence Go CI, CI Pipeline Workflow, Devidence Go CI Reusable Workflow, Deploy Job: Build, Push & Deploy, Deploy Job: Resolve Build Args, Devidence CD Build Deploy Reusable Workflow, Build and Deploy Workflow, README (+23 more)
 
 ### Community 4 - "config.go"
-Cohesion: 0.06
-Nodes (65): GitHubConfig, GitHubHTTPConfig, HTTPConfig, KubernetesConfig, KubernetesHTTPConfig, namedDuration, ServerConfig, TelegramConfig (+57 more)
+Cohesion: 0.08
+Nodes (47): GitHubConfig, GitHubHTTPConfig, HTTPConfig, IgnoreRule, KubernetesConfig, KubernetesHTTPConfig, ServerConfig, TelegramConfig (+39 more)
 
 ### Community 5 - "net/http.Request"
 Cohesion: 0.06
-Nodes (33): failingRoundTripper, net/http.Request, net/http.Response, net/http.ResponseWriter, messageSender, WebhookHandler, webhookSender, WebhookProcessorConfig (+25 more)
+Nodes (33): failingRoundTripper, net/http.Request, net/http.Response, messageSender, WebhookHandler, webhookSender, WebhookProcessorConfig, NewWebhookHandler() (+25 more)
 
 ### Community 6 - "ADDED Requirements"
 Cohesion: 0.09
 Nodes (22): ADDED Requirements, Purpose, Requirement: Exact run link, Requirement: Failure notification for scheduled dispatch, Requirement: Fixed local timezone, Requirement: Graceful stop, Requirement: Optional schedule per workflow command, Requirement: Scheduled dispatch uses the command's dispatch path (+14 more)
 
-### Community 7 - "telegram_webhook_test.go"
-Cohesion: 0.24
-Nodes (18): go.uber.org/zap/zaptest/observer.ObservedLogs, TestHandleReplyFailureIsLoggedAndRoutingContinues(), TestHandleUnauthorizedLogsWarning(), TestHandleUnknownCommand(), assertDispatchErrorLogged(), commandUpdate(), BotHandlerDeps, newBotHandler() (+10 more)
+### Community 7 - "NewCommandSpecs"
+Cohesion: 0.10
+Nodes (36): go.uber.org/zap/zaptest/observer.ObservedLogs, sync.Mutex, fakeDispatcher, fakeJobCreator, fakeMessenger, NewCommandSpecs(), assertScheduledNotices(), TestAllowList() (+28 more)
 
 ### Community 8 - "generic_test.go"
 Cohesion: 0.06
@@ -227,8 +232,8 @@ Cohesion: 0.04
 Nodes (46): ADDED Requirements, Purpose, Requirement: Body preparation, Requirement: Extractor configuration validation, Requirement: Malformed message handling, Requirement: Mark-as-read policy, Requirement: Marker extraction, Requirement: Not-found text (+38 more)
 
 ### Community 11 - "github.com/a-h/templ.Component"
-Cohesion: 0.16
-Nodes (18): github.com/a-h/templ.Component, ToneChip(), ToneDot(), TypeChip(), TypeDot(), CopyButton(), DepRow(), FileGroup() (+10 more)
+Cohesion: 0.06
+Nodes (67): CopyView, CountChip, documentView, EntryView, FileGroupView, RepoGroupView, SummaryLine, TabView (+59 more)
 
 ### Community 12 - "Decisions"
 Cohesion: 0.06
@@ -239,8 +244,8 @@ Cohesion: 0.09
 Nodes (22): ADDED Requirements, Purpose, Requirement: All up to date, Requirement: Authenticated endpoint, Requirement: Delivery, Requirement: Per-repository message, Requirement: Renovate failure message, Requirement: Request handling (+14 more)
 
 ### Community 15 - "document.go"
-Cohesion: 0.11
-Nodes (21): DocumentPresenter, documentView, ErrorView, ScanError, SummaryLine, TabView, TestFaviconIsDataURI(), buildDocumentView() (+13 more)
+Cohesion: 0.26
+Nodes (9): docBuilder, ErrorView, ScanError, Tab, tabSpec, buildDocumentView(), labelSet, newLabels() (+1 more)
 
 ### Community 19 - "Requirements"
 Cohesion: 0.12
@@ -252,7 +257,7 @@ Nodes (21): ADDED Requirements, Purpose, Requirement: Bot texts from the message
 
 ### Community 22 - "dependency_report_test.go"
 Cohesion: 0.14
-Nodes (31): fakeSender, gatedSender, goldenSends, reportHandlerCase, reportRequest, sentCall, goldenOutputs(), readGolden() (+23 more)
+Nodes (33): fakeSender, gatedSender, goldenSends, reportHandlerCase, reportRequest, sentCall, goldenOutputs(), readGolden() (+25 more)
 
 ### Community 23 - "ADDED Requirements"
 Cohesion: 0.15
@@ -286,9 +291,9 @@ Nodes (38): ADDED Requirements, Purpose, Requirement: Bounded response bodies, R
 Cohesion: 0.22
 Nodes (8): Capabilities, Impact, Modified Capabilities, New Capabilities, Non-goals, Proposal, What Changes, Why
 
-### Community 31 - "Catalog"
-Cohesion: 0.09
-Nodes (34): defaultCatalog(), BotHandlerDeps, applyGroup(), applyOverrides(), checkPlaceholders(), flatten(), Catalog, hasGroup() (+26 more)
+### Community 31 - "Load"
+Cohesion: 0.13
+Nodes (23): TestBotTextDefaults(), applyGroup(), applyOverrides(), checkPlaceholders(), flatten(), hasGroup(), join(), Load() (+15 more)
 
 ### Community 32 - "Design"
 Cohesion: 0.25
@@ -300,11 +305,11 @@ Nodes (7): 1. Pre-checks, 2. Config and wiring, 3. Job commands, 4. Dependency r
 
 ### Community 34 - "testing.T"
 Cohesion: 0.09
-Nodes (55): testing.T, assertJobsAndReportLoad(), assertScheduleError(), Config, loadExampleConfig(), loadYAML(), TestLoadDefaults(), TestLoadErrorMissingConfig() (+47 more)
+Nodes (47): testing.T, Load(), assertJobsAndReportLoad(), Config, loadExampleConfig(), loadYAML(), TestDependencyReportIgnored(), TestLoadDefaults() (+39 more)
 
-### Community 35 - "Aggregate"
-Cohesion: 0.19
-Nodes (19): Dep, PackageFile, Problem, RepoReport, Update, countingAggregate, Aggregate(), Summary (+11 more)
+### Community 35 - "Report"
+Cohesion: 0.26
+Nodes (10): Dep, PackageFile, Problem, RepoReport, Update, countingAggregate, scanErrors(), sortedRepoNames() (+2 more)
 
 ### Community 36 - "Requirements"
 Cohesion: 0.04
@@ -315,8 +320,8 @@ Cohesion: 0.12
 Nodes (16): Purpose, Requirement: Configurable readiness wait, Requirement: Restart a Deployment from Telegram, Requirement: Wait runs in the background, Requirements, restart-commands Specification, Scenario: Custom poll interval, Scenario: Defaults without the section (+8 more)
 
 ### Community 38 - "telegram/client_test.go"
-Cohesion: 0.09
-Nodes (41): fakeMenu, Client, github.com/go-telegram-bot-api/telegram-bot-api/v5.BotAPI, github.com/go-telegram-bot-api/telegram-bot-api/v5.BotCommand, github.com/go-telegram-bot-api/telegram-bot-api/v5.HTTPClient, mime/multipart.FileHeader, mime/multipart.Form, net/http.HandlerFunc (+33 more)
+Cohesion: 0.15
+Nodes (29): Client, mime/multipart.FileHeader, mime/multipart.Form, net/http.HandlerFunc, checkDocumentRequest(), checkFileBytes(), checkFormValue(), Config (+21 more)
 
 ### Community 39 - "Requirement: Configurable readiness wait"
 Cohesion: 0.12
@@ -360,7 +365,7 @@ Nodes (9): Capabilities, Dependency, Impact, Modified Capabilities, New Capabili
 
 ### Community 49 - "RouteEnv"
 Cohesion: 0.29
-Nodes (11): routeEntry, mountRoute(), registerRoutes(), github.com/gorilla/mux.Router, net/http.Handler, Route, RouteFactory, RouteEnv (+3 more)
+Nodes (10): routeEntry, net/http.Handler, Route, RouteFactory, WebhookConfig, validateHooks(), RouteEnv, LookupRouteFactory() (+2 more)
 
 ### Community 50 - "Tasks"
 Cohesion: 0.15
@@ -387,28 +392,28 @@ Cohesion: 0.11
 Nodes (17): Context, Coordination with sibling changes, D1. Extraction is a strategy chosen by `extractor`, with two implementations, D2. Built-in name defaults are removed; configs carry the values, D3. Defaults live in `config`, applied through accessors, D4. Regexes are validated at load and compiled once at construction, D5. `messageSender` and `TemplateNotifier`, D6. `GenericEmailProcessor` is a composition (+9 more)
 
 ### Community 57 - "imap_test.go"
-Cohesion: 0.13
-Nodes (20): fakeSession, imap.FetchItem, imap.MailboxStatus, imap.SeqSet, imap.StoreItem, imap.Message, imap.SearchCriteria, inSeqSet() (+12 more)
+Cohesion: 0.14
+Nodes (19): fakeSession, imap.FetchItem, imap.MailboxStatus, imap.SeqSet, imap.StoreItem, imap.Message, imap.SearchCriteria, inSeqSet() (+11 more)
 
-### Community 58 - "components_test.go"
-Cohesion: 0.29
-Nodes (18): expectContains(), fixtureView(), muxEntry(), renderOf(), TestCopyButtonStates(), TestDepRowColumnsAndCopy(), TestEntryEscapesValues(), TestErrorsCardRows() (+10 more)
+### Community 58 - "Client"
+Cohesion: 0.25
+Nodes (10): github.com/go-telegram-bot-api/telegram-bot-api/v5.BotAPI, github.com/go-telegram-bot-api/telegram-bot-api/v5.HTTPClient, Client, NewClient(), newClient(), newClientWithBot(), parseInt64(), resolveChat() (+2 more)
 
 ### Community 59 - "aggregate.go"
-Cohesion: 0.25
-Nodes (13): depKey, RepoPending, Row, tabBuilder, addFileDeps(), compareRows(), firstNonNil(), newTabBuilder() (+5 more)
+Cohesion: 0.36
+Nodes (9): depKey, Row, tabBuilder, addFileDeps(), compareRows(), firstNonNil(), newTabBuilder(), pendingByRepo() (+1 more)
 
 ### Community 60 - "main_test.go"
-Cohesion: 0.17
-Nodes (14): fakeAdder, noopSender, jobPost(), routesFor(), routesWith(), TestNewGitHubClientNilWhenUnconfigured(), TestNewHTTPServerUsesConfiguredTimeouts(), TestNewKubeClientNilWhenUnconfigured() (+6 more)
+Cohesion: 0.15
+Nodes (17): fakeAdder, noopSender, mountRoute(), registerRoutes(), jobPost(), routesFor(), routesWith(), TestNewGitHubClientNilWhenUnconfigured() (+9 more)
 
-### Community 61 - "Tab"
-Cohesion: 0.26
-Nodes (11): BarSegment, docBuilder, LegendItem, StatsView, Tab, tabSpec, pick(), labelSet (+3 more)
+### Community 61 - "StatsView"
+Cohesion: 0.43
+Nodes (7): BarSegment, LegendItem, StatsView, labelSet, legendOf(), percentOf(), segmentsOf()
 
 ### Community 62 - "go.uber.org/zap.Logger"
-Cohesion: 0.47
-Nodes (10): main(), newGitHubClient(), newHTTPServer(), newKubeClient(), newTelegramClient(), setupWorkflowBot(), shutdownServer(), startServer() (+2 more)
+Cohesion: 0.42
+Nodes (11): lazyScheduler, main(), newGitHubClient(), newHTTPServer(), newKubeClient(), newTelegramClient(), setupWorkflowBot(), shutdownServer() (+3 more)
 
 ### Community 63 - "Tasks"
 Cohesion: 0.22
@@ -435,20 +440,20 @@ Cohesion: 0.20
 Nodes (9): Capabilities, Dependency, Impact, Modified Capabilities, New Capabilities, Non-goals, Proposal, What Changes (+1 more)
 
 ### Community 70 - "NewClient"
-Cohesion: 0.20
-Nodes (17): Client, Config, net.Dialer, net/http.Client, NewClient(), newDialer(), TestNewClientAppliesSettings(), NewClient() (+9 more)
+Cohesion: 0.27
+Nodes (11): Config, NewClient(), newClient(), NewClientWithBaseURL(), assertDispatchWorkflowRequest(), TestDispatchWorkflow(), TestDispatchWorkflowCapsOversizedBody(), TestDispatchWorkflowNetworkError() (+3 more)
 
 ### Community 71 - "Requirement: Document tabs"
 Cohesion: 0.17
 Nodes (12): Requirement: Document tabs, Scenario: Digest only, Scenario: Dockerfile image and missing datasource, Scenario: Document fork tag override, Scenario: Exact duplicates, Scenario: Fork tag, Scenario: Grouping order, Scenario: Image dependency (+4 more)
 
 ### Community 72 - "summaryAt"
-Cohesion: 0.18
-Nodes (27): TestFaviconLinkIsNotSanitized(), TestLogoAssetsAreClean(), TestLogoWordmarkUsesTokens(), TestReportScriptEmbedded(), TestReportScriptHasNoStorage(), panes(), presentDocument(), TestDocumentDefaultsHaveNoEnglishLabels() (+19 more)
+Cohesion: 0.20
+Nodes (28): TestFaviconLinkIsNotSanitized(), TestReportScriptEmbedded(), TestCaptionDateLayout(), fixtureView(), documentViewOf(), panes(), presentDocument(), TestDocumentDefaultsHaveNoEnglishLabels() (+20 more)
 
 ### Community 73 - "DependencyReportHandler"
-Cohesion: 0.23
-Nodes (10): time.Time, DependencyReportHandler, NewDependencyReportHandler(), newReportHandlerAt(), testReportConfig(), Deliverer, Delivery, ReportSender (+2 more)
+Cohesion: 0.25
+Nodes (7): net/http.ResponseWriter, time.Time, DependencyReportHandler, Delivery, DocumentName(), Presenter, fixedClock()
 
 ### Community 74 - "Requirement: Configured local timezone"
 Cohesion: 0.25
@@ -456,7 +461,7 @@ Nodes (7): MODIFIED Requirements, RENAMED Requirements, Requirement: Configured 
 
 ### Community 75 - "Email"
 Cohesion: 0.05
-Nodes (35): Dispatcher, fakeDispatcher, fakeSource, imapSession, IMAPSource, markingProcessor, plainProcessor, Poller (+27 more)
+Nodes (36): Dispatcher, fakeDispatcher, fakeSource, imapSession, IMAPSource, markingProcessor, plainProcessor, Poller (+28 more)
 
 ### Community 76 - "Requirement: Scheduled job commands"
 Cohesion: 0.33
@@ -508,11 +513,11 @@ Nodes (8): MODIFIED Requirements, Requirement: Embedded default catalog, Scenari
 
 ### Community 88 - "NewScheduledRunner"
 Cohesion: 0.24
-Nodes (10): menuPublisher, scheduleAdder, registerCommands(), TestJobSchedulesUseConfiguredZone(), TestRegisterCommandsMenuRejectedReturnsError(), TestRegisterCommandsOneLoop(), CommandSpec, BotHandlerDeps (+2 more)
+Nodes (9): menuPublisher, scheduleAdder, registerCommands(), TestJobSchedulesUseConfiguredZone(), TestRegisterCommandsMenuRejectedReturnsError(), TestRegisterCommandsOneLoop(), BotHandlerDeps, ScheduledRunner (+1 more)
 
 ### Community 89 - "kube/client.go"
-Cohesion: 0.22
-Nodes (14): encoding/json.RawMessage, jobFromTemplate(), newClient(), NewInClusterClient(), TestInClusterSettingsUseCA(), TestNewInClusterClientOutsideCluster(), withServiceAccountCA(), apiCall (+6 more)
+Cohesion: 0.36
+Nodes (9): encoding/json.RawMessage, jobFromTemplate(), apiCall, cronJob, cronJobTemplate, cronJobTemplateMetadata, job, objectMeta (+1 more)
 
 ### Community 90 - "2026-10-12-redesign-dependency-report-document/proposal.md"
 Cohesion: 0.40
@@ -530,9 +535,13 @@ Nodes (6): 1. Shared HTTP package and configuration, 2. Telegram client, 3. GitH
 Cohesion: 0.40
 Nodes (5): Requirement: Copy buttons, Scenario: Clipboard API blocked, Scenario: Dependency copy, Scenario: Image copy, Scenario: Image entry has one copy button
 
-### Community 95 - "time.Location"
+### Community 94 - "Settings"
+Cohesion: 0.24
+Nodes (12): crypto/tls.Config, net.Dialer, net/http.Client, Settings, NewClient(), newDialer(), TestNewClientAppliesSettings(), newClient() (+4 more)
+
+### Community 95 - "Scheduler"
 Cohesion: 0.15
-Nodes (16): lazyScheduler, cron.Cron, cron.EntryID, cron.Schedule, cron.ScheduleParser, time.Location, Scheduler, New() (+8 more)
+Nodes (14): cron.Cron, cron.EntryID, cron.Schedule, cron.ScheduleParser, Scheduler, New(), newWithParser(), ParseSpec() (+6 more)
 
 ### Community 96 - "Requirement: Body size cap"
 Cohesion: 0.13
@@ -555,12 +564,12 @@ Cohesion: 0.40
 Nodes (5): Requirement: Copy buttons, Scenario: Clipboard API blocked, Scenario: Dependency copy, Scenario: Image copy, Scenario: Image entry has one copy button
 
 ### Community 101 - "BotHandlerDeps"
-Cohesion: 0.24
-Nodes (11): github.com/go-telegram-bot-api/telegram-bot-api/v5.Message, github.com/go-telegram-bot-api/telegram-bot-api/v5.Update, DeploymentRestarter, JobCreator, TelegramMessenger, BotHandler, BotHandlerDeps, KubeClient (+3 more)
+Cohesion: 0.29
+Nodes (10): DeploymentRestarter, JobCreator, replier, TelegramMessenger, CommandSpec, BotHandler, BotHandlerDeps, KubeClient (+2 more)
 
 ### Community 102 - "command"
-Cohesion: 0.20
-Nodes (6): allowList, command, replier, BotHandlerDeps, newCommand(), newReplier()
+Cohesion: 0.17
+Nodes (7): allowList, command, defaultCatalog(), BotHandlerDeps, BotHandlerDeps, newCommand(), newReplier()
 
 ### Community 103 - "Requirement: Document theme"
 Cohesion: 0.40
@@ -575,8 +584,8 @@ Cohesion: 0.18
 Nodes (10): css, parser, files, includes, formatter, enabled, linter, enabled (+2 more)
 
 ### Community 106 - "retry_test.go"
-Cohesion: 0.26
-Nodes (14): TestNewClientWithoutEnvProxyOrHTTP2(), TestSendCapsBodyAtLimit(), TestSendReturnsStatusAndBody(), apiError(), rateLimited(), retryTest(), testBackoff(), TestBackoffNoOverflowAtHighAttempts() (+6 more)
+Cohesion: 0.42
+Nodes (11): apiError(), rateLimited(), retryTest(), testBackoff(), TestBackoffNoOverflowAtHighAttempts(), TestRetryingSenderBackoffSequence(), TestRetryingSenderCapsBackoffAtCeiling(), TestRetryingSenderClassification() (+3 more)
 
 ### Community 107 - "Requirement: Repo summary row"
 Cohesion: 0.40
@@ -598,9 +607,9 @@ Nodes (8): Capabilities, Impact, Modified Capabilities, New Capabilities, Non-go
 Cohesion: 0.22
 Nodes (8): 1. Config package, 2. Processor package, 3. Email package, 4. Torrent webhook, 5. Quality gates, 6. User and other-repo steps, 7. Final validation, Tasks
 
-### Community 112 - "presentCaption"
+### Community 112 - "reportOf"
 Cohesion: 0.25
-Nodes (13): repoJSON(), presentCaption(), TestCaptionDateLayout(), TestCaptionEscapesNames(), TestCaptionFixture(), TestCaptionHeaderOverride(), TestCaptionNothingPending(), TestCaptionOverflow() (+5 more)
+Nodes (17): Aggregate(), repoJSON(), reportOf(), TestAggregateDigestOnlyRepoHasNoPending(), TestAggregateFixtureTotals(), TestAggregateSplitsImagesFromDeps(), TestOneDepTwoUpdates(), TestPendingOrder() (+9 more)
 
 ### Community 113 - "Requirement: Repo sections"
 Cohesion: 0.50
@@ -630,41 +639,41 @@ Nodes (3): Requirement: Motion, Scenario: Panel enters, Scenario: Reduced motion
 Cohesion: 0.67
 Nodes (3): Requirement: Renovate failure message, Scenario: Exit code 1, Scenario: Title override
 
-### Community 124 - "NewCommandSpecs"
-Cohesion: 0.24
-Nodes (13): NewCommandSpecs(), assertScheduledNotices(), TestAllowList(), TestBotTextDefaults(), TestJobCommandRun(), TestJobRunScheduled(), TestNewCommandSpecsOrder(), TestNewCommandSpecsWorkflowsOnlyLeavesKubeNil() (+5 more)
+### Community 124 - "Catalog"
+Cohesion: 0.29
+Nodes (6): DocumentPresenter, time.Location, NewDependencyReportHandler(), Catalog, NewCaptionPresenter(), NewDocumentPresenter()
 
 ### Community 125 - "document_view_test.go"
-Cohesion: 0.42
-Nodes (13): documentViewOf(), groupsOf(), layout(), TestGroupsEntryFields(), TestGroupsLayout(), TestGroupsPerTabCounts(), TestGroupsSectionOrderAndFullName(), TestGroupsSummaryRow() (+5 more)
+Cohesion: 0.53
+Nodes (11): groupsOf(), layout(), TestGroupsEntryFields(), TestGroupsLayout(), TestGroupsPerTabCounts(), TestGroupsSectionOrderAndFullName(), TestGroupsSummaryRow(), TestSummaryLinesSingularAndPlural() (+3 more)
 
 ### Community 126 - "Requirement: Summary caption"
 Cohesion: 0.40
 Nodes (5): Requirement: Summary caption, Scenario: Caption over the limit, Scenario: Error count line, Scenario: No listed update, Scenario: Stats lines across both tabs
 
 ### Community 127 - "context.Context"
-Cohesion: 0.31
-Nodes (5): context.Context, blockingRestarter, resourceURL(), Client, deploymentStatus
+Cohesion: 0.23
+Nodes (6): context.Context, github.com/go-telegram-bot-api/telegram-bot-api/v5.Update, blockingRestarter, resourceURL(), Client, deploymentStatus
 
-### Community 128 - "renderer"
-Cohesion: 0.29
-Nodes (5): CaptionPresenter, renderer, countsText(), NewCaptionPresenter(), Presenter
+### Community 128 - "Summary"
+Cohesion: 0.25
+Nodes (8): CaptionPresenter, renderer, RepoPending, Summary, pendingLess(), ShortName(), TestShortName(), countsText()
 
 ### Community 129 - "NewDeliverer"
-Cohesion: 0.31
-Nodes (6): fakeSender, NewDeliverer(), TestDeliverFailureMessageIsTextOnly(), TestDeliverFallsBackToCaptionText(), TestDeliverLogsSenderError(), TestDeliverSendsDocumentWithCaption()
+Cohesion: 0.23
+Nodes (8): fakeSender, Deliverer, ReportSender, NewDeliverer(), TestDeliverFailureMessageIsTextOnly(), TestDeliverFallsBackToCaptionText(), TestDeliverLogsSenderError(), TestDeliverSendsDocumentWithCaption()
 
-### Community 130 - "workflowCommand"
-Cohesion: 0.31
-Nodes (4): go.uber.org/zap.Field, workflowCommand, BotHandlerDeps, newWorkflowCommand()
+### Community 130 - "WorkflowCommandConfig"
+Cohesion: 0.29
+Nodes (5): go.uber.org/zap.Field, workflowCommand, WorkflowCommandConfig, BotHandlerDeps, newWorkflowCommand()
 
-### Community 131 - "fakeMessenger"
-Cohesion: 0.22
-Nodes (6): sync.Mutex, fakeDispatcher, fakeJobCreator, fakeMessenger, assertScheduledRun(), TestScheduledRunnerWorkflow()
+### Community 131 - "settings_test.go"
+Cohesion: 0.33
+Nodes (10): expectSettingError(), loadZone(), TestDependencyReportDocumentNameNeedsDate(), TestDependencyReportInvalidPath(), TestDependencyReportNonNumericBodyLimit(), TestDependencyReportTokenHeaderAndLayout(), TestDependencyReportZeroBodyLimit(), TestLoadDefaultTimezone() (+2 more)
 
-### Community 132 - "Send"
+### Community 132 - "Client"
 Cohesion: 0.39
-Nodes (4): net/http.Header, Request, Response, Send()
+Nodes (5): Client, net/http.Header, Request, Response, Send()
 
 ### Community 133 - "Requirement: Safe document content"
 Cohesion: 0.67
@@ -675,21 +684,47 @@ Cohesion: 0.43
 Nodes (3): jobCommand, BotHandlerDeps, newJobCommand()
 
 ### Community 135 - "restartCommand"
-Cohesion: 0.47
-Nodes (3): restartCommand, BotHandlerDeps, newRestartCommand()
+Cohesion: 0.43
+Nodes (4): restartCommand, RestartCommandConfig, BotHandlerDeps, newRestartCommand()
+
+### Community 136 - ".Send"
+Cohesion: 0.28
+Nodes (6): github.com/go-telegram-bot-api/telegram-bot-api/v5.Chattable, github.com/go-telegram-bot-api/telegram-bot-api/v5.Message, username(), TestNewClientWithoutEnvProxyOrHTTP2(), TestSendCapsBodyAtLimit(), TestSendReturnsStatusAndBody()
+
+### Community 137 - "keys_test.go"
+Cohesion: 0.52
+Nodes (6): defaultCatalog(), ownKeys(), TestDefaultsHaveEveryKey(), TestDefaultsKeepPlaceholders(), TestNewKeysRender(), TestUnusedBatch3KeysStillValidate()
+
+### Community 138 - "BuildFailure"
+Cohesion: 0.53
+Nodes (5): BuildFailure(), escapedSuffix(), keptLines(), logTailBlock(), TestEscapedSuffixKeepsWholeEntities()
+
+### Community 140 - "⚙️ Configuration"
+Cohesion: 0.40
+Nodes (5): ⚙️ Configuration, 🔐 Step 1: Setup Configuration, 📝 Step 2: Configure Services, 🤖 Step 3: Setup Telegram Bot, ▶️ Trigger GitHub Actions from Telegram
+
+### Community 142 - "assets_test.go"
+Cohesion: 0.50
+Nodes (3): TestLogoAssetsAreClean(), TestLogoWordmarkUsesTokens(), TestReportScriptHasNoStorage()
+
+### Community 143 - "renovate_test.go"
+Cohesion: 0.50
+Nodes (3): TestParseReportFixture(), TestParseReportInvalidJSON(), TestReportFilter()
 
 ## Knowledge Gaps
 - **717 isolated node(s):** `$schema`, `enabled`, `enabled`, `tailwindDirectives`, `includes` (+712 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 854 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 856 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **8 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `🤖 Automation Hub` connect `🤖 Automation Hub` to `config.go`?**
-  _High betweenness centrality (0.016) - this node is a cross-community bridge._
-- **Why does `Config` connect `config.go` to `RouteEnv`, `time.Location`, `main_test.go`, `go.uber.org/zap.Logger`, `Catalog`?**
-  _High betweenness centrality (0.014) - this node is a cross-community bridge._
+- **Why does `Config` connect `config.go` to `WorkflowCommandConfig`, `testing.T`, `restartCommand`, `main_test.go`, `RouteEnv`, `Catalog`, `go.uber.org/zap.Logger`?**
+  _High betweenness centrality (0.019) - this node is a cross-community bridge._
+- **Why does `Catalog` connect `Catalog` to `Summary`, `config.go`, `BotHandlerDeps`, `command`, `summaryAt`, `DependencyReportHandler`, `BuildFailure`, `keys_test.go`, `RouteEnv`, `Load`?**
+  _High betweenness centrality (0.019) - this node is a cross-community bridge._
+- **Why does `GenericEmailProcessor` connect `generic_test.go` to `net/http.Request`, `go.uber.org/zap.Logger`?**
+  _High betweenness centrality (0.018) - this node is a cross-community bridge._
 - **Are the 26 inferred relationships involving `loadYAML()` (e.g. with `loadFrom()` and `TestLoad_EmailDefaults()`) actually correct?**
   _`loadYAML()` has 26 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 28 inferred relationships involving `summaryAt()` (e.g. with `TestFaviconLinkIsNotSanitized()` and `TestReportScriptEmbedded()`) actually correct?**
@@ -698,5 +733,3 @@ _Questions this graph is uniquely positioned to answer:_
   _717 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Requirements` be split into smaller, more focused modules?**
   _Cohesion score 0.08695652173913043 - nodes in this community are weakly interconnected._
-- **Should `Requirement: Document tabs` be split into smaller, more focused modules?**
-  _Cohesion score 0.043478260869565216 - nodes in this community are weakly interconnected._
