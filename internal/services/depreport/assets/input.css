@@ -28,8 +28,8 @@
 	--ink: #0b1b25;
 	--ink-2: #33475a;
 	--muted: #56697a;
+	--muted-2: #7a8a96;
 	--accent: #0a63c2;
-	--file: #0a63c2;
 	--glass: rgba(255, 255, 255, 0.55);
 	--glass-strong: rgba(255, 255, 255, 0.52);
 	--glass-soft: rgba(255, 255, 255, 0.38);
@@ -88,7 +88,7 @@
 		--ink-2: #c9d8e2;
 		--muted: #9fb6c6;
 		--accent: #7fd9ea;
-		--file: #7fd9ea;
+		--muted-2: #5d7586;
 		--glass: rgba(255, 255, 255, 0.05);
 		--glass-strong: rgba(255, 255, 255, 0.06);
 		--glass-soft: rgba(255, 255, 255, 0.06);
@@ -144,7 +144,7 @@
 	--ink-2: #c9d8e2;
 	--muted: #9fb6c6;
 	--accent: #7fd9ea;
-	--file: #7fd9ea;
+	--muted-2: #5d7586;
 	--glass: rgba(255, 255, 255, 0.05);
 	--glass-strong: rgba(255, 255, 255, 0.06);
 	--glass-soft: rgba(255, 255, 255, 0.06);
@@ -183,7 +183,7 @@
 	--color-ink-2: var(--ink-2);
 	--color-muted: var(--muted);
 	--color-accent: var(--accent);
-	--color-file: var(--file);
+	--color-muted-2: var(--muted-2);
 	--color-line: var(--line);
 	--color-count: var(--count-bg);
 	--color-patch: var(--patch);
