@@ -1,0 +1,7 @@
+# Real Google app password, revoked 2026-10-12 (replacement lives in Infisical).
+c91a8e4e797b4279c451fb29cb7af8eac25e9a4f:configs/config.yaml:generic-password:21
+# Placeholders in test fixtures / example config / README, not real secrets.
+06682ef5003ca8f9185da92c73cffe0810da4526:internal/config/config_test.go:generic-password:26
+d0ccae76abb13c2907cdae116f912ad2926edac3:configs/config.yaml.example:generic-password:8
+d0ccae76abb13c2907cdae116f912ad2926edac3:README.md:generic-password:73
+d0ccae76abb13c2907cdae116f912ad2926edac3:README.md:generic-password:266
