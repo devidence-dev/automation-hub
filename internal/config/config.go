@@ -348,6 +348,8 @@ type DependencyReportConfig struct {
 	// In production the value is an unquoted Infisical reference holding a JSON
 	// array, so YAML reads a list; a quoted reference becomes a string and is rejected.
 	Forks []string `mapstructure:"forks"`
+	// Ignore lists package files the report leaves out, for example the folders of disabled apps.
+	Ignore []IgnoreRule `mapstructure:"ignore"`
 	// Path is the route the Job posts to, TokenHeader the header that carries WebhookToken.
 	Path        string `mapstructure:"path"`
 	TokenHeader string `mapstructure:"token_header"`
@@ -357,6 +359,28 @@ type DependencyReportConfig struct {
 	DocumentName string `mapstructure:"document_name"`
 	// DateLayout is the Go time layout of that date.
 	DateLayout string `mapstructure:"date_layout"`
+}
+
+// IgnoreRule hides package files of one repo: each path is a file or a folder (matches everything under it).
+type IgnoreRule struct {
+	Repo  string   `mapstructure:"repo"`
+	Paths []string `mapstructure:"paths"`
+}
+
+// Ignored reports whether the package file of repo matches an ignore rule.
+func (r DependencyReportConfig) Ignored(repo, file string) bool {
+	for _, rule := range r.Ignore {
+		if !strings.EqualFold(rule.Repo, repo) {
+			continue
+		}
+		for _, p := range rule.Paths {
+			p = strings.TrimSuffix(p, "/")
+			if file == p || strings.HasPrefix(file, p+"/") {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 type WebhookConfig struct {
@@ -792,6 +816,11 @@ func validateDependencyReport(report *DependencyReportConfig) error {
 	}
 	if _, isString := viper.Get("dependency_report.forks").(string); isString {
 		return fmt.Errorf("dependency_report.forks must be a YAML list: do not quote the reference")
+	}
+	for _, rule := range report.Ignore {
+		if rule.Repo == "" || len(rule.Paths) == 0 {
+			return fmt.Errorf("dependency_report.ignore entries need repo and paths")
+		}
 	}
 	return validateReportSettings(report)
 }

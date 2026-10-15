@@ -49,3 +49,20 @@ func ParseReport(data []byte) (Report, error) {
 	}
 	return rep, nil
 }
+
+// Filter returns the report without the package files for which ignored(repo, file) is true.
+func (r Report) Filter(ignored func(repo, file string) bool) Report {
+	out := Report{Problems: r.Problems, Repositories: make(map[string]RepoReport, len(r.Repositories))}
+	for name, repo := range r.Repositories {
+		files := make(map[string][]PackageFile, len(repo.PackageFiles))
+		for manager, list := range repo.PackageFiles {
+			for _, f := range list {
+				if !ignored(name, f.PackageFile) {
+					files[manager] = append(files[manager], f)
+				}
+			}
+		}
+		out.Repositories[name] = RepoReport{Problems: repo.Problems, PackageFiles: files}
+	}
+	return out
+}

@@ -44,3 +44,12 @@ func TestParseReportInvalidJSON(t *testing.T) {
 		t.Error("ParseReport() accepted invalid JSON")
 	}
 }
+
+func TestReportFilter(t *testing.T) {
+	rep := reportOf(t, `"o/r":{"packageFiles":{"helm":[{"packageFile":"a/on.yaml","deps":[]},{"packageFile":"a/off.yaml","deps":[]}]}}`)
+	got := rep.Filter(func(_, file string) bool { return file == "a/off.yaml" })
+	files := got.Repositories["o/r"].PackageFiles["helm"]
+	if len(files) != 1 || files[0].PackageFile != "a/on.yaml" {
+		t.Errorf("Filter() files = %+v, want only a/on.yaml", files)
+	}
+}

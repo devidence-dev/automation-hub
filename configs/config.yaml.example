@@ -111,6 +111,11 @@ dependency_report:
   webhook_token: "${DEPENDENCY_REPORT_TOKEN}"
   telegram_chat_id: "{{TELEGRAM_DEPENDENCY_REPORT_CHAT_ID}}"
   forks: ${DEPENDENCY_REPORT_FORKS}  # e.g. ["devidence-dev/discord-tts-bot"]
+  # Optional: package files left out of the report, e.g. folders of disabled apps. A path is a
+  # file or a folder (everything under it), relative to the repo root.
+  # ignore:
+  #   - repo: "devidence-dev/homelab"
+  #     paths: ["kubernetes/apps/disabled-app"]
   # Optional, shown with their defaults:
   # path: "/webhook/dependency-report"
   # token_header: "X-Report-Token"

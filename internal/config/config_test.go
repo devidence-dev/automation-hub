@@ -411,3 +411,20 @@ func TestValidateRestartReady(t *testing.T) {
 		})
 	}
 }
+
+func TestDependencyReportIgnored(t *testing.T) {
+	cfg := DependencyReportConfig{Ignore: []IgnoreRule{{Repo: "o/Homelab", Paths: []string{"k/apps/off/", "k/x.yaml"}}}}
+	for _, tc := range []struct {
+		repo, file string
+		want       bool
+	}{
+		{"o/homelab", "k/apps/off/values.yaml", true},
+		{"o/homelab", "k/x.yaml", true},
+		{"o/homelab", "k/apps/offline/values.yaml", false},
+		{"o/other", "k/apps/off/values.yaml", false},
+	} {
+		if got := cfg.Ignored(tc.repo, tc.file); got != tc.want {
+			t.Errorf("Ignored(%q, %q) = %v, want %v", tc.repo, tc.file, got, tc.want)
+		}
+	}
+}

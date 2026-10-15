@@ -255,6 +255,9 @@ dependency_report:
   # Do not quote this reference. It holds a JSON array, so unquoted YAML reads a
   # list. A quoted reference is a string and config loading fails.
   forks: ${DEPENDENCY_REPORT_FORKS}              # e.g. ["devidence-dev/discord-tts-bot"]
+  ignore:                                        # optional: package files left out of the report
+    - repo: "devidence-dev/homelab"              # a path is a file or a folder, relative to the repo root
+      paths: ["kubernetes/apps/disabled-app"]
   path: "/webhook/dependency-report"             # route; must start with /
   token_header: "X-Report-Token"                 # header carrying webhook_token
   max_body_bytes: 10485760                       # 10 MiB, must be positive
