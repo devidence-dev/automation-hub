@@ -428,3 +428,20 @@ func TestDependencyReportIgnored(t *testing.T) {
 		}
 	}
 }
+
+func TestLoadIgnoreRules(t *testing.T) {
+	cfg, err := loadYAML(t, `
+dependency_report:
+  webhook_token: "t"
+  telegram_chat_id: "1"
+  ignore:
+    - repo: "devidence-dev/homelab"
+      paths: ["kubernetes/apps/bitwarden"]
+`)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if !cfg.DependencyReport.Ignored("devidence-dev/homelab", "kubernetes/apps/bitwarden/values.yaml") {
+		t.Errorf("Ignore = %+v, want bitwarden ignored", cfg.DependencyReport.Ignore)
+	}
+}
