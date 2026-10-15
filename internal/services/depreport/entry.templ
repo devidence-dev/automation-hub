@@ -10,9 +10,10 @@ templ FileGroup(f FileGroupView) {
 			<svg class="shrink-0 fill-none stroke-muted-2 stroke-[1.1]" width="12" height="12" viewBox="0 0 12 12" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2.5 1.5h4.5l2.5 2.5v6.5h-7z"></path><path d="M7 1.5V4h2.5"></path></svg>
 			<span class="min-w-0 [overflow-wrap:anywhere]">
 				if f.Dir != "" {
-					<span class="text-muted-2">{ f.Dir }</span>
+					<span class="text-muted-2">{ f.Dir }</span>{ f.Short }
+				} else {
+					{ f.Short }
 				}
-				{ f.Short }
 			</span>
 		</p>
 	</div>

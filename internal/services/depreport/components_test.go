@@ -209,3 +209,9 @@ func TestFaviconIsDataURI(t *testing.T) {
 		t.Errorf("favicon = %.40q, want a base64 svg data URI", href)
 	}
 }
+
+// TestFileGroupPathHasNoGap checks the muted folder and the rest of a path render with no space between.
+func TestFileGroupPathHasNoGap(t *testing.T) {
+	out := renderOf(t, FileGroup(FileGroupView{Path: "kubernetes/apps/x/values.yaml", Dir: "kubernetes/apps/", Short: "x/values.yaml"}))
+	expectContains(t, out, []string{"kubernetes/apps/</span>x/values.yaml"}, nil)
+}
