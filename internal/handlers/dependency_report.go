@@ -108,7 +108,7 @@ func (h *DependencyReportHandler) failureDelivery(sub depreport.Submission) depr
 // without a document the caption goes out as text.
 func (h *DependencyReportHandler) reportDelivery(rep depreport.Report) depreport.Delivery {
 	receivedAt := h.now()
-	sum := h.aggregate(rep, h.cfg.Forks, receivedAt)
+	sum := h.aggregate(rep.Filter(h.cfg.Ignored), h.cfg.Forks, receivedAt)
 
 	caption, err := h.caption.Present(sum)
 	if err != nil {
