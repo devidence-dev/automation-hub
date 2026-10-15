@@ -20,7 +20,7 @@ This project implements comprehensive **security and code quality** measures:
 - 🧬 **Generated Assets Check** - CI regenerates the templ and Tailwind assets and fails on any drift
 - 🤖 **Automated Dependency Updates** - Dependabot for Go modules, the Docker base image and GitHub Actions
 - 🚀 **CI/CD Pipeline** - `ci.yml` (shared Go CI) and `deploy.yml` (build, push and deploy to k3s)
-- ✅ **Local gate** - `scripts/verify.sh` runs the same checks in Docker before you push
+- ✅ **Local gate** - `scripts/verify.sh` runs the same checks in Docker through [gate](https://github.com/devidence-dev/dev-gate) before you push
 
 ## ✨ Features
 
@@ -278,16 +278,22 @@ The report components (`*.templ`, generated into `*_templ.go`) and the compiled 
 scripts/generate-depreport-assets.sh
 ```
 
-The script runs in an ephemeral `golang:<.go-version>` container, so nothing is installed on the host. It downloads templ v0.3.1070 and Tailwind CSS v4.3.3 for the container architecture, checks each one against its release's checksum file, and stops on a mismatch. A second run changes nothing.
+The script runs templ v0.3.1070 and Tailwind CSS v4.3.3 through [gate](https://github.com/devidence-dev/dev-gate), which pins both and checks each download against its pinned SHA-256 in Docker, so nothing is installed on the host. A second run changes nothing.
 
-Before pushing, run the local gate. It needs only Docker and runs the CI checks in containers:
+Before pushing, run the local gate. It runs through `gate` ([devidence-dev/dev-gate](https://github.com/devidence-dev/dev-gate)) and needs only Docker, plus the openspec wrapper on the host:
 
 ```sh
 scripts/verify.sh          # gofmt, golangci-lint, go test -race with 80% coverage, gocognit, asset drift, biome ci, openspec validate
-scripts/verify.sh --fix    # first runs gofmt -w, biome check --write and the asset generation
+scripts/verify.sh --fix    # first regenerates the assets, then runs gofmt -w and biome check --write
 ```
 
-Pinned tools: golangci-lint v2.14.0, gocognit v1.2.0, Biome 2.5.15 (standalone binary, checked by SHA-256 before it runs), OpenSpec 1.14.1 and the two generation tools above. CI runs the same drift check in the `generated-assets` job of this repo's `.github/workflows/ci.yml`: it regenerates the assets and fails on a diff or on an untracked generated file.
+Install `gate` once (it goes to `~/.local/bin/gate`, so make sure that directory is on `PATH`):
+
+```sh
+git clone https://github.com/devidence-dev/dev-gate.git ~/.local/share/dev-gate && ~/.local/share/dev-gate/install.sh
+```
+
+Pinned tools (in `gate`): golangci-lint v2.14.0, gocognit v1.2.0, Biome 2.5.15 (standalone binary, checked by SHA-256 before it runs), OpenSpec 1.14.1 on the host, and the two generation tools above. CI runs the same drift check in the `generated-assets` job of this repo's `.github/workflows/ci.yml`: it regenerates the assets and fails on a diff or on an untracked generated file.
 
 ## 🔌 API & Webhooks
 
