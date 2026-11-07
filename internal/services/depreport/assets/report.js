@@ -57,7 +57,7 @@
 					movePill(themeGroup, button);
 					applyTheme(choice);
 					// Flush the final position while transitions are disabled, before capture.
-					getComputedStyle(themeGroup.querySelector(".pill")).transform;
+					void getComputedStyle(themeGroup.querySelector(".pill")).transform;
 					themeGroup.classList.remove("no-anim");
 				})
 				.finished.catch(() => {});
@@ -185,7 +185,7 @@
 		const region = statusRegion();
 		btn.dataset.state = "copied";
 		const copyStatus = document.getElementById("copy-status");
-		if (btn.hasAttribute("data-copy") && btn.dataset.copiedOnce) {
+		if ("copy" in btn.dataset && btn.dataset.copiedOnce) {
 			btn.title = copyStatus.dataset.copiedBefore;
 		}
 		btn.dataset.copiedOnce = "1";
