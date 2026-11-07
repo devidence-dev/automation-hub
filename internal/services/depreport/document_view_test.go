@@ -228,7 +228,7 @@ func TestGroupsEntryFields(t *testing.T) {
 		t.Errorf("image copy = %q, want the latest reference only", img.Copy.Value)
 	}
 	dep := deps[0].Files[0].Entries[0]
-	if dep.Current != "0.30.0" || dep.New != "1.0.0" || dep.CurrentLabel != "Current" || dep.NewLabel != "New" || dep.TypeLabel != "major" {
+	if dep.Current != "0.30.0" || dep.New != "1.0.0" || dep.TypeLabel != "major" {
 		t.Errorf("dependency entry = %+v, want versions 0.30.0 to 1.0.0 with labels Current and New", dep)
 	}
 	if dep.Copy.Value != "golang.org/x/net@1.0.0" {
@@ -285,7 +285,7 @@ func TestSplitPath(t *testing.T) {
 	}
 }
 
-// TestExportButton checks the header button: one button named Export before the theme control when there
+// TestExportButton checks the header button: one button named Export after the theme control when there
 // is something to export, and none otherwise.
 func TestExportButton(t *testing.T) {
 	tests := []struct {
@@ -310,10 +310,10 @@ func TestExportButton(t *testing.T) {
 			buttonAt := strings.Index(out, button)
 			expectContains(t, button,
 				[]string{`type="button"`, `aria-haspopup="dialog"`, `aria-controls="export-dialog"`, `aria-label="Export"`,
-					"hover:[--glass-bg:var(--btn-hover)]"}, []string{"hover:text-accent", "hover:text-ink"})
-			expectContains(t, out, []string{"min-[601px]:not-sr-only", ">Export</span>"}, nil)
-			if buttonAt > strings.Index(out, "data-theme-set") {
-				t.Error("export button is not before the theme control")
+					"glass-pill", "hover:[--glass-bg:var(--btn-hover)]"}, []string{"hover:text-accent", "hover:text-ink"})
+			expectContains(t, out, []string{">Export</span>"}, nil)
+			if buttonAt < strings.Index(out, "data-theme-set") {
+				t.Error("export button is not after the theme control")
 			}
 		})
 	}
@@ -323,6 +323,23 @@ func TestExportButton(t *testing.T) {
 func exportButtonTag(attr string) *regexp.Regexp {
 	// The optional group consumes a separator but never the closing >, so the match ends at this tag.
 	return regexp.MustCompile(`<button\b[^>]*\s` + regexp.QuoteMeta(attr) + `(?:[\s=][^>]*)?>`)
+}
+
+// TestEveryButtonUsesBtn checks that each button of the fixture document carries the shared btn base, which
+// gives the pointer cursor and the disabled state. The loop covers every button, so a new one is checked too.
+func TestEveryButtonUsesBtn(t *testing.T) {
+	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
+	tags := regexp.MustCompile(`<button\b[^>]*>`).FindAllString(out, -1)
+	if len(tags) == 0 {
+		t.Fatal("the fixture document has no buttons")
+	}
+	classAttr := regexp.MustCompile(`\sclass="([^"]*)"`)
+	for _, tag := range tags {
+		m := classAttr.FindStringSubmatch(tag)
+		if m == nil || !strings.Contains(" "+m[1]+" ", " btn ") {
+			t.Errorf("button lacks the btn class: %s", tag)
+		}
+	}
 }
 
 // buttonLabel returns the text of the button after its opening tag up to </button>, with nested tags removed.
@@ -336,15 +353,12 @@ func buttonLabel(dialog, tag string) string {
 }
 
 // TestExportActionButtons checks the three dialog actions. Each is found by its opening tag: it shares the
-// export-action class, the enabled-only hover and the focus classes, and keeps the data attribute that
+// btn class and the enabled-only hover, and keeps the data attribute that
 // report.js reads. Copy and download are plain buttons; close is the submit button of the dialog form.
 func TestExportActionButtons(t *testing.T) {
 	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
 	dialog := regexp.MustCompile(`(?s)<dialog .*?</dialog>`).FindString(out)
-	if n := strings.Count(dialog, `class="export-action `); n != 3 {
-		t.Fatalf("export-action buttons = %d, want 3", n)
-	}
-	shared := []string{"enabled:hover:bg-btn-hover", "focus-visible:outline-accent"}
+	shared := []string{"enabled:hover:bg-btn-hover", "btn"}
 	absent := []string{" hover:bg-btn-hover", " hover:text-ink"}
 	tests := []struct {
 		attr, typ string
@@ -362,12 +376,13 @@ func TestExportActionButtons(t *testing.T) {
 			t.Errorf("no button opening tag with %s", tt.attr)
 			continue
 		}
-		expectContains(t, tag, append(append([]string{`class="export-action group `, tt.typ, tt.attr}, tt.want...), shared...), absent)
+		expectContains(t, tag, append(append([]string{`class="btn group `, tt.typ, tt.attr}, tt.want...), shared...), absent)
 		if got := buttonLabel(dialog, tag); got != tt.label {
 			t.Errorf("%s label = %q, want %q", tt.attr, got, tt.label)
 		}
 	}
-	if at := strings.Index(dialog, `<form method="dialog"`); at < 0 || strings.Index(dialog, "data-export-close") < at {
+	// LastIndex: the corner close has its own dialog form first, so the bottom action must follow the last one.
+	if at := strings.LastIndex(dialog, `<form method="dialog"`); at < 0 || strings.Index(dialog, "data-export-close") < at {
 		t.Error("the close button is not inside the dialog form")
 	}
 }
@@ -429,7 +444,7 @@ func TestExportStatusRegion(t *testing.T) {
 	if len(statuses) != 1 {
 		t.Fatalf("status regions in the dialog = %d, want 1", len(statuses))
 	}
-	expectContains(t, statuses[0], []string{"data-export-status", `aria-live="polite"`, `class="sr-only"`}, nil)
+	expectContains(t, statuses[0], []string{"data-export-status", `class="sr-only"`}, []string{"aria-live="})
 }
 
 // TestExportCopyFeedback checks the copy action: its label swaps for the copied text while the button carries
@@ -444,13 +459,13 @@ func TestExportCopyFeedback(t *testing.T) {
 	}, nil)
 }
 
-// TestHeaderWraps checks that the header and its right-hand group wrap, so at 320px no part overflows the row.
-func TestHeaderWraps(t *testing.T) {
+// TestHeaderGrid checks that the rendered document uses the responsive header areas.
+func TestHeaderGrid(t *testing.T) {
 	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
 	start, end := strings.Index(out, "<header"), strings.Index(out, "</header>")
 	if start < 0 || end < start {
 		t.Fatal("header not found in document")
 	}
 	header := out[start:end]
-	expectContains(t, header, []string{`<header class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 pt-1">`, `<div class="flex flex-wrap items-center gap-2">`, "data-theme-set", "data-export-open"}, nil)
+	expectContains(t, header, []string{"grid-cols-[1fr_auto]", "[grid-area:logo]", "[grid-area:theme]", "[grid-area:meta]", "data-theme-set", "data-export-open", "glass-pill"}, nil)
 }

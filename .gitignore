@@ -237,6 +237,7 @@ graphify-out/*
 !graphify-out/graph.json
 
 .claude/
+.agents
 
 env.yml
 # Local runtime config with real values: never commit it (use configs/config.yaml.example)

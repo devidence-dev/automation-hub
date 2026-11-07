@@ -305,7 +305,7 @@ Each dependency entry SHALL be one aligned row, with name, versions, type chip a
 - **THEN** the default entry row has two columns outside any media query, so the chip and copy button sit in the second row up to 600px
 
 ### Requirement: Document theme
-The document SHALL use three color schemes, from one set of tokens: the light values by default, the dark values when the system prefers a dark color scheme and Auto is selected, and the dark values when Dark is selected for the page view. The tokens SHALL be declared on `:root`, redefined under `@media (prefers-color-scheme: dark)` for `:root:not([data-theme=light])`, and redefined for `:root[data-theme=dark]`.
+The document SHALL use three color schemes from one set of tokens: light by default, dark when the system prefers dark and Auto is selected, and dark when Dark is selected for the page view. The tokens SHALL be declared on `:root`, redefined under `@media (prefers-color-scheme: dark)` for `:root:not([data-theme=light])`, and redefined for `:root[data-theme=dark]`. Every text color SHALL reach a contrast of at least 4.5:1 against its background in all three schemes.
 
 #### Scenario: Light tokens
 - **WHEN** the compiled CSS is read
@@ -316,8 +316,16 @@ The document SHALL use three color schemes, from one set of tokens: the light va
 - **THEN** the media block for `:root:not([data-theme=light])` and the block for `:root[data-theme=dark]` each define the background as `#04101A` and the ink as `#EAF2F8`, and the rendered document has no `dark:` variant class
 
 #### Scenario: Text contrast
-- **WHEN** each text token of the light and dark blocks is read
-- **THEN** its contrast against its base background is at least 4.5:1, except the white count on the selected tab, which is recorded in design D8 as an open question
+- **WHEN** each text token of the light and dark blocks is read, including the secondary text of the file folder (`--muted-2`)
+- **THEN** its contrast against the page background and against the card is at least 4.5:1, with `--muted-2` at `#5F6F7C` in light and `#7D94A4` in dark
+
+#### Scenario: Selected tab count
+- **WHEN** the "Dependencies" tab is selected
+- **THEN** its count badge shows white `#FFFFFF` text on `#0A63C2` in light and in dark, a contrast of 5.87:1
+
+#### Scenario: Chip text on its tint
+- **WHEN** the chips of the types `major`, `minor` and `patch` and of the errors card are read in the light and the dark scheme
+- **THEN** each text color against its tinted background, blended over the card, is at least 4.5:1
 
 #### Scenario: Chip colors of one type
 - **WHEN** the `major` chip is read in the light block
@@ -358,15 +366,35 @@ Each tab SHALL show a panel with the eyebrow `document.eyebrow.deps` or `documen
 - **THEN** the line under the panel shows `52 updates` in bold and `across 52 dependencies`
 
 ### Requirement: Motion
-The document SHALL animate the pill of the selected tab and of the theme control, the panel that appears, the chevron of an open card and the theme change, and SHALL turn all of these off under `prefers-reduced-motion: reduce`.
+The document SHALL animate the pill of the selected tab and of the theme control, the panel that appears, the chevron of an open card, the height of a card as it opens and closes, the export dialog and its backdrop as they open and close, and the theme change, during which the theme pill SHALL slide to the pressed button. All of these SHALL be off under `prefers-reduced-motion: reduce`. A browser without the needed CSS features SHALL show the instant change.
 
 #### Scenario: Reduced motion
 - **WHEN** the user prefers reduced motion
-- **THEN** the pills move without transition, the panel appears without animation, the chevron turns without transition and the theme changes without a view transition
+- **THEN** the pills move without transition, the panel appears without animation, the chevron turns without transition, a card opens and closes at once, the export dialog appears and closes at once, and the theme changes without a view transition
 
 #### Scenario: Panel enters
 - **WHEN** the user shows the other tab without reduced motion
 - **THEN** the panel animates from 24px to the side in its direction of travel, with opacity from 0 to 1 and blur from 4px to 0, over 420 ms
+
+#### Scenario: Card opens and closes
+- **WHEN** the user opens the `QuantWarden` card and then closes it, without reduced motion
+- **THEN** its content grows from height 0 to its full height, and shrinks back to 0 before it is hidden, each over 300 ms
+
+#### Scenario: Card in a browser without height interpolation
+- **WHEN** the browser does not support animating to an automatic height
+- **THEN** the `QuantWarden` card opens and closes at once, and its content is complete and usable
+
+#### Scenario: Dialog opens and closes
+- **WHEN** the user activates `Export` and later `Close`, without reduced motion
+- **THEN** the dialog fades and scales from 96% to 100% on open and back on close, its backdrop fades in and out, each over 200 ms, and focus still moves into the dialog and back to `Export`
+
+#### Scenario: Theme pill during the theme change
+- **WHEN** the theme is Auto and the user presses `Dark`, without reduced motion
+- **THEN** the theme pill slides from `Auto` to `Dark` while the page changes theme, over the 450 ms of the theme change, and ends under `Dark`
+
+#### Scenario: Theme pill without view transitions
+- **WHEN** the browser has no view transitions and the user presses `Light`
+- **THEN** the theme changes at once and the pill slides to `Light` with its own 450 ms transition
 
 ### Requirement: Header and logo
 The header SHALL show the devidence logo as one inline SVG with `role="img"` and the label `devidence.dev`, the scan timestamp in a stamp, the export button (see "Export button") and the theme control. The logo SHALL take its wordmark colors from the tokens of the active scheme, and the document SHALL NOT reference any image file.
@@ -399,7 +427,7 @@ Every entry SHALL have one icon-only copy button, named by its catalog label. It
 - **THEN** the text is copied through a hidden text area and the check mark shows while `Copied!` is announced
 
 ### Requirement: Export button
-The header SHALL show an export button, labeled by `document.export.button`, when at least one update is listed in either tab. It SHALL open the export dialog as a modal. Up to 600px the button SHALL show its icon only and keep the label as its accessible name. When no update is listed, the document SHALL have no export button and no export dialog.
+The header SHALL show an export button, labeled by `document.export.button`, when at least one update is listed in either tab. It SHALL open the export dialog as a modal. The button SHALL show its icon and its label at every viewport width. When no update is listed, the document SHALL have no export button and no export dialog.
 
 #### Scenario: Updates listed
 - **WHEN** the document of a report where `devidence-dev/homelab` has the image `ghcr.io/immich-app/immich-server` from `v1.118.0` to `v1.119.0` is rendered
@@ -411,7 +439,7 @@ The header SHALL show an export button, labeled by `document.export.button`, whe
 
 #### Scenario: Phone width
 - **WHEN** the document is shown in a 320 CSS pixel wide viewport
-- **THEN** the header shows the export button as an icon, named `Export`, with no horizontal page scrolling
+- **THEN** the header shows the export button with its icon and the visible label `Export`, with no horizontal page scrolling
 
 ### Requirement: Export selection
 The export dialog SHALL have one section for images (`document.tab.images`) and one for dependencies (`document.tab.deps`), in that order, each with a section checkbox and one checkbox per repo with listed updates in that tab, in the order of that tab's repo cards. A section without listed updates SHALL be left out. Every checkbox SHALL start checked on each open.
@@ -515,3 +543,199 @@ Every string value of the export SHALL be a YAML double-quoted scalar with `"`, 
 #### Scenario: Script in a dependency name
 - **WHEN** a dep is named `<script>alert(1)</script>` and has a `patch` update from `1.0.0` to `1.0.1`
 - **THEN** the document contains no `<script>alert(1)</script>`, and the copied export holds the name `"<script>alert(1)</script>"` as text
+
+### Requirement: Document landmarks
+The document SHALL put the header outside and the tabs, the panels and the errors card inside exactly one `<main>` element, and SHALL have exactly one `<h1>`. The export dialog and the live region MAY sit outside `<main>`.
+
+#### Scenario: Fixture document
+- **WHEN** the document of the fixture report (`devidence-dev/QuantWarden`, `devidence-dev/homelab`, `devidence-dev/discord-tts-bot`) is rendered
+- **THEN** it has one `<main>` that contains both `role="tabpanel"` sections and the tablist, one `<h1>` with the text `Dependency report - Devidence`, and the `<header>` is not inside `<main>`
+
+#### Scenario: Nothing pending
+- **WHEN** the report has 12 docker deps and 30 non-docker deps, none with a listed update
+- **THEN** the document still has one `<main>` with both panels and no export dialog
+
+#### Scenario: Errors card
+- **WHEN** `devidence-dev/QuantWarden` has a problem with `level` 50
+- **THEN** the errors card is inside the `<main>`, after the panels
+
+### Requirement: Named tablist
+The tablist SHALL have an accessible name from the catalog key `document.tabs.label`, whose English default is `Report sections`. `messages:` in the config MAY override it.
+
+#### Scenario: Default name
+- **WHEN** the fixture document is rendered with no `messages:` section
+- **THEN** the element with `role="tablist"` has `aria-label="Report sections"`
+
+#### Scenario: Overridden name
+- **WHEN** the config has `messages: {document: {tabs: {label: "Secciones del informe"}}}`
+- **THEN** the tablist has `aria-label="Secciones del informe"` and no other label of the document changes
+
+#### Scenario: Escaped name
+- **WHEN** the override is `Sections "A" & <B>`
+- **THEN** the attribute holds `Sections &#34;A&#34; &amp; &lt;B&gt;` and no attribute is added to the tablist
+
+### Requirement: Entry lists
+The entries of one package file SHALL be the items of one list, so assistive technology announces their count. Each entry SHALL be one list item, and the list SHALL keep `role="list"` because its bullets are hidden.
+
+#### Scenario: File with three entries
+- **WHEN** `go.mod` of `devidence-dev/QuantWarden` lists `golang.org/x/net`, `github.com/gorilla/mux` and `go.uber.org/zap`
+- **THEN** the card has one `<ul role="list">` for `go.mod` with three `<li>` items, each with one name, one type chip and one copy button
+
+#### Scenario: Two files
+- **WHEN** a repo has `go.mod` and `Dockerfile` with listed updates in different tabs
+- **THEN** each file group has its own list, and the file location sits after the list, not inside it
+
+#### Scenario: Entry text unchanged
+- **WHEN** the entry `golang.org/x/net` from `0.30.0` to `1.0.0` is rendered
+- **THEN** it keeps the hidden labels `Current` and `New` for screen readers and the same visible text as before
+
+### Requirement: Live regions
+The document SHALL have one polite live region outside the export dialog and one inside it. Each SHALL be an element with `role="status"` and no separate `aria-live` attribute, because that role is already polite.
+
+#### Scenario: Fixture document
+- **WHEN** the fixture document is rendered
+- **THEN** it has exactly two elements with `role="status"`, one of them inside the `<dialog>`, and none carries `aria-live`
+
+#### Scenario: Copy announcement
+- **WHEN** the user copies `golang.org/x/net@1.0.0`
+- **THEN** `Copied!` is written to the region outside the dialog, and when the export dialog is open the copy of the YAML writes `Copied!` to the region inside it
+
+#### Scenario: No updates listed
+- **WHEN** nothing is listed
+- **THEN** the document has one `role="status"` element, outside any dialog, because there is no export dialog
+
+### Requirement: Visible keyboard focus
+Every button of the document, the repo card summary rows and the checkboxes of the export dialog SHALL show a focus indicator when focused with the keyboard: a 2px outline in the `--accent` color, 2px away from the element. A mouse click SHALL NOT show it.
+
+#### Scenario: Tab button
+- **WHEN** the user moves the focus to the "Images" tab with the keyboard
+- **THEN** the tab shows a 2px `--accent` outline offset by 2px
+
+#### Scenario: Theme and copy buttons
+- **WHEN** the user focuses the `Dark` theme button and then a copy button with the keyboard
+- **THEN** each shows the same 2px `--accent` outline offset by 2px
+
+#### Scenario: Mouse click
+- **WHEN** the user clicks the `Copy name@version` button with a mouse
+- **THEN** the button shows no outline
+
+#### Scenario: Disabled export action
+- **WHEN** no repo is checked in the export dialog
+- **THEN** the `Copy YAML` and `Download YAML` buttons are disabled, cannot take focus, and show the default cursor and no hover surface
+
+### Requirement: Native controls follow the theme
+The document SHALL set `color-scheme` to the active scheme, so that scrollbars, checkboxes and the dialog backdrop match the theme: `light` when Light is chosen, `dark` when Dark is chosen, and the system scheme (`light dark`) on Auto.
+
+#### Scenario: Light on a dark system
+- **WHEN** the system prefers a dark color scheme and the user presses `Light`
+- **THEN** `<html>` has `data-theme="light"` and its computed `color-scheme` is `light`
+
+#### Scenario: Dark on a light system
+- **WHEN** the system prefers a light color scheme and the user presses `Dark`
+- **THEN** its computed `color-scheme` is `dark`
+
+#### Scenario: Auto
+- **WHEN** the document is opened and the user has not pressed a theme button
+- **THEN** `<html>` has no `data-theme` and its computed `color-scheme` is `light dark`
+
+#### Scenario: Compiled CSS
+- **WHEN** the compiled CSS is read
+- **THEN** it declares `color-scheme` for the default `:root`, for `:root[data-theme=light]` and for `:root[data-theme=dark]`
+
+### Requirement: Document weight
+The fixture document SHALL NOT exceed 130,000 bytes, its compiled CSS SHALL NOT exceed 22,000 bytes, and an entry row SHALL NOT average more than 1,000 bytes of markup. These budgets are checked by a test, so growth is a deliberate change.
+
+#### Scenario: Fixture within budget
+- **WHEN** the fixture report (54 entries across 5 repo cards) is rendered with the default catalog
+- **THEN** the document is at most 130,000 bytes, the stylesheet at most 22,000 bytes, and the markup of its 54 entry rows at most 54,000 bytes
+
+#### Scenario: Nothing pending is smaller
+- **WHEN** the report has 12 docker deps and 30 non-docker deps, none with a listed update
+- **THEN** the document is at most 60,000 bytes and has no entry rows
+
+#### Scenario: Budget exceeded
+- **WHEN** a change adds markup that takes the fixture document over 130,000 bytes
+- **THEN** the budget test fails and names the measured size and the budget
+
+### Requirement: Header layout by viewport width
+Up to 600px the header SHALL have two rows: the logo and the theme control in the first, and the scan stamp and the export button in the second, spanning the full header width. The stamp SHALL take the remaining width and end in an ellipsis when its text does not fit, and the export button SHALL keep its full size. From 601px the header SHALL be one row: the logo, then the stamp, the export button and the theme control.
+
+#### Scenario: Phone width
+- **WHEN** the fixture document is shown in a 440 CSS pixel wide viewport
+- **THEN** the theme control sits on the same row as the logo, at its right edge, and the stamp `2026-10-12 09:07 America/Guayaquil` and the `Export` button share the row below, with no horizontal page scrolling
+
+#### Scenario: Narrowest width
+- **WHEN** the fixture document is shown in a 320 CSS pixel wide viewport
+- **THEN** the stamp text ends in an ellipsis, the `Export` button shows its icon and label in full, and the page does not scroll horizontally
+
+#### Scenario: Wide viewport
+- **WHEN** the fixture document is shown in a 760 CSS pixel wide viewport
+- **THEN** the logo, the stamp, the `Export` button and the theme control sit on one row
+
+#### Scenario: Nothing pending
+- **WHEN** the report has 12 docker deps and 30 non-docker deps, none with a listed update, and is shown 440 CSS pixels wide
+- **THEN** the header has no export button, the logo and the theme control share the first row, and the stamp sits alone on the second
+
+### Requirement: Machine-readable scan time
+The scan stamp SHALL be a `<time>` element whose `datetime` attribute is the scan instant in RFC 3339 form, with the offset of the configured timezone. The visible text SHALL stay as today.
+
+#### Scenario: Fixture scan time
+- **WHEN** the report received at `2026-10-12T14:07:00Z` is rendered with the timezone `America/Guayaquil`
+- **THEN** the stamp is `<time datetime="2026-10-12T09:07:00-05:00">` with the text `2026-10-12 09:07 America/Guayaquil`
+
+#### Scenario: Timezone with half-hour offset
+- **WHEN** the same report is rendered with the timezone `Asia/Kolkata`
+- **THEN** the `datetime` attribute is `2026-10-12T19:37:00+05:30`
+
+### Requirement: Export action icons
+Each export dialog action SHALL show a decorative icon before its label: the copy icon for `Copy YAML`, a download icon for `Download YAML` and a close icon for `Close`. After a successful copy, `Copy YAML` SHALL show the check icon with its copied text for as long as the entry copy buttons show it, then return to the copy icon. The icons SHALL carry no text and be hidden from assistive technology.
+
+#### Scenario: Icons in the dialog
+- **WHEN** the export dialog of the fixture document is rendered
+- **THEN** `Copy YAML`, `Download YAML` and `Close` each show one visible `aria-hidden="true"` icon before the label (`Copy YAML` holds the copy and the check icon and shows one at a time), and their accessible names are still `Copy YAML`, `Download YAML` and `Close`
+
+#### Scenario: Copied state
+- **WHEN** the user activates `Copy YAML` and the copy succeeds
+- **THEN** the button shows the check icon and `Copied!` for 2 seconds, then the copy icon and `Copy YAML` again
+
+#### Scenario: Copy fails
+- **WHEN** the clipboard API rejects the write and the fallback copy also fails
+- **THEN** the button keeps the copy icon and `Copy YAML`, and nothing is announced
+
+#### Scenario: Disabled actions keep their icons
+- **WHEN** no repo is checked
+- **THEN** `Copy YAML` and `Download YAML` are disabled and still show their icons
+
+### Requirement: Page scroll locked behind the export dialog
+While the export dialog is open, the page behind it SHALL NOT scroll by wheel, touch or keyboard, and the page SHALL NOT shift sideways when the lock starts or ends. Content of the dialog that is taller than the viewport SHALL still scroll inside the dialog. Closing the dialog SHALL leave the page at the scroll position it had when the dialog opened.
+
+#### Scenario: Wheel over the backdrop
+- **WHEN** the fixture document is scrolled 400px down, the user opens `Export` and turns the mouse wheel over the backdrop
+- **THEN** the page stays at 400px
+
+#### Scenario: Scroll reaches the end of the dialog
+- **WHEN** the dialog content is taller than a 640 CSS pixel tall viewport and the user keeps scrolling past its end
+- **THEN** the dialog scrolls to its end and the page does not move
+
+#### Scenario: Close restores
+- **WHEN** the user closes the dialog with `Close` or Escape
+- **THEN** the page is still at 400px, scrolls again, and its content did not shift sideways
+
+#### Scenario: Compiled CSS
+- **WHEN** the compiled CSS is read
+- **THEN** it hides the root overflow and keeps a stable scrollbar gutter while an export dialog is open, and the dialog contains its overscroll
+
+### Requirement: Export dialog corner close
+The export dialog SHALL show an icon-only close button at the top right, beside its title, named and titled by `document.export.close`. Activating it SHALL close the dialog like the `Close` action and return focus to the `Export` button.
+
+#### Scenario: Corner close in the fixture
+- **WHEN** the export dialog of the fixture document is rendered
+- **THEN** it has one icon-only button named `Close` before the first section, and its close icon is hidden from assistive technology
+
+#### Scenario: Close from the corner
+- **WHEN** the user opens `Export` and activates the corner button
+- **THEN** the dialog closes, focus returns to `Export`, and the page scrolls again
+
+#### Scenario: Overridden label
+- **WHEN** the config sets `messages: {document: {export: {close: "Cerrar"}}}`
+- **THEN** the corner button and the bottom action are both named `Cerrar`

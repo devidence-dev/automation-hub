@@ -52,37 +52,58 @@ func (p *DocumentPresenter) Present(s Summary) ([]byte, error) {
 
 // documentView is the data the document components render.
 type documentView struct {
-	Lang          string
-	Title         string
-	ScanTimestamp string
-	Labels        labelSet
-	Tabs          []TabView
-	Errors        []ErrorView
-	ErrorsChip    string // the count of the errors card, empty when there are none
-	Export        ExportView
+	Lang      string
+	Title     string
+	Header    HeaderView
+	Labels    chromeLabels
+	RowLabels rowLabels
+	Tabs      []TabView
+	Errors    ErrorsView
+	Export    ExportView
 }
 
-// labelSet holds the texts of the document that are not per tab.
-type labelSet struct {
+type rowLabels struct{ Current, New string }
+
+// chromeLabels are the document-level texts rendered by the chrome components.
+type chromeLabels struct {
+	TabsLabel      string
 	ErrorsHeading  string
-	CopyLatest     string
-	CopyNewVersion string
 	Copied         string
 	CopiedBefore   string
-	Current        string
-	New            string
 	ThemeGroup     string
 	ThemeSystem    string
 	ThemeLight     string
 	ThemeDark      string
-	TypePatch      string
-	TypeMinor      string
-	TypeMajor      string
 	ExportButton   string
 	ExportTitle    string
 	ExportCopy     string
 	ExportDownload string
 	ExportClose    string
+}
+
+type HeaderView struct {
+	ScanTimestamp string
+	ScanDateTime  string
+	HasExport     bool
+	Labels        chromeLabels
+}
+
+type ErrorsView struct {
+	Heading string
+	Chip    string
+	Rows    []ErrorView
+}
+
+// labelSet also carries builder-only labels for rows and update types.
+type labelSet struct {
+	chromeLabels
+	CopyLatest     string
+	CopyNewVersion string
+	Current        string
+	New            string
+	TypePatch      string
+	TypeMinor      string
+	TypeMajor      string
 }
 
 // TabView is one tab of the document: its label and count badge, its panel and its repo cards.
@@ -128,42 +149,47 @@ type docBuilder struct {
 // tab is second, as the liquid glass design requires. fileName is the download name of the export.
 func buildDocumentView(r *renderer, loc *time.Location, s Summary, fileName string) documentView {
 	b := &docBuilder{r: r, labels: newLabels(r)}
-	scanTimestamp := s.ReceivedAt.In(loc).Format(scanLayout) + " " + loc.String()
+	scanAt := s.ReceivedAt.In(loc)
+	scanTimestamp := scanAt.Format(scanLayout) + " " + loc.String()
 	deps := b.tab(tabSpec{ID: "deps", LabelKey: KeyDocTabDeps, EyebrowKey: KeyDocEyebrowDeps, Selected: true}, s.Deps)
 	images := b.tab(tabSpec{ID: "images", LabelKey: KeyDocTabImages, EyebrowKey: KeyDocEyebrowImages, Images: true}, s.Images)
+	export := buildExport(scanTimestamp, fileName, images, deps)
 	return documentView{
-		Lang:          r.text(KeyLang, nil),
-		Title:         r.text(KeyDocTitle, nil),
-		ScanTimestamp: scanTimestamp,
-		Labels:        b.labels,
-		Tabs:          []TabView{deps, images},
-		Errors:        b.errorRows(s.Errors),
-		ErrorsChip:    b.errorsChip(len(s.Errors)),
-		Export:        buildExport(scanTimestamp, fileName, images, deps),
+		Lang:      r.text(KeyLang, nil),
+		Title:     r.text(KeyDocTitle, nil),
+		Header:    HeaderView{ScanTimestamp: scanTimestamp, ScanDateTime: scanAt.Format(time.RFC3339), HasExport: len(export.Sections) > 0, Labels: b.labels.chromeLabels},
+		Labels:    b.labels.chromeLabels,
+		RowLabels: rowLabels{Current: b.labels.Current, New: b.labels.New},
+		Tabs:      []TabView{deps, images},
+		Errors:    ErrorsView{Heading: b.labels.ErrorsHeading, Chip: b.errorsChip(len(s.Errors)), Rows: b.errorRows(s.Errors)},
+		Export:    export,
 	}
 }
 
 func newLabels(r *renderer) labelSet {
 	return labelSet{
-		ErrorsHeading:  r.text(KeyErrorsHeading, nil),
+		chromeLabels: chromeLabels{
+			TabsLabel:      r.text(KeyDocTabsLabel, nil),
+			ErrorsHeading:  r.text(KeyErrorsHeading, nil),
+			Copied:         r.text(KeyCopyCopied, nil),
+			CopiedBefore:   r.text(KeyCopyCopiedBefore, nil),
+			ThemeGroup:     r.text(KeyDocThemeGroup, nil),
+			ThemeSystem:    r.text(KeyDocThemeSystem, nil),
+			ThemeLight:     r.text(KeyDocThemeLight, nil),
+			ThemeDark:      r.text(KeyDocThemeDark, nil),
+			ExportButton:   r.text(KeyDocExportButton, nil),
+			ExportTitle:    r.text(KeyDocExportTitle, nil),
+			ExportCopy:     r.text(KeyDocExportCopy, nil),
+			ExportDownload: r.text(KeyDocExportDownload, nil),
+			ExportClose:    r.text(KeyDocExportClose, nil),
+		},
 		CopyLatest:     r.text(KeyCopyLatestImage, nil),
 		CopyNewVersion: r.text(KeyCopyNewVersion, nil),
-		Copied:         r.text(KeyCopyCopied, nil),
-		CopiedBefore:   r.text(KeyCopyCopiedBefore, nil),
 		Current:        r.text(KeyColCurrent, nil),
 		New:            r.text(KeyColNew, nil),
-		ThemeGroup:     r.text(KeyDocThemeGroup, nil),
-		ThemeSystem:    r.text(KeyDocThemeSystem, nil),
-		ThemeLight:     r.text(KeyDocThemeLight, nil),
-		ThemeDark:      r.text(KeyDocThemeDark, nil),
 		TypePatch:      r.text(KeyDocTypePatch, nil),
 		TypeMinor:      r.text(KeyDocTypeMinor, nil),
 		TypeMajor:      r.text(KeyDocTypeMajor, nil),
-		ExportButton:   r.text(KeyDocExportButton, nil),
-		ExportTitle:    r.text(KeyDocExportTitle, nil),
-		ExportCopy:     r.text(KeyDocExportCopy, nil),
-		ExportDownload: r.text(KeyDocExportDownload, nil),
-		ExportClose:    r.text(KeyDocExportClose, nil),
 	}
 }
 

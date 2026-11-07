@@ -13,7 +13,7 @@ import "strconv"
 // ThemeControl is the segmented control of the theme: Auto (the system choice), Light and Dark.
 // report.js moves the pill and sets data-theme for the page view only; nothing is stored. Auto is
 // pressed on every open.
-func ThemeControl(labels labelSet) templ.Component {
+func ThemeControl(labels chromeLabels) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -34,14 +34,14 @@ func ThemeControl(labels labelSet) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"glass relative flex gap-0.5 rounded-full p-[3px] [--pill-inset:3px]\" role=\"group\" aria-label=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"theme-control glass relative flex gap-0.5 rounded-full p-[3px] [--pill-inset:3px]\" role=\"group\" aria-label=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(labels.ThemeGroup)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/theme.templ`, Line: 9, Col: 125}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/theme.templ`, Line: 9, Col: 139}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 		if templ_7745c5c3_Err != nil {
@@ -93,14 +93,14 @@ func ThemeButton(set, label string, pressed bool) templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<button type=\"button\" class=\"theme-btn relative z-[1] grid h-7 w-[30px] cursor-pointer place-items-center rounded-full border-0 bg-transparent text-muted transition-colors duration-300 hover:text-ink aria-[pressed=true]:text-tab-on-fg\" data-theme-set=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<button type=\"button\" class=\"btn theme-btn relative z-[1] grid h-7 w-[30px] place-items-center rounded-full text-muted transition-colors duration-300 hover:text-ink aria-[pressed=true]:text-tab-on-fg\" data-theme-set=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(set)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/theme.templ`, Line: 19, Col: 257}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/theme.templ`, Line: 19, Col: 222}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 		if templ_7745c5c3_Err != nil {
@@ -113,7 +113,7 @@ func ThemeButton(set, label string, pressed bool) templ.Component {
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/theme.templ`, Line: 19, Col: 273}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/theme.templ`, Line: 19, Col: 238}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 		if templ_7745c5c3_Err != nil {
@@ -126,7 +126,7 @@ func ThemeButton(set, label string, pressed bool) templ.Component {
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/theme.templ`, Line: 19, Col: 294}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/theme.templ`, Line: 19, Col: 259}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 		if templ_7745c5c3_Err != nil {
@@ -139,7 +139,7 @@ func ThemeButton(set, label string, pressed bool) templ.Component {
 		var templ_7745c5c3_Var7 string
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.FormatBool(pressed))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/theme.templ`, Line: 19, Col: 339}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/theme.templ`, Line: 19, Col: 304}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 		if templ_7745c5c3_Err != nil {
@@ -149,7 +149,7 @@ func ThemeButton(set, label string, pressed bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = Icon(set, "size-3.5").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = Icon(set, "").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

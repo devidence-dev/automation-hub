@@ -10,7 +10,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 // ErrorsCard lists the scan errors at the bottom of the document. It is rendered only when there are
 // errors. Each row has the repo or the report root, and the message.
-func ErrorsCard(view documentView) templ.Component {
+func ErrorsCard(view ErrorsView) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -44,9 +44,9 @@ func ErrorsCard(view documentView) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(view.Labels.ErrorsHeading)
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(view.Heading)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/errors.templ`, Line: 9, Col: 92}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/errors.templ`, Line: 9, Col: 79}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -56,7 +56,7 @@ func ErrorsCard(view documentView) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = ToneChip(toneError, view.ErrorsChip).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = ToneChip(toneError, view.Chip).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -64,7 +64,7 @@ func ErrorsCard(view documentView) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		for _, e := range view.Errors {
+		for _, e := range view.Rows {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"grid grid-cols-1 gap-0.5 border-t border-line py-2.5 font-mono text-[13px] first:border-t-0 min-[601px]:grid-cols-[200px_minmax(0,1fr)] min-[601px]:gap-3.5\"><span class=\"text-muted\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err

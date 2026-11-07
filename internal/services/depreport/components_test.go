@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/a-h/templ"
 )
@@ -48,8 +49,7 @@ func fixtureView(t *testing.T) documentView {
 func muxEntry() EntryView {
 	return EntryView{
 		Name: "github.com/gorilla/mux", Current: "1.8.0", New: "2.0.0", Type: UpdateMajor, TypeLabel: "major",
-		CurrentLabel: "Current", NewLabel: "New",
-		Copy: CopyView{Value: "github.com/gorilla/mux@2.0.0", Label: "Copy name@version", Copied: "Copied!", CopiedBefore: "Copy (copied before)"},
+		Copy: CopyView{Value: "github.com/gorilla/mux@2.0.0", Label: "Copy name@version"},
 	}
 }
 
@@ -58,7 +58,7 @@ func TestEntryEscapesValues(t *testing.T) {
 	e.Name = "<script>alert(1)</script>"
 	e.Current = `1.0.0" onmouseover="alert(1)`
 	e.Copy.Value = e.Name + "@2.0.0"
-	out := renderOf(t, DepRow(e))
+	out := renderOf(t, DepRow(e, rowLabels{Current: "Current", New: "New"}))
 	expectContains(t, out, []string{"&lt;script&gt;alert(1)&lt;/script&gt;", "1.0.0&#34; onmouseover=&#34;alert(1)"}, []string{"<script>alert(1)", "<script", `" onmouseover`})
 }
 
@@ -74,7 +74,7 @@ func TestToneClasses(t *testing.T) {
 			continue
 		}
 		out := renderOf(t, TypeChip(typ, "x"))
-		if !strings.Contains(out, class) {
+		if !strings.Contains(out, "chip "+class) {
 			t.Errorf("TypeChip(%v) lacks class %q:\n%s", typ, class, out)
 		}
 	}
@@ -86,41 +86,107 @@ func TestRepoSummaryHasDotChipsAndNoEmoji(t *testing.T) {
 		Dot:   UpdateMinor,
 		Chips: []CountChip{{Type: UpdateMinor, Text: "1 minor"}},
 	}
-	out := renderOf(t, RepoGroup(g))
+	out := renderOf(t, RepoGroup(g, rowLabels{}))
 	expectContains(t, out,
-		[]string{`<details class="glass group`, "tone-minor", "discord-tts-bot", "fork · informational only", "1 minor", `<svg class="chev`},
+		[]string{`<details class="glass group`, "tone-minor", "discord-tts-bot", "fork · informational only", "1 minor", `<svg class="icon chev`},
 		[]string{" open", ` name="`, "🔴", "🟡", "🚨", "⚠️", "♻️", "tone-major"})
 }
 
 func TestRepoGroupHasNoOpenOrName(t *testing.T) {
+	if out := renderOf(t, RepoGroup(fixtureView(t).Tabs[0].Groups[0], rowLabels{})); strings.Contains(strings.SplitN(out, ">", 2)[0], "overflow-hidden") {
+		t.Error("repo card clips its focus outline")
+	}
 	view := fixtureView(t)
-	out := renderOf(t, RepoGroup(view.Tabs[0].Groups[0]))
+	out := renderOf(t, RepoGroup(view.Tabs[0].Groups[0], view.RowLabels))
 	if strings.Contains(out, "<details") && (strings.Contains(out, " open") || strings.Contains(out, ` name="`)) {
 		t.Errorf("repo card opens or names itself:\n%s", out)
 	}
 }
 
 func TestDepRowColumnsAndCopy(t *testing.T) {
-	out := renderOf(t, DepRow(muxEntry()))
+	css := cssCompact(ReportCSS)
+	if !strings.Contains(css, ".dep-row{grid-template-columns:minmax(0,1fr)auto") && !strings.Contains(css, "grid-template-columns:minmax(0,1fr)auto") {
+		t.Error("two column layout missing")
+	}
+	if !strings.Contains(css, "@media(min-width:601px){.dep-row{grid-template-columns:minmax(0,1fr)auto58px30px") {
+		t.Error("desktop columns missing")
+	}
+	out := renderOf(t, DepRow(muxEntry(), rowLabels{Current: "Current", New: "New"}))
 	expectContains(t, out,
-		[]string{"grid-cols-[minmax(0,1fr)_auto_58px_30px]", "min-[601px]:grid-cols-", `aria-label="Copy name@version"`, `data-copy="github.com/gorilla/mux@2.0.0"`, "tone-major", "major"},
+		[]string{`class="dep-row"`, `aria-label="Copy name@version"`, `data-copy="github.com/gorilla/mux@2.0.0"`, "tone-major", "major"},
 		[]string{"tone-minor", "<table"})
 }
 
 func TestCopyButtonStates(t *testing.T) {
 	out := renderOf(t, CopyButton(muxEntry().Copy))
 	expectContains(t, out,
-		[]string{`data-copied-text="Copied!"`, `data-copied-before="Copy (copied before)"`, "group-data-[state=copied]:hidden", "data-[state=copied]:text-ok"},
+		[]string{`data-copy=`, "group-data-[state=copied]:hidden", "icon-btn"},
 		[]string{"<label", "<a "})
 	if n := strings.Count(out, "<svg"); n != 2 {
 		t.Errorf("copy button has %d icons, want 2 (clipboard and check)", n)
 	}
 }
 
+// TestExportDialogCornerClose checks the icon-only close button beside the title: it is the one dismiss button,
+// it sits in the dialog form before the sections, and its name and title come from the catalog label that the
+// bottom action shares.
+func TestExportDialogCornerClose(t *testing.T) {
+	for _, tt := range []struct {
+		name      string
+		overrides map[string]any
+		want      string
+	}{
+		{"default", nil, "Close"},
+		{"override", map[string]any{"document": map[string]any{"export": map[string]any{"close": "Cerrar"}}}, "Cerrar"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &renderer{cat: catalogWith(t, tt.overrides)}
+			view := buildDocumentView(r, loadZone(t, "America/Guayaquil"), summaryAt(loadFixtureReport(t)), "")
+			if r.err != nil {
+				t.Fatal(r.err)
+			}
+			checkCornerClose(t, renderOf(t, ExportDialog(view.Export, view.Labels)), tt.want)
+		})
+	}
+}
+
+// checkCornerClose checks the corner close button of a rendered dialog and the label of the bottom action.
+func checkCornerClose(t *testing.T, out, want string) {
+	t.Helper()
+	tags := regexp.MustCompile(`<button\b[^>]*\sdata-export-dismiss(?:[\s=][^>]*)?>`).FindAllString(out, -1)
+	if len(tags) != 1 {
+		t.Fatalf("data-export-dismiss buttons = %d, want 1", len(tags))
+	}
+	start := strings.Index(out, tags[0])
+	before := out[:start]
+	if at := strings.LastIndex(before, "<form"); at < 0 || !strings.HasPrefix(out[at:], `<form method="dialog"`) || strings.Contains(before[at:], "</form>") {
+		t.Error("the corner button is not inside the dialog form")
+	}
+	if strings.Index(out, "<fieldset") < start {
+		t.Error("the corner button comes after the first section")
+	}
+	end := strings.Index(out[start:], "</button>")
+	if end < 0 {
+		t.Fatal("corner button unterminated")
+	}
+	expectContains(t, out[start:start+end], []string{`class="btn icon-btn"`, `type="submit"`, `aria-label="` + want + `"`, `title="` + want + `"`, iconMarkup["close"], `aria-hidden="true"`}, nil)
+	if label := buttonLabel(out, tags[0]); label != "" {
+		t.Errorf("corner button has text %q, want icon only", label)
+	}
+	if label := buttonLabel(out, exportButtonTag("data-export-close").FindString(out)); label != want {
+		t.Errorf("bottom action label = %q, want %q", label, want)
+	}
+}
+
 func TestIconsAreFixedAndInert(t *testing.T) {
+	for _, name := range []string{"download", "close"} {
+		if iconMarkup[name] == "" {
+			t.Errorf("missing icon %s", name)
+		}
+	}
 	for name := range iconMarkup {
-		out := renderOf(t, Icon(name, "size-3.5"))
-		expectContains(t, out, []string{`viewBox="0 0 14 14"`, `aria-hidden="true"`, "size-3.5"}, []string{"<script", "<text", "href="})
+		out := renderOf(t, Icon(name, "test-class"))
+		expectContains(t, out, []string{`viewBox="0 0 14 14"`, `aria-hidden="true"`, `class="icon test-class"`}, []string{"<script", "<text", "href="})
 		if inlineHandler.MatchString(out) {
 			t.Errorf("icon %s has an inline handler:\n%s", name, out)
 		}
@@ -165,10 +231,10 @@ func TestSummaryTextBoldAndRest(t *testing.T) {
 }
 
 func TestErrorsCardRows(t *testing.T) {
-	view := documentView{
-		Labels:     labelSet{ErrorsHeading: "Scan errors"},
-		Errors:     []ErrorView{{Where: "root", Msg: "Fatal error outside any repo"}, {Where: "QuantWarden", Msg: "Failed to look up dependency"}},
-		ErrorsChip: "2 errors",
+	view := ErrorsView{
+		Heading: "Scan errors",
+		Rows:    []ErrorView{{Where: "root", Msg: "Fatal error outside any repo"}, {Where: "QuantWarden", Msg: "Failed to look up dependency"}},
+		Chip:    "2 errors",
 	}
 	out := renderOf(t, ErrorsCard(view))
 	expectContains(t, out, []string{"Scan errors", "2 errors", "root", "Fatal error outside any repo", "QuantWarden", "tone-err"}, []string{"<table"})
@@ -191,7 +257,7 @@ func TestTabsMarkup(t *testing.T) {
 }
 
 func TestThemeControlMarkup(t *testing.T) {
-	out := renderOf(t, ThemeControl(labelSet{ThemeGroup: "Theme", ThemeSystem: "Auto", ThemeLight: "Light", ThemeDark: "Dark"}))
+	out := renderOf(t, ThemeControl(chromeLabels{ThemeGroup: "Theme", ThemeSystem: "Auto", ThemeLight: "Light", ThemeDark: "Dark"}))
 	expectContains(t, out,
 		[]string{`role="group"`, `aria-label="Theme"`, `data-theme-set="system" title="Auto" aria-label="Auto" aria-pressed="true"`,
 			`data-theme-set="light" title="Light" aria-label="Light" aria-pressed="false"`, `data-theme-set="dark" title="Dark" aria-label="Dark" aria-pressed="false"`},
@@ -212,6 +278,83 @@ func TestFaviconIsDataURI(t *testing.T) {
 
 // TestFileGroupPathHasNoGap checks the muted folder and the rest of a path render with no space between.
 func TestFileGroupPathHasNoGap(t *testing.T) {
-	out := renderOf(t, FileGroup(FileGroupView{Path: "kubernetes/apps/x/values.yaml", Dir: "kubernetes/apps/", Short: "x/values.yaml"}))
+	out := renderOf(t, FileGroup(FileGroupView{Path: "kubernetes/apps/x/values.yaml", Dir: "kubernetes/apps/", Short: "x/values.yaml"}, rowLabels{}))
 	expectContains(t, out, []string{"kubernetes/apps/</span>x/values.yaml"}, nil)
+}
+
+func TestCopyConstantsOnce(t *testing.T) {
+	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
+	out = regexp.MustCompile(`(?s)<dialog .*?</dialog>|<script.*?</script>`).ReplaceAllString(out, "")
+	for _, attr := range []string{"data-copied-text", "data-copied-before"} {
+		if n := strings.Count(out, attr+"="); n != 1 {
+			t.Errorf("%s occurs %d times outside dialog", attr, n)
+		}
+		for _, tag := range regexp.MustCompile(`<button[^>]*data-copy=[^>]*>`).FindAllString(out, -1) {
+			if strings.Contains(tag, attr) {
+				t.Errorf("copy button contains %s", attr)
+			}
+		}
+	}
+}
+
+func TestHeaderTimeElement(t *testing.T) {
+	for _, tt := range []struct{ zone, datetime, visible string }{
+		{"America/Guayaquil", "2026-10-12T09:07:00-05:00", "2026-10-12 09:07 America/Guayaquil"},
+		{"Asia/Kolkata", "2026-10-12T19:37:00+05:30", "2026-10-12 19:37 Asia/Kolkata"},
+	} {
+		t.Run(tt.zone, func(t *testing.T) {
+			loc, err := time.LoadLocation(tt.zone)
+			if err != nil {
+				t.Fatal(err)
+			}
+			s := summaryAt(loadFixtureReport(t))
+			s.ReceivedAt = time.Date(2026, 10, 12, 14, 7, 0, 0, time.UTC)
+			view := buildDocumentView(&renderer{cat: catalogWith(t, nil)}, loc, s, "")
+			out := renderOf(t, Header(view.Header))
+			expectContains(t, out, []string{`datetime="` + tt.datetime + `" title="` + tt.visible + `">` + tt.visible + `</time>`}, nil)
+		})
+	}
+}
+
+func TestHeaderOrderAndAreas(t *testing.T) {
+	out := renderOf(t, Header(fixtureView(t).Header))
+	expectContains(t, out, []string{"grid-cols-[1fr_auto]", "[grid-template-areas:'logo_theme'_'meta_meta']", "min-[601px]:[grid-template-areas:'logo_meta_theme']", "min-[601px]:grid-cols-[auto_1fr_auto]", "min-w-0 flex-1 truncate", "min-[601px]:flex-initial", "glass-pill shrink-0"}, nil)
+	logo, theme, stamp, export := strings.Index(out, "[grid-area:logo]"), strings.Index(out, "data-theme-set"), strings.Index(out, "<time"), strings.Index(out, "data-export-open")
+	if logo < 0 || logo >= theme || theme >= stamp || stamp >= export {
+		t.Errorf("incorrect header order: %d %d %d %d", logo, theme, stamp, export)
+	}
+}
+
+func TestExportButtonLabelVisible(t *testing.T) {
+	out := renderOf(t, ExportButton(fixtureView(t).Labels))
+	expectContains(t, out, []string{`aria-label="Export"`, `<span>Export</span>`}, []string{"sr-only"})
+}
+
+func TestExportActionIcons(t *testing.T) {
+	out := renderOf(t, ExportDialog(fixtureView(t).Export, fixtureView(t).Labels))
+	for _, tt := range []struct{ attr, label, path string }{
+		{"data-export-copy", "Copy YAML", iconMarkup["copy"]}, {"data-export-download", "Download YAML", iconMarkup["download"]}, {"data-export-close", "Close", iconMarkup["close"]},
+	} {
+		t.Run(tt.attr, func(t *testing.T) {
+			tag := exportButtonTag(tt.attr).FindString(out)
+			start := strings.Index(out, tag)
+			if tag == "" {
+				t.Fatal("button missing")
+			}
+			end := strings.Index(out[start:], "</button>")
+			if end < 0 {
+				t.Fatal("button unterminated")
+			}
+			button := out[start : start+end]
+			expectContains(t, button, []string{"inline-flex items-center gap-1.5", `aria-hidden="true"`, tt.path, tt.label}, nil)
+			if strings.Index(button, tt.path) > strings.Index(button, tt.label) {
+				t.Error("icon follows label")
+			}
+			if tt.attr == "data-export-copy" {
+				expectContains(t, button, []string{iconMarkup["check"], "group-data-[state=copied]:hidden", "hidden group-data-[state=copied]:block"}, nil)
+			} else if strings.Count(button, "<svg") != 1 {
+				t.Error("expected one icon")
+			}
+		})
+	}
 }
