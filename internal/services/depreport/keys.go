@@ -25,6 +25,7 @@ const (
 	KeyCountSeparator        = "counts.separator"
 	KeyDocTitle              = "document.title"
 	KeyDocBrand              = "document.brand"
+	KeyDocTabsLabel          = "document.tabs.label"
 	KeyDocTabImages          = "document.tab.images"
 	KeyDocTabDeps            = "document.tab.deps"
 	KeyDocTotal              = "document.total"
@@ -92,7 +93,7 @@ var allKeys = []string{
 	KeyCaptionRepoLine, KeyCaptionStats, KeyCaptionTabs, KeyCaptionErrors,
 	KeyCaptionEmojiMajor, KeyCaptionEmojiOther,
 	KeyCountMajor, KeyCountMinor, KeyCountPatch, KeyCountSeparator,
-	KeyDocTitle, KeyDocBrand, KeyDocTabImages, KeyDocTabDeps, KeyDocTotal, KeyDocPending,
+	KeyDocTitle, KeyDocBrand, KeyDocTabsLabel, KeyDocTabImages, KeyDocTabDeps, KeyDocTotal, KeyDocPending,
 	KeyDocUpToDate, KeyDocDistribution, KeyDocStatusUpdatesBold, KeyDocStatusUpdatesRest, KeyDocStatusUpToDate, KeyDocAvailable,
 	KeyDocSummaryEmojiMajor, KeyDocSummaryEmojiMinor, KeyDocSummaryEmojiPatch, KeyDocSummaryCounter,
 	KeyColPackageFile, KeyColRepository, KeyColCurrentImage, KeyColLatestImage, KeyColDependency,

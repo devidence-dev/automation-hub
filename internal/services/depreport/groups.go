@@ -8,7 +8,7 @@ import (
 
 // RepoGroupView is one repo card of a tab: its summary row and its package files.
 type RepoGroupView struct {
-	Repo  string // full repo name, shown when the card is open
+	Repo  string // full repo name, used for grouping and export
 	Short string // short repo name, shown in the summary row
 	Note  string // fork note of the summary row, empty when the repo is not a fork
 	Fork  bool   // the repo is one of the configured forks
@@ -35,22 +35,18 @@ type FileGroupView struct {
 // EntryView is one listed update: a dependency, or an image with its versions, and its copy button.
 // For an image Name is the image name and Current and New are its tags.
 type EntryView struct {
-	Name         string
-	Current      string // current version
-	New          string // new version
-	Type         UpdateType
-	TypeLabel    string // the catalog name of Type, shown in the chip
-	CurrentLabel string // screen-reader label of Current
-	NewLabel     string // screen-reader label of New
-	Copy         CopyView
+	Name      string
+	Current   string // current version
+	New       string // new version
+	Type      UpdateType
+	TypeLabel string // the catalog name of Type, shown in the chip
+	Copy      CopyView
 }
 
 // CopyView is the icon-only copy button of an entry. Label is its accessible name and tooltip.
 type CopyView struct {
-	Value        string // the text copied to the clipboard
-	Label        string
-	Copied       string // the text announced after a copy
-	CopiedBefore string // the title shown after the first copy
+	Value string // the text copied to the clipboard
+	Label string
 }
 
 // groupTab regroups the rows of a tab by repo, then package file, then entry. The rows are sorted by
@@ -152,23 +148,21 @@ func countKey(t UpdateType) string {
 // reference, a dependency copies "name@new version".
 func entryOf(row Row, labels labelSet, images bool) EntryView {
 	e := EntryView{
-		Name:         row.Name,
-		Current:      row.Version,
-		New:          row.NewVersion,
-		Type:         row.Type,
-		TypeLabel:    labels.typeName(row.Type),
-		CurrentLabel: labels.Current,
-		NewLabel:     labels.New,
+		Name:      row.Name,
+		Current:   row.Version,
+		New:       row.NewVersion,
+		Type:      row.Type,
+		TypeLabel: labels.typeName(row.Type),
 	}
 	if images {
-		e.Copy = labels.copyOf(row.Name+":"+row.NewVersion, labels.CopyLatest)
+		e.Copy = copyOf(row.Name+":"+row.NewVersion, labels.CopyLatest)
 		return e
 	}
-	e.Copy = labels.copyOf(row.Name+"@"+row.NewVersion, labels.CopyNewVersion)
+	e.Copy = copyOf(row.Name+"@"+row.NewVersion, labels.CopyNewVersion)
 	return e
 }
 
-// copyOf is a copy button that copies value and carries the labels of the document.
-func (l labelSet) copyOf(value, label string) CopyView {
-	return CopyView{Value: value, Label: label, Copied: l.Copied, CopiedBefore: l.CopiedBefore}
+// copyOf builds the value and accessible label for a copy button.
+func copyOf(value, label string) CopyView {
+	return CopyView{Value: value, Label: label}
 }

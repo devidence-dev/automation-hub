@@ -10,7 +10,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 // RepoGroup is one repo card: a native details without name or open attribute, so each card opens and
 // closes on its own (openspec design D4). It starts closed.
-func RepoGroup(g RepoGroupView) templ.Component {
+func RepoGroup(g RepoGroupView, labels rowLabels) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -31,7 +31,7 @@ func RepoGroup(g RepoGroupView) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<details class=\"glass group overflow-hidden rounded-[20px]\"><summary class=\"flex cursor-pointer list-none flex-wrap items-center gap-3 px-[18px] py-3.5 min-[601px]:flex-nowrap [&::-webkit-details-marker]:hidden\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<details class=\"glass group rounded-[20px]\"><summary class=\"flex cursor-pointer list-none flex-wrap items-center gap-3 px-[18px] py-3.5 min-[601px]:flex-nowrap [&::-webkit-details-marker]:hidden\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -89,7 +89,7 @@ func RepoGroup(g RepoGroupView) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = Icon("chevron", "chev ml-auto size-3.5 shrink-0 text-muted").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = Icon("chevron", "chev ml-auto shrink-0 text-muted").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -98,7 +98,7 @@ func RepoGroup(g RepoGroupView) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		for _, f := range g.Files {
-			templ_7745c5c3_Err = FileGroup(f).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = FileGroup(f, labels).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

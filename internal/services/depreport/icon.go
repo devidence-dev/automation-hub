@@ -3,6 +3,7 @@ package depreport
 // iconMarkup is the inner SVG of each icon of the liquid glass design (liquid-glass-report, 14px).
 // The fixed strings are rendered by Icon with templ.Raw; no input reaches them.
 var iconMarkup = map[string]string{
+	"file":    `<path d="M3.5 2.5h4.5l2.5 2.5v6.5h-7z" stroke-width="1.1"/><path d="M8 2.5V5h2.5" stroke-width="1.1"/>`,
 	"chevron": `<path d="M3 5l4 4 4-4" stroke-width="1.6"/>`,
 	"copy":    `<rect x="4.5" y="4.5" width="7" height="7" rx="1.5"/><path d="M9.5 2.5h-5a2 2 0 0 0-2 2v5"/>`,
 	"check":   `<path d="M3 7.5l2.5 2.5L11 4.5" stroke-width="1.7"/>`,

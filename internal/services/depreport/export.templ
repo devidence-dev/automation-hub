@@ -2,9 +2,9 @@ package depreport
 
 // ExportButton opens the export dialog. Up to 600px it shows the icon only; the accessible name is the
 // catalog label at every width. Its hover changes the glass background through --glass-bg, as the buttons do.
-templ ExportButton(labels labelSet) {
-	<button type="button" class="btn glass flex items-center gap-1.5 rounded-full px-3 py-[7px] text-xs font-medium text-ink transition-colors duration-150 hover:[--glass-bg:var(--btn-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" aria-haspopup="dialog" aria-controls="export-dialog" aria-label={ labels.ExportButton } title={ labels.ExportButton } data-export-open>
-		@Icon("export", "size-3.5")
+templ ExportButton(labels chromeLabels) {
+	<button type="button" class="btn glass-pill gap-1.5 text-xs font-medium text-ink hover:[--glass-bg:var(--btn-hover)]" aria-haspopup="dialog" aria-controls="export-dialog" aria-label={ labels.ExportButton } title={ labels.ExportButton } data-export-open>
+		@Icon("export", "")
 		<span class="sr-only min-[601px]:not-sr-only">{ labels.ExportButton }</span>
 	</button>
 }
@@ -14,20 +14,20 @@ templ ExportButton(labels labelSet) {
 // children are the label. The hover applies only when enabled, so a disabled action keeps its surface. The
 // group class lets the copy label swap for its copied text.
 templ exportAction(typ string, attrs templ.Attributes) {
-	<button type={ typ } class="btn export-action group rounded-full border border-btn-edge bg-btn-bg px-3.5 py-2 text-[13px] font-medium text-ink transition-colors duration-150 enabled:hover:bg-btn-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" { attrs... }>{ children... }</button>
+	<button type={ typ } class="btn group rounded-full border border-btn-edge bg-btn-bg px-3.5 py-2 text-[13px] font-medium text-ink enabled:hover:bg-btn-hover" { attrs... }>{ children... }</button>
 }
 
 // ExportDialog is the modal of the export: one section per tab with listed updates, each with a section
 // checkbox and one checkbox per repo, then the copy, download and close actions. report.js reads the data
 // attributes; the YAML fragments are escaped as attribute values, so report text stays inert.
-templ ExportDialog(view documentView) {
-	<dialog id="export-dialog" data-export-dialog aria-labelledby="export-title" data-header={ view.Export.Header } data-file-name={ view.Export.FileName } class="glass export-dialog [--glass-bg:var(--glass-strong)] [--glass-shadow:var(--shadow-lg)]">
-		<h2 id="export-title" class="m-0 text-[15px] font-semibold">{ view.Labels.ExportTitle }</h2>
-		for _, s := range view.Export.Sections {
+templ ExportDialog(view ExportView, labels chromeLabels) {
+	<dialog id="export-dialog" data-export-dialog aria-labelledby="export-title" data-header={ view.Header } data-file-name={ view.FileName } class="glass export-dialog [--glass-bg:var(--glass-strong)] [--glass-shadow:var(--shadow-strong)]">
+		<h2 id="export-title" class="m-0 text-[15px] font-semibold">{ labels.ExportTitle }</h2>
+		for _, s := range view.Sections {
 			<fieldset data-export-section data-key={ s.Key } class="mt-4 min-w-0 border-0 p-0">
 				<legend class="mb-1.5 p-0 text-[13px] font-semibold">
 					<label class="inline-flex cursor-pointer items-center gap-2">
-						<input type="checkbox" data-export-all checked class="size-3.5 cursor-pointer"/>
+						<input type="checkbox" data-export-all checked class="cursor-pointer"/>
 						{ s.Label }
 					</label>
 				</legend>
@@ -35,7 +35,7 @@ templ ExportDialog(view documentView) {
 					for _, r := range s.Repos {
 						<li>
 							<label title={ r.Repo } class="inline-flex cursor-pointer items-center gap-2 text-[13px]">
-								<input type="checkbox" data-export-repo data-yaml={ r.YAML } checked class="size-3.5 cursor-pointer"/>
+								<input type="checkbox" data-export-repo data-yaml={ r.YAML } checked class="cursor-pointer"/>
 								{ r.Short }
 								if r.Note != "" {
 									<span class="text-xs text-muted">{ r.Note }</span>
@@ -47,18 +47,18 @@ templ ExportDialog(view documentView) {
 			</fieldset>
 		}
 		<div class="mt-5 flex flex-wrap items-center gap-2">
-			@exportAction("button", templ.Attributes{"data-export-copy": true, "data-copied-text": view.Labels.Copied}) {
-				<span class="group-data-[state=copied]:hidden">{ view.Labels.ExportCopy }</span><span class="hidden group-data-[state=copied]:inline">{ view.Labels.Copied }</span>
+			@exportAction("button", templ.Attributes{"data-export-copy": true, "data-copied-text": labels.Copied}) {
+				<span class="group-data-[state=copied]:hidden">{ labels.ExportCopy }</span><span class="hidden group-data-[state=copied]:inline">{ labels.Copied }</span>
 			}
 			@exportAction("button", templ.Attributes{"data-export-download": true}) {
-				{ view.Labels.ExportDownload }
+				{ labels.ExportDownload }
 			}
 			<form method="dialog" class="ml-auto">
 				@exportAction("submit", templ.Attributes{"data-export-close": true}) {
-					{ view.Labels.ExportClose }
+					{ labels.ExportClose }
 				}
 			</form>
 		</div>
-		<p role="status" aria-live="polite" class="sr-only" data-export-status></p>
+		<p role="status" class="sr-only" data-export-status></p>
 	</dialog>
 }

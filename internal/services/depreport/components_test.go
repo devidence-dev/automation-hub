@@ -48,8 +48,7 @@ func fixtureView(t *testing.T) documentView {
 func muxEntry() EntryView {
 	return EntryView{
 		Name: "github.com/gorilla/mux", Current: "1.8.0", New: "2.0.0", Type: UpdateMajor, TypeLabel: "major",
-		CurrentLabel: "Current", NewLabel: "New",
-		Copy: CopyView{Value: "github.com/gorilla/mux@2.0.0", Label: "Copy name@version", Copied: "Copied!", CopiedBefore: "Copy (copied before)"},
+		Copy: CopyView{Value: "github.com/gorilla/mux@2.0.0", Label: "Copy name@version"},
 	}
 }
 
@@ -58,7 +57,7 @@ func TestEntryEscapesValues(t *testing.T) {
 	e.Name = "<script>alert(1)</script>"
 	e.Current = `1.0.0" onmouseover="alert(1)`
 	e.Copy.Value = e.Name + "@2.0.0"
-	out := renderOf(t, DepRow(e))
+	out := renderOf(t, DepRow(e, rowLabels{Current: "Current", New: "New"}))
 	expectContains(t, out, []string{"&lt;script&gt;alert(1)&lt;/script&gt;", "1.0.0&#34; onmouseover=&#34;alert(1)"}, []string{"<script>alert(1)", "<script", `" onmouseover`})
 }
 
@@ -74,7 +73,7 @@ func TestToneClasses(t *testing.T) {
 			continue
 		}
 		out := renderOf(t, TypeChip(typ, "x"))
-		if !strings.Contains(out, class) {
+		if !strings.Contains(out, "chip "+class) {
 			t.Errorf("TypeChip(%v) lacks class %q:\n%s", typ, class, out)
 		}
 	}
@@ -86,31 +85,41 @@ func TestRepoSummaryHasDotChipsAndNoEmoji(t *testing.T) {
 		Dot:   UpdateMinor,
 		Chips: []CountChip{{Type: UpdateMinor, Text: "1 minor"}},
 	}
-	out := renderOf(t, RepoGroup(g))
+	out := renderOf(t, RepoGroup(g, rowLabels{}))
 	expectContains(t, out,
-		[]string{`<details class="glass group`, "tone-minor", "discord-tts-bot", "fork · informational only", "1 minor", `<svg class="chev`},
+		[]string{`<details class="glass group`, "tone-minor", "discord-tts-bot", "fork · informational only", "1 minor", `<svg class="icon chev`},
 		[]string{" open", ` name="`, "🔴", "🟡", "🚨", "⚠️", "♻️", "tone-major"})
 }
 
 func TestRepoGroupHasNoOpenOrName(t *testing.T) {
+	if out := renderOf(t, RepoGroup(fixtureView(t).Tabs[0].Groups[0], rowLabels{})); strings.Contains(strings.SplitN(out, ">", 2)[0], "overflow-hidden") {
+		t.Error("repo card clips its focus outline")
+	}
 	view := fixtureView(t)
-	out := renderOf(t, RepoGroup(view.Tabs[0].Groups[0]))
+	out := renderOf(t, RepoGroup(view.Tabs[0].Groups[0], view.RowLabels))
 	if strings.Contains(out, "<details") && (strings.Contains(out, " open") || strings.Contains(out, ` name="`)) {
 		t.Errorf("repo card opens or names itself:\n%s", out)
 	}
 }
 
 func TestDepRowColumnsAndCopy(t *testing.T) {
-	out := renderOf(t, DepRow(muxEntry()))
+	css := cssCompact(ReportCSS)
+	if !strings.Contains(css, ".dep-row{grid-template-columns:minmax(0,1fr)auto") && !strings.Contains(css, "grid-template-columns:minmax(0,1fr)auto") {
+		t.Error("two column layout missing")
+	}
+	if !strings.Contains(css, "@media(min-width:601px){.dep-row{grid-template-columns:minmax(0,1fr)auto58px30px") {
+		t.Error("desktop columns missing")
+	}
+	out := renderOf(t, DepRow(muxEntry(), rowLabels{Current: "Current", New: "New"}))
 	expectContains(t, out,
-		[]string{"grid-cols-[minmax(0,1fr)_auto_58px_30px]", "min-[601px]:grid-cols-", `aria-label="Copy name@version"`, `data-copy="github.com/gorilla/mux@2.0.0"`, "tone-major", "major"},
+		[]string{`class="dep-row"`, `aria-label="Copy name@version"`, `data-copy="github.com/gorilla/mux@2.0.0"`, "tone-major", "major"},
 		[]string{"tone-minor", "<table"})
 }
 
 func TestCopyButtonStates(t *testing.T) {
 	out := renderOf(t, CopyButton(muxEntry().Copy))
 	expectContains(t, out,
-		[]string{`data-copied-text="Copied!"`, `data-copied-before="Copy (copied before)"`, "group-data-[state=copied]:hidden", "data-[state=copied]:text-ok"},
+		[]string{`data-copy=`, "group-data-[state=copied]:hidden", "copy-btn"},
 		[]string{"<label", "<a "})
 	if n := strings.Count(out, "<svg"); n != 2 {
 		t.Errorf("copy button has %d icons, want 2 (clipboard and check)", n)
@@ -119,8 +128,8 @@ func TestCopyButtonStates(t *testing.T) {
 
 func TestIconsAreFixedAndInert(t *testing.T) {
 	for name := range iconMarkup {
-		out := renderOf(t, Icon(name, "size-3.5"))
-		expectContains(t, out, []string{`viewBox="0 0 14 14"`, `aria-hidden="true"`, "size-3.5"}, []string{"<script", "<text", "href="})
+		out := renderOf(t, Icon(name, "test-class"))
+		expectContains(t, out, []string{`viewBox="0 0 14 14"`, `aria-hidden="true"`, `class="icon test-class"`}, []string{"<script", "<text", "href="})
 		if inlineHandler.MatchString(out) {
 			t.Errorf("icon %s has an inline handler:\n%s", name, out)
 		}
@@ -165,10 +174,10 @@ func TestSummaryTextBoldAndRest(t *testing.T) {
 }
 
 func TestErrorsCardRows(t *testing.T) {
-	view := documentView{
-		Labels:     labelSet{ErrorsHeading: "Scan errors"},
-		Errors:     []ErrorView{{Where: "root", Msg: "Fatal error outside any repo"}, {Where: "QuantWarden", Msg: "Failed to look up dependency"}},
-		ErrorsChip: "2 errors",
+	view := ErrorsView{
+		Heading: "Scan errors",
+		Rows:    []ErrorView{{Where: "root", Msg: "Fatal error outside any repo"}, {Where: "QuantWarden", Msg: "Failed to look up dependency"}},
+		Chip:    "2 errors",
 	}
 	out := renderOf(t, ErrorsCard(view))
 	expectContains(t, out, []string{"Scan errors", "2 errors", "root", "Fatal error outside any repo", "QuantWarden", "tone-err"}, []string{"<table"})
@@ -191,7 +200,7 @@ func TestTabsMarkup(t *testing.T) {
 }
 
 func TestThemeControlMarkup(t *testing.T) {
-	out := renderOf(t, ThemeControl(labelSet{ThemeGroup: "Theme", ThemeSystem: "Auto", ThemeLight: "Light", ThemeDark: "Dark"}))
+	out := renderOf(t, ThemeControl(chromeLabels{ThemeGroup: "Theme", ThemeSystem: "Auto", ThemeLight: "Light", ThemeDark: "Dark"}))
 	expectContains(t, out,
 		[]string{`role="group"`, `aria-label="Theme"`, `data-theme-set="system" title="Auto" aria-label="Auto" aria-pressed="true"`,
 			`data-theme-set="light" title="Light" aria-label="Light" aria-pressed="false"`, `data-theme-set="dark" title="Dark" aria-label="Dark" aria-pressed="false"`},
@@ -212,6 +221,21 @@ func TestFaviconIsDataURI(t *testing.T) {
 
 // TestFileGroupPathHasNoGap checks the muted folder and the rest of a path render with no space between.
 func TestFileGroupPathHasNoGap(t *testing.T) {
-	out := renderOf(t, FileGroup(FileGroupView{Path: "kubernetes/apps/x/values.yaml", Dir: "kubernetes/apps/", Short: "x/values.yaml"}))
+	out := renderOf(t, FileGroup(FileGroupView{Path: "kubernetes/apps/x/values.yaml", Dir: "kubernetes/apps/", Short: "x/values.yaml"}, rowLabels{}))
 	expectContains(t, out, []string{"kubernetes/apps/</span>x/values.yaml"}, nil)
+}
+
+func TestCopyConstantsOnce(t *testing.T) {
+	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
+	out = regexp.MustCompile(`(?s)<dialog .*?</dialog>|<script.*?</script>`).ReplaceAllString(out, "")
+	for _, attr := range []string{"data-copied-text", "data-copied-before"} {
+		if n := strings.Count(out, attr+"="); n != 1 {
+			t.Errorf("%s occurs %d times outside dialog", attr, n)
+		}
+		for _, tag := range regexp.MustCompile(`<button[^>]*data-copy=[^>]*>`).FindAllString(out, -1) {
+			if strings.Contains(tag, attr) {
+				t.Errorf("copy button contains %s", attr)
+			}
+		}
+	}
 }

@@ -30,6 +30,8 @@ document:
   eyebrow:
     deps: "Dependency report"
     images: "Image report"
+  tabs:
+    label: "Report sections"
   tab:
     images: "Images"
     deps: "Dependencies"

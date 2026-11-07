@@ -8,7 +8,7 @@ package depreport
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Logo is the devidence logo, inline, 30px high. The SVG takes its colors from the logo tokens, so it
+// Logo is the devidence logo, embedded, 30px high. The SVG takes its colors from the logo tokens, so it
 // follows the theme.
 func Logo() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {

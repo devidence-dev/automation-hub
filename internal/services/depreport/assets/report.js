@@ -1,32 +1,26 @@
 // Behavior of the dependency report (openspec design D5, D10 and D20, and add-report-export D6 and D7): the
 // theme control, the tabs with their sliding pills, the panel motion, the copy handler and the export dialog.
-// Every DOM query is guarded. Nothing is stored: the theme choice lasts for the page view only, and the
+// Optional export controls are guarded. Nothing is stored: the theme choice lasts for the page view only, and the
 // export selection is reset on every open, so the script never touches storage.
 (() => {
-	const EASE = "cubic-bezier(.32,.72,0,1)";
-	const PANEL_MS = 420;
-	const PANEL_SHIFT_PX = 24;
 	// How long the check icon and the announced text stay after a copy.
 	const SHOW_MS = 2000;
 	// How long a download link's object URL stays alive. Revoking in the same task can cancel the download in
 	// Safari and Firefox.
 	const REVOKE_MS = 1000;
-	const STATUS_ID = "copy-status";
 
 	const root = document.documentElement;
 
 	const reduceMotion = () =>
-		typeof matchMedia === "function" &&
 		matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 	// movePill places the pill of a group under the target button.
 	const movePill = (group, target) => {
-		const pill = group ? group.querySelector(".pill") : null;
-		if (!pill || !target) {
-			return;
-		}
-		pill.style.width = `${target.offsetWidth}px`;
-		pill.style.transform = `translateX(${target.offsetLeft}px)`;
+		const pill = group.querySelector(".pill");
+		const width = target.offsetWidth;
+		const left = target.offsetLeft;
+		pill.style.width = `${width}px`;
+		pill.style.transform = `translateX(${left}px)`;
 	};
 
 	// Theme control. The choice is light, dark or system (Automatico), and it is not stored: every page view
@@ -34,8 +28,7 @@
 	const themeButtons = Array.from(
 		document.querySelectorAll("[data-theme-set]"),
 	);
-	const themeGroup =
-		themeButtons.length > 0 ? themeButtons[0].parentElement : null;
+	const themeGroup = themeButtons[0].closest("[data-pill-group]");
 
 	const applyTheme = (choice) => {
 		if (choice === "light" || choice === "dark") {
@@ -43,7 +36,7 @@
 		} else {
 			delete root.dataset.theme;
 		}
-		const shown = choice === "light" || choice === "dark" ? choice : "system";
+		const shown = choice;
 		for (const button of themeButtons) {
 			button.setAttribute(
 				"aria-pressed",
@@ -59,7 +52,9 @@
 		const choice = button.dataset.themeSet;
 		movePill(themeGroup, button);
 		if (typeof document.startViewTransition === "function" && !reduceMotion()) {
-			document.startViewTransition(() => applyTheme(choice));
+			document
+				.startViewTransition(() => applyTheme(choice))
+				.finished.catch(() => {});
 		} else {
 			applyTheme(choice);
 		}
@@ -67,14 +62,11 @@
 
 	// Tabs. Activation is manual: a click, Enter or Space selects a tab; Left and Right only move focus.
 	const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
-	const tabGroup = tabs.length > 0 ? tabs[0].parentElement : null;
+	const tabGroup = tabs[0].closest("[data-pill-group]");
 	const panels = Array.from(document.querySelectorAll("[data-panel]"));
 
 	const showTab = (index) => {
 		const next = tabs[index];
-		if (!next) {
-			return;
-		}
 		const current = tabs.findIndex(
 			(t) => t.getAttribute("aria-selected") === "true",
 		);
@@ -87,34 +79,20 @@
 			t.tabIndex = on ? 0 : -1;
 		});
 		for (const panel of panels) {
-			panel.hidden = panel.dataset.panel !== next.dataset.tab;
+			const show = panel.dataset.panel === next.dataset.tab;
+			if (show) panel.dataset.dir = index > current ? "next" : "prev";
+			panel.hidden = !show;
 		}
 		movePill(tabGroup, next);
-		const shown = panels.find((p) => !p.hidden);
-		if (shown && !reduceMotion() && typeof shown.animate === "function") {
-			const dx = index > current ? PANEL_SHIFT_PX : -PANEL_SHIFT_PX;
-			shown.animate(
-				[
-					{ opacity: 0, transform: `translateX(${dx}px)`, filter: "blur(4px)" },
-					{ opacity: 1, transform: "none", filter: "blur(0)" },
-				],
-				{ duration: PANEL_MS, easing: EASE },
-			);
-		}
 	};
 
 	const focusTab = (index) => {
 		const target = tabs[(index + tabs.length) % tabs.length];
-		if (target) {
-			target.focus();
-		}
+		target.focus();
 	};
 
 	const onTabKey = (event) => {
 		const i = tabs.indexOf(event.target);
-		if (i < 0) {
-			return;
-		}
 		const moves = {
 			ArrowRight: i + 1,
 			ArrowLeft: i - 1,
@@ -127,21 +105,31 @@
 		}
 	};
 
-	// Pills. The pill of a group follows its selected button. The placement runs without transitions.
-	const placePills = () => {
-		root.classList.add("no-anim");
-		movePill(
-			tabGroup,
-			tabs.find((t) => t.getAttribute("aria-selected") === "true"),
-		);
-		movePill(
-			themeGroup,
-			themeButtons.find((b) => b.getAttribute("aria-pressed") === "true"),
-		);
+	// Reposition both pills after button sizes change, including font load and zoom.
+	const pillObserver = new ResizeObserver(() => {
+		const placements = [
+			[tabGroup, tabs.find((t) => t.getAttribute("aria-selected") === "true")],
+			[
+				themeGroup,
+				themeButtons.find((b) => b.getAttribute("aria-pressed") === "true"),
+			],
+		].map(([group, target]) => ({
+			group,
+			pill: group.querySelector(".pill"),
+			width: target.offsetWidth,
+			left: target.offsetLeft,
+		}));
+		for (const { group, pill, width, left } of placements) {
+			group.classList.add("no-anim");
+			pill.style.width = `${width}px`;
+			pill.style.transform = `translateX(${left}px)`;
+		}
 		requestAnimationFrame(() => {
-			requestAnimationFrame(() => root.classList.remove("no-anim"));
+			requestAnimationFrame(() => {
+				for (const { group } of placements) group.classList.remove("no-anim");
+			});
 		});
-	};
+	});
 
 	// Copy. A click on a button with data-copy copies that value through copyText. A successful copy flashes
 	// the button: it shows the check icon or the copied text (data-state="copied") and the copied text is
@@ -175,13 +163,10 @@
 	// region outside the dialog is not announced then.
 	const statusRegion = () =>
 		document.querySelector("dialog[open] [data-export-status]") ||
-		document.getElementById(STATUS_ID);
+		document.getElementById("copy-status");
 
 	// The text is cleared first and set on the next frame, so a repeated text is announced again.
 	const announce = (region, text) => {
-		if (!region) {
-			return;
-		}
 		region.textContent = "";
 		requestAnimationFrame(() => {
 			region.textContent = text;
@@ -192,11 +177,12 @@
 		// One region for the whole flash, so the clearing timer empties the element that was written.
 		const region = statusRegion();
 		btn.dataset.state = "copied";
-		if (btn.dataset.copiedBefore && btn.dataset.copiedOnce) {
-			btn.title = btn.dataset.copiedBefore;
+		const copyStatus = document.getElementById("copy-status");
+		if (btn.hasAttribute("data-copy") && btn.dataset.copiedOnce) {
+			btn.title = copyStatus.dataset.copiedBefore;
 		}
 		btn.dataset.copiedOnce = "1";
-		const text = btn.dataset.copiedText;
+		const text = btn.dataset.copiedText || copyStatus.dataset.copiedText;
 		announce(region, text);
 		clearTimeout(timers.get(btn));
 		timers.set(
@@ -204,7 +190,7 @@
 			setTimeout(() => {
 				delete btn.dataset.state;
 				// Clear the announcement only when it is still this button's text.
-				if (region && region.textContent === text) {
+				if (region.textContent === text) {
 					region.textContent = "";
 				}
 			}, SHOW_MS),
@@ -224,19 +210,20 @@
 		return Promise.resolve(fallbackCopy(text));
 	};
 
+	const copyAndFlash = (text, btn) => {
+		void copyText(text).then((ok) => {
+			if (ok) flash(btn);
+		});
+	};
+
 	const onCopyClick = (event) => {
 		const target = event.target;
-		const btn =
-			target instanceof Element ? target.closest("[data-copy]") : null;
+		const btn = target.closest("[data-copy]");
 		if (!btn) {
 			return;
 		}
 		// copyText never rejects: fallbackCopy swallows errors, so the promise needs no rejection handler.
-		void copyText(btn.dataset.copy).then((ok) => {
-			if (ok) {
-				flash(btn);
-			}
-		});
+		copyAndFlash(btn.dataset.copy, btn);
 	};
 
 	// Export dialog. A native modal dialog lets the user pick the repos whose updates go into a YAML export.
@@ -336,17 +323,12 @@
 						repo.checked = target.checked;
 					}
 				}
-				target.indeterminate = false;
 			}
 			syncAll();
 		};
 
 		const onCopy = () => {
-			void copyText(buildExport()).then((ok) => {
-				if (ok) {
-					flash(copyBtn);
-				}
-			});
+			copyAndFlash(buildExport(), copyBtn);
 		};
 
 		// The link lives in the open dialog: the page behind a modal is inert, and a click on an inert link
@@ -369,13 +351,12 @@
 		dialog.addEventListener("change", onChange);
 		// The native close (the close button, Escape) leaves focus nowhere useful, so return it to the opener.
 		dialog.addEventListener("close", () => openBtn.focus());
-		copyBtn?.addEventListener("click", onCopy);
-		downloadBtn?.addEventListener("click", onDownload);
+		copyBtn.addEventListener("click", onCopy);
+		downloadBtn.addEventListener("click", onDownload);
 		// The markup may render the actions enabled; this sets them from the initial checkbox state.
 		syncAll();
 	};
 
-	applyTheme("system");
 	for (const b of themeButtons) {
 		b.addEventListener("click", () => chooseTheme(b));
 	}
@@ -387,10 +368,5 @@
 	}
 	document.addEventListener("click", onCopyClick);
 	initExport();
-	placePills();
-	addEventListener("resize", placePills);
-	if (document.fonts) {
-		// The pills are placed above already; a rejected font load keeps that placement, so the error is ignored.
-		document.fonts.ready.then(placePills, () => {});
-	}
+	for (const button of [...tabs, ...themeButtons]) pillObserver.observe(button);
 })();

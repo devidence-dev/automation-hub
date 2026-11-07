@@ -8,6 +8,7 @@
 /* Tokens, with the names of the design. Light on :root; dark for the system choice (when no light choice is
    stored) and for a stored dark choice. The three blocks are written out, as the design requires. */
 :root {
+	color-scheme: light dark;
 	--bg: #edf3f8;
 	--mesh:
 		radial-gradient(
@@ -28,7 +29,7 @@
 	--ink: #0b1b25;
 	--ink-2: #33475a;
 	--muted: #56697a;
-	--muted-2: #7a8a96;
+	--muted-2: #5f6f7c;
 	--accent: #0a63c2;
 	--glass: rgba(255, 255, 255, 0.55);
 	--glass-strong: rgba(255, 255, 255, 0.52);
@@ -36,18 +37,20 @@
 	--edge: rgba(255, 255, 255, 0.8);
 	--hi: inset 0 1px 0 rgba(255, 255, 255, 0.95);
 	--shadow: 0 12px 30px -18px rgba(0, 70, 130, 0.3);
-	--shadow-lg: 0 20px 44px -24px rgba(0, 70, 130, 0.35);
+	--shadow-strong: 0 20px 44px -24px rgba(0, 70, 130, 0.35);
 	--line: rgba(11, 27, 37, 0.06);
 	--sat: 180%;
 	--tab-on-bg: rgba(255, 255, 255, 0.92);
 	--tab-on-fg: #0b1b25;
 	--tab-on-shadow: inset 0 1px 0 #fff, 0 4px 14px -4px rgba(0, 70, 130, 0.25);
 	--count-bg: rgba(11, 27, 37, 0.07);
-	--on-minor: #ffffff;
+	--count-on-fg: #ffffff;
+	--count-on-bg: #0a63c2;
 	--btn-bg: rgba(255, 255, 255, 0.7);
 	--btn-edge: rgba(255, 255, 255, 0.9);
 	--btn-hover: #fff;
 	--dot-ring: 0 0 0 4px rgba(255, 255, 255, 0.8);
+	--patch-glow: 0 0 8px var(--patch);
 	--major: #ff6b57;
 	--major-fg: #b93a24;
 	--major-bg: rgba(255, 99, 71, 0.13);
@@ -67,6 +70,7 @@
 }
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme="light"]) {
+		color-scheme: dark;
 		--bg: #04101a;
 		--mesh:
 			radial-gradient(
@@ -88,14 +92,14 @@
 		--ink-2: #c9d8e2;
 		--muted: #9fb6c6;
 		--accent: #7fd9ea;
-		--muted-2: #5d7586;
+		--muted-2: #7d94a4;
 		--glass: rgba(255, 255, 255, 0.05);
 		--glass-strong: rgba(255, 255, 255, 0.06);
 		--glass-soft: rgba(255, 255, 255, 0.06);
 		--edge: rgba(255, 255, 255, 0.1);
 		--hi: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 		--shadow: none;
-		--shadow-lg: 0 24px 50px -24px rgba(0, 0, 0, 0.7);
+		--shadow-strong: 0 24px 50px -24px rgba(0, 0, 0, 0.7);
 		--line: rgba(255, 255, 255, 0.07);
 		--sat: 160%;
 		--tab-on-bg: rgba(255, 255, 255, 0.14);
@@ -122,7 +126,11 @@
 		--logo-sub: #9fb6c6;
 	}
 }
+:root[data-theme="light"] {
+	color-scheme: light;
+}
 :root[data-theme="dark"] {
+	color-scheme: dark;
 	--bg: #04101a;
 	--mesh:
 		radial-gradient(
@@ -144,14 +152,14 @@
 	--ink-2: #c9d8e2;
 	--muted: #9fb6c6;
 	--accent: #7fd9ea;
-	--muted-2: #5d7586;
+	--muted-2: #7d94a4;
 	--glass: rgba(255, 255, 255, 0.05);
 	--glass-strong: rgba(255, 255, 255, 0.06);
 	--glass-soft: rgba(255, 255, 255, 0.06);
 	--edge: rgba(255, 255, 255, 0.1);
 	--hi: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 	--shadow: none;
-	--shadow-lg: 0 24px 50px -24px rgba(0, 0, 0, 0.7);
+	--shadow-strong: 0 24px 50px -24px rgba(0, 0, 0, 0.7);
 	--line: rgba(255, 255, 255, 0.07);
 	--sat: 160%;
 	--tab-on-bg: rgba(255, 255, 255, 0.14);
@@ -192,13 +200,58 @@
 	--color-btn-bg: var(--btn-bg);
 	--color-btn-edge: var(--btn-edge);
 	--color-btn-hover: var(--btn-hover);
+	--color-tone: var(--tone);
+	--color-tone-fg: var(--tone-fg);
+	--color-tone-bg: var(--tone-bg);
 	--font-sans:
 		"Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 	--font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }
 
+@utility chip {
+	display: inline-flex;
+	align-items: center;
+	justify-self: start;
+	border-radius: 9999px;
+	padding: 3px 8px;
+	font-size: 11px;
+	font-weight: 500;
+	white-space: nowrap;
+	color: var(--tone-fg);
+	background: var(--tone-bg);
+}
+
+@utility icon {
+	width: 14px;
+	height: 14px;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.3;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+@utility dot-glow {
+	box-shadow: var(--dot-ring);
+}
+
+@utility nums {
+	font-variant-numeric: tabular-nums;
+}
+
 /* A translucent card: blur and saturation over the mesh, an edge and an inset highlight. The panel
    changes the background and the shadow through --glass-bg and --glass-shadow. */
+@utility glass-pill {
+	background: var(--glass-bg, var(--glass));
+	backdrop-filter: blur(24px) saturate(var(--sat));
+	border: 1px solid var(--edge);
+	box-shadow: var(--hi), var(--glass-shadow, var(--shadow));
+	display: flex;
+	align-items: center;
+	border-radius: 9999px;
+	padding: 7px 12px;
+}
+
 @utility glass {
 	background: var(--glass-bg, var(--glass));
 	backdrop-filter: blur(24px) saturate(var(--sat));
@@ -207,8 +260,70 @@
 }
 
 /* Shared base of every button: cursor and disabled state change here only. */
+@utility dep-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	column-gap: 14px;
+	row-gap: 4px;
+	padding-block: 3px;
+	@media (min-width: 601px) {
+		grid-template-columns: minmax(0, 1fr) auto 58px 30px;
+		row-gap: 0;
+	}
+	& > code {
+		min-width: 0;
+		font-size: var(--text-sm);
+		line-height: var(--text-sm--line-height);
+		font-weight: 500;
+		color: var(--ink);
+		overflow-wrap: anywhere;
+	}
+	& > span:not(.chip) {
+		font-family: var(--font-mono);
+		font-size: 13px;
+		white-space: nowrap;
+		color: var(--muted);
+		font-variant-numeric: tabular-nums;
+	}
+	& b {
+		font-weight: 600;
+		color: var(--ink);
+	}
+}
+
+@utility copy-btn {
+	display: grid;
+	width: 30px;
+	height: 30px;
+	flex-shrink: 0;
+	place-items: center;
+	border-radius: 10px;
+	border: 1px solid var(--btn-edge);
+	background: var(--btn-bg);
+	color: var(--muted);
+	@media (hover: hover) {
+		&:hover {
+			background: var(--btn-hover);
+			color: var(--ink);
+		}
+	}
+	&[data-state="copied"] {
+		color: var(--ok);
+	}
+}
+
 @utility btn {
 	cursor: pointer;
+	transition-property:
+		color, background-color, border-color, outline-color, text-decoration-color,
+		fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to;
+	transition-timing-function: var(--default-transition-timing-function);
+	transition-duration: 150ms;
+	&:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
 	&:disabled {
 		cursor: default;
 		opacity: 0.45;
@@ -265,16 +380,12 @@
 
 	.bar-seg {
 		min-width: 6px;
-		background: var(--tone);
-	}
-	.swatch {
-		background: var(--tone);
 	}
 
-	/* The selected tab: its count takes the minor color, and the tab itself the bold weight. */
+	/* The selected tab: its count uses the contrast tokens, and the tab itself the bold weight. */
 	.tab[aria-selected="true"] .tab-count {
-		background: var(--minor);
-		color: var(--on-minor);
+		background: var(--count-on-bg);
+		color: var(--count-on-fg);
 	}
 
 	/* The chevron of an open card turns; the card needs no script for it. */
@@ -307,9 +418,9 @@
 
 /* Unlayered rules beat the utility layer, so the motion switches below need no !important. The pills and
    the color changes do not animate while report.js places them on load and on resize. */
-.no-anim .pill,
-.no-anim .theme-btn,
-.no-anim .tab,
+.no-anim > .pill,
+.no-anim > .theme-btn,
+.no-anim > .tab,
 .no-anim .tab-count {
 	transition: none;
 }
@@ -337,4 +448,34 @@
 /* The hidden attribute always hides: unlayered, so no utility class overrides it. */
 [hidden] {
 	display: none;
+}
+
+summary:focus-visible,
+.export-dialog input[type="checkbox"]:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+@keyframes panel-in {
+	from {
+		opacity: 0;
+		transform: translateX(var(--dx));
+		filter: blur(4px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+		filter: blur(0);
+	}
+}
+@media (prefers-reduced-motion: no-preference) {
+	[data-panel][data-dir]:not([hidden]) {
+		animation: panel-in 420ms var(--ease);
+	}
+	[data-panel][data-dir="next"] {
+		--dx: 24px;
+	}
+	[data-panel][data-dir="prev"] {
+		--dx: -24px;
+	}
 }

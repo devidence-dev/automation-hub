@@ -1,6 +1,7 @@
 package depreport
 
 import (
+	"fmt"
 	"math"
 	"regexp"
 	"strconv"
@@ -11,19 +12,19 @@ import (
 // The tokens of the liquid glass design (liquid-glass-report, openspec design D8), as the three blocks of
 // assets/input.css declare them: light on :root, dark for the system choice and for a stored dark choice.
 var lightTokens = map[string]string{
-	"bg": "#EDF3F8", "ink": "#0B1B25", "ink-2": "#33475A", "muted": "#56697A", "accent": "#0A63C2",
+	"bg": "#EDF3F8", "ink": "#0B1B25", "ink-2": "#33475A", "muted": "#56697A", "muted-2": "#5F6F7C", "count-on-bg": "#0A63C2", "count-on-fg": "#FFFFFF", "accent": "#0A63C2",
 	"major-fg": "#B93A24", "minor-fg": "#0A63C2", "patch-fg": "#07707F", "err-fg": "#C4141F", "ok": "#07707F",
 	"logo-main": "#0B1B25", "logo-sub": "#334C5A", "minor": "#0A84FF", "major": "#FF6B57", "patch": "#16CBE7",
 }
 
 var darkTokens = map[string]string{
-	"bg": "#04101A", "ink": "#EAF2F8", "ink-2": "#C9D8E2", "muted": "#9FB6C6", "accent": "#7FD9EA",
+	"bg": "#04101A", "ink": "#EAF2F8", "ink-2": "#C9D8E2", "muted": "#9FB6C6", "muted-2": "#7D94A4", "accent": "#7FD9EA",
 	"major-fg": "#FFA391", "minor-fg": "#8CC8FF", "patch-fg": "#7AF2FF", "err-fg": "#FF8A82", "ok": "#6CF5FF",
 	"logo-main": "#F2F7FB", "logo-sub": "#9FB6C6",
 }
 
 // textTokens are the text colors, checked against their backgrounds at 4.5:1 (WCAG AA, normal text).
-var textTokens = []string{"ink", "ink-2", "muted", "accent", "major-fg", "minor-fg", "patch-fg", "err-fg", "ok"}
+var textTokens = []string{"ink", "ink-2", "muted", "muted-2", "accent", "major-fg", "minor-fg", "patch-fg", "err-fg", "ok"}
 
 var (
 	cssTokenRE = regexp.MustCompile(`--([a-z0-9-]+):(#[0-9a-fA-F]{3,6})`)
@@ -115,6 +116,7 @@ func TestReportCSSDarkTokensInBothBlocks(t *testing.T) {
 }
 
 func TestReportCSSTextContrast(t *testing.T) {
+	checkAdditionalReportCSSTextContrast(t)
 	light, systemDark, _ := schemeBlocks(t)
 	lightTok, darkTok := cssTokens(light), cssTokens(systemDark)
 	for _, name := range textTokens {
@@ -134,7 +136,7 @@ func TestReportCSSUtilitiesAreEmitted(t *testing.T) {
 	css := cssCompact(ReportCSS)
 	for _, want := range []string{
 		".glass{", ".pill{", ".app-bg{", ".tone-major{", ".tone-minor{", ".tone-patch{", ".tone-err{",
-		".bar-seg{", ".swatch{", "details[open]>summary.chev", "rotate(180deg)",
+		".bar-seg{", ".chip{", ".bg-tone{", "details[open]>summary.chev", "rotate(180deg)",
 		"@media(prefers-reduced-motion:reduce)", "::view-transition-old(root)", "[hidden]{display:none}",
 	} {
 		if !strings.Contains(css, want) {
@@ -199,8 +201,8 @@ func TestReportCSSDisabledActionHover(t *testing.T) {
 // the default cursor. The btn utility compiles to .btn and its nested :disabled rule.
 func TestReportCSSButtonBase(t *testing.T) {
 	css := cssCompact(ReportCSS)
-	if !strings.Contains(css, ".btn{cursor:pointer}") {
-		t.Error("compiled CSS lacks .btn{cursor:pointer}, so buttons get no pointer cursor")
+	if !strings.Contains(css, ".btn{cursor:pointer;") {
+		t.Error("compiled CSS lacks the btn pointer cursor, so buttons get no pointer cursor")
 	}
 	if !regexp.MustCompile(`\.btn:disabled\{[^}]*cursor:default[;}]`).MatchString(css) {
 		t.Error("compiled CSS lacks the .btn:disabled rule with cursor:default")
@@ -220,4 +222,167 @@ func TestReportCSSHasNoOldFrameworkOrWideMinWidth(t *testing.T) {
 	if strings.Contains(css, "@container") || strings.Contains(css, "subgrid") {
 		t.Error("compiled CSS uses container queries or subgrid, which the mock does not use")
 	}
+}
+
+// blendHex composites a compiled #rrggbbaa or #rgba color over an opaque #rrggbb base.
+func blendHex(fg, bg string) string {
+	fg = strings.TrimPrefix(fg, "#")
+	if len(fg) == 4 {
+		fg = string(fg[0]) + string(fg[0]) + string(fg[1]) + string(fg[1]) + string(fg[2]) + string(fg[2]) + string(fg[3]) + string(fg[3])
+	}
+	if len(fg) == 3 {
+		fg = string(fg[0]) + string(fg[0]) + string(fg[1]) + string(fg[1]) + string(fg[2]) + string(fg[2])
+	}
+	alpha := 1.0
+	if len(fg) == 8 {
+		a, _ := strconv.ParseUint(fg[6:], 16, 8)
+		alpha = float64(a) / 255
+	}
+	bg = strings.TrimPrefix(canonHex(bg), "#")
+	rgb := "#"
+	for i := 0; i < 6; i += 2 {
+		f, _ := strconv.ParseUint(fg[i:i+2], 16, 8)
+		b, _ := strconv.ParseUint(bg[i:i+2], 16, 8)
+		rgb += fmt.Sprintf("%02x", int(math.Round(float64(f)*alpha+float64(b)*(1-alpha))))
+	}
+	return rgb
+}
+
+func rawColorToken(css, name string) string {
+	re := regexp.MustCompile(`--` + regexp.QuoteMeta(name) + `:(#[0-9a-fA-F]+)`)
+	m := re.FindStringSubmatch(css)
+	if m == nil {
+		return ""
+	}
+	return m[1]
+}
+
+type contrastPair struct{ name, fg, bg string }
+
+func additionalContrastPairs(t *testing.T) []contrastPair {
+	t.Helper()
+	light, dark, _ := schemeBlocks(t)
+	var pairs []contrastPair
+	for scheme, css := range map[string]string{"light": light, "dark": dark} {
+		token := func(name string) string {
+			v := rawColorToken(css, name)
+			if v == "" {
+				t.Fatalf("%s token --%s missing", scheme, name)
+			}
+			return v
+		}
+		bg := canonHex(token("bg"))
+		card := blendHex(token("glass"), bg)
+		pairs = append(pairs, contrastPair{scheme + " muted-2 on page", canonHex(token("muted-2")), bg}, contrastPair{scheme + " muted-2 on card", canonHex(token("muted-2")), card})
+		for _, tone := range []string{"major", "minor", "patch", "err"} {
+			pairs = append(pairs, contrastPair{scheme + " " + tone + " chip", canonHex(token(tone + "-fg")), blendHex(token(tone+"-bg"), card)})
+		}
+	}
+	lt := cssTokens(light)
+	pairs = append(pairs, contrastPair{"selected tab count", lt["count-on-fg"], lt["count-on-bg"]})
+	return pairs
+}
+
+func checkAdditionalReportCSSTextContrast(t *testing.T) {
+	for _, p := range additionalContrastPairs(t) {
+		if ratio := contrastRatio(p.fg, p.bg); ratio < 4.5 {
+			t.Errorf("%s = %.2f:1, want at least 4.5:1", p.name, ratio)
+		}
+	}
+}
+
+func TestReportCSSStrongGlassShadow(t *testing.T) {
+	css := cssCompact(ReportCSS)
+	if strings.Contains(css, "--shadow-lg") {
+		t.Error("compiled CSS retains --shadow-lg")
+	}
+	for _, want := range []string{"--shadow-strong:", "--glass-shadow:var(--shadow-strong)", "var(--glass-shadow,var(--shadow))"} {
+		if !strings.Contains(css, want) {
+			t.Errorf("compiled CSS lacks %q", want)
+		}
+	}
+}
+
+func TestReportCSSToneColors(t *testing.T) {
+	css := cssCompact(ReportCSS)
+	for _, want := range []string{".bg-tone{background-color:var(--tone)}", ".text-tone{color:var(--tone)}", "background:var(--tone-bg)", "color:var(--tone-fg)", ".bar-seg{min-width:6px}"} {
+		if !strings.Contains(css, want) {
+			t.Errorf("compiled CSS lacks %q", want)
+		}
+	}
+	if strings.Contains(css, ".swatch{") {
+		t.Error("unused swatch selector remains")
+	}
+}
+
+func TestReportCSSButtonFocus(t *testing.T) {
+	css := cssCompact(ReportCSS)
+	if !regexp.MustCompile(`\.btn:focus-visible\{[^}]*outline:2pxsolidvar\(--accent\);outline-offset:2px`).MatchString(css) {
+		t.Error("button focus outline missing")
+	}
+	if !strings.Contains(css, ".copy-btn[data-state=copied]{color:var(--ok)}") {
+		t.Error("copied-state color missing")
+	}
+}
+
+func TestReportCSSColorScheme(t *testing.T) {
+	css := cssCompact(ReportCSS)
+	for _, pattern := range []string{`:root\{[^}]*color-scheme:lightdark`, `:root\[data-theme=light\]\{color-scheme:light`, `:root\[data-theme=dark\]\{[^}]*color-scheme:dark`, `:root:not\(\[data-theme=light\]\)\{[^}]*color-scheme:dark`} {
+		if !regexp.MustCompile(pattern).MatchString(css) {
+			t.Errorf("missing color scheme: %s", pattern)
+		}
+	}
+}
+func TestReportCSSFocusVisible(t *testing.T) {
+	css := cssCompact(ReportCSS)
+	for _, sel := range []string{"summary:focus-visible", ".export-dialoginput[type=checkbox]:focus-visible"} {
+		i := strings.Index(css, sel)
+		if i < 0 {
+			t.Errorf("missing %s", sel)
+			continue
+		}
+		end := strings.Index(css[i:], "}")
+		if end < 0 || !strings.Contains(css[i:i+end], "outline:2pxsolidvar(--accent)") || !strings.Contains(css[i:i+end], "outline-offset:2px") {
+			t.Errorf("focus outline missing for %s", sel)
+		}
+	}
+}
+
+func TestReportCSSPanelMotion(t *testing.T) {
+	css := cssCompact(ReportCSS)
+	for _, want := range []string{"@keyframespanel-in", "blur(4px)", "24px", "-24px", ".42s", "@media(prefers-reduced-motion:no-preference)", "[data-panel][data-dir]:not([hidden])"} {
+		if !strings.Contains(css, want) {
+			t.Errorf("panel animation lacks %q", want)
+		}
+	}
+	block := cssBlock(css, "@media(prefers-reduced-motion:no-preference){")
+	if !strings.Contains(block, "[data-panel][data-dir]:not([hidden])") || !strings.Contains(block, "animation:panel-in") {
+		t.Error("panel animation must be inside the no-preference media block")
+	}
+	markup := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
+	markup = regexp.MustCompile(`(?s)<style.*?</style>|<script.*?</script>`).ReplaceAllString(markup, "")
+	if strings.Contains(markup, "data-dir=") {
+		t.Error("panel animates on first render")
+	}
+}
+
+func cssBlock(css, selector string) string {
+	start := strings.Index(css, selector)
+	if start < 0 {
+		return ""
+	}
+	open := strings.IndexByte(css[start:], '{') + start
+	depth := 0
+	for i := open; i < len(css); i++ {
+		switch css[i] {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return css[open:i]
+			}
+		}
+	}
+	return ""
 }

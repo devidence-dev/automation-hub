@@ -1,13 +1,15 @@
 package depreport
 
 // FileGroup is one package file of a repo card: its entries, then its location once, on its own line.
-templ FileGroup(f FileGroupView) {
+templ FileGroup(f FileGroupView, labels rowLabels) {
 	<div class="border-b border-line pt-[5px] pb-2 last:border-b-0">
-		for _, e := range f.Entries {
-			@DepRow(e)
-		}
-		<p class="mt-1 mb-0 flex items-center gap-1.5 font-mono text-xs text-muted" title={ f.Path }>
-			<svg class="shrink-0 fill-none stroke-muted-2 stroke-[1.1]" width="12" height="12" viewBox="0 0 12 12" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2.5 1.5h4.5l2.5 2.5v6.5h-7z"></path><path d="M7 1.5V4h2.5"></path></svg>
+		<ul role="list">
+			for _, e := range f.Entries {
+				@DepRow(e, labels)
+			}
+		</ul>
+		<p class="mt-1 mb-0 flex items-center gap-1.5 font-mono text-xs text-muted">
+			@Icon("file", "shrink-0 text-muted-2")
 			<span class="min-w-0 [overflow-wrap:anywhere]">
 				if f.Dir != "" {
 					<span class="text-muted-2">{ f.Dir }</span>{ f.Short }
@@ -21,24 +23,22 @@ templ FileGroup(f FileGroupView) {
 
 // DepRow is one listed update: name, versions, type chip and copy button. Every row of a file group
 // uses the same columns, so they align. Below 600px it stacks into two rows (openspec design D6, mobile first).
-templ DepRow(e EntryView) {
-	<div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3.5 gap-y-1 py-[3px] min-[601px]:grid-cols-[minmax(0,1fr)_auto_58px_30px] min-[601px]:gap-y-0">
-		<code class="min-w-0 text-sm font-medium text-ink [overflow-wrap:anywhere]">{ e.Name }</code>
-		<span class="ver font-mono text-[13px] whitespace-nowrap text-muted tabular-nums">
-			<span class="sr-only">{ e.CurrentLabel }</span>{ e.Current } <span aria-hidden="true">→</span> <span class="sr-only">{ e.NewLabel }</span><b class="font-semibold text-ink">{ e.New }</b>
+templ DepRow(e EntryView, labels rowLabels) {
+	<li class="dep-row">
+		<code>{ e.Name }</code>
+		<span>
+			<span class="sr-only">{ labels.Current }</span>{ e.Current } <span aria-hidden="true">→</span> <span class="sr-only">{ labels.New }</span><b>{ e.New }</b>
 		</span>
-		<span class="justify-self-start">
-			@TypeChip(e.Type, e.TypeLabel)
-		</span>
+		@TypeChip(e.Type, e.TypeLabel)
 		@CopyButton(e.Copy)
-	</div>
+	</li>
 }
 
 // CopyButton is the icon-only copy button of an entry. Its accessible name and tooltip are the catalog
 // label. It shows the clipboard icon, and the check icon while copy.js sets data-state="copied".
 templ CopyButton(c CopyView) {
-	<button type="button" class="btn group grid size-[30px] shrink-0 place-items-center rounded-[10px] border border-btn-edge bg-btn-bg text-muted transition-colors duration-150 hover:bg-btn-hover hover:text-ink data-[state=copied]:text-ok focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" aria-label={ c.Label } title={ c.Label } data-copy={ c.Value } data-copied-text={ c.Copied } data-copied-before={ c.CopiedBefore }>
-		@Icon("copy", "size-3.5 group-data-[state=copied]:hidden")
-		@Icon("check", "hidden size-3.5 group-data-[state=copied]:block")
+	<button type="button" class="btn copy-btn group" aria-label={ c.Label } title={ c.Label } data-copy={ c.Value }>
+		@Icon("copy", "group-data-[state=copied]:hidden")
+		@Icon("check", "hidden group-data-[state=copied]:block")
 	</button>
 }

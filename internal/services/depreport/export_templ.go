@@ -10,7 +10,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 // ExportButton opens the export dialog. Up to 600px it shows the icon only; the accessible name is the
 // catalog label at every width. Its hover changes the glass background through --glass-bg, as the buttons do.
-func ExportButton(labels labelSet) templ.Component {
+func ExportButton(labels chromeLabels) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -31,14 +31,14 @@ func ExportButton(labels labelSet) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<button type=\"button\" class=\"btn glass flex items-center gap-1.5 rounded-full px-3 py-[7px] text-xs font-medium text-ink transition-colors duration-150 hover:[--glass-bg:var(--btn-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent\" aria-haspopup=\"dialog\" aria-controls=\"export-dialog\" aria-label=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<button type=\"button\" class=\"btn glass-pill gap-1.5 text-xs font-medium text-ink hover:[--glass-bg:var(--btn-hover)]\" aria-haspopup=\"dialog\" aria-controls=\"export-dialog\" aria-label=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(labels.ExportButton)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/export.templ`, Line: 6, Col: 359}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/export.templ`, Line: 6, Col: 204}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 		if templ_7745c5c3_Err != nil {
@@ -51,7 +51,7 @@ func ExportButton(labels labelSet) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(labels.ExportButton)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/export.templ`, Line: 6, Col: 389}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/export.templ`, Line: 6, Col: 234}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 		if templ_7745c5c3_Err != nil {
@@ -61,7 +61,7 @@ func ExportButton(labels labelSet) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = Icon("export", "size-3.5").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = Icon("export", "").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -124,7 +124,7 @@ func exportAction(typ string, attrs templ.Attributes) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" class=\"btn export-action group rounded-full border border-btn-edge bg-btn-bg px-3.5 py-2 text-[13px] font-medium text-ink transition-colors duration-150 enabled:hover:bg-btn-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" class=\"btn group rounded-full border border-btn-edge bg-btn-bg px-3.5 py-2 text-[13px] font-medium text-ink enabled:hover:bg-btn-hover\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -151,7 +151,7 @@ func exportAction(typ string, attrs templ.Attributes) templ.Component {
 // ExportDialog is the modal of the export: one section per tab with listed updates, each with a section
 // checkbox and one checkbox per repo, then the copy, download and close actions. report.js reads the data
 // attributes; the YAML fragments are escaped as attribute values, so report text stays inert.
-func ExportDialog(view documentView) templ.Component {
+func ExportDialog(view ExportView, labels chromeLabels) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -177,9 +177,9 @@ func ExportDialog(view documentView) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var8 string
-		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue(view.Export.Header)
+		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue(view.Header)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/export.templ`, Line: 24, Col: 110}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/export.templ`, Line: 24, Col: 103}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 		if templ_7745c5c3_Err != nil {
@@ -190,22 +190,22 @@ func ExportDialog(view documentView) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var9 string
-		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(view.Export.FileName)
+		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(view.FileName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/export.templ`, Line: 24, Col: 150}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/export.templ`, Line: 24, Col: 136}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" class=\"glass export-dialog [--glass-bg:var(--glass-strong)] [--glass-shadow:var(--shadow-lg)]\"><h2 id=\"export-title\" class=\"m-0 text-[15px] font-semibold\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" class=\"glass export-dialog [--glass-bg:var(--glass-strong)] [--glass-shadow:var(--shadow-strong)]\"><h2 id=\"export-title\" class=\"m-0 text-[15px] font-semibold\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var10 string
-		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(view.Labels.ExportTitle)
+		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(labels.ExportTitle)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/export.templ`, Line: 25, Col: 87}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/export.templ`, Line: 25, Col: 82}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
@@ -215,7 +215,7 @@ func ExportDialog(view documentView) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		for _, s := range view.Export.Sections {
+		for _, s := range view.Sections {
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<fieldset data-export-section data-key=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -229,7 +229,7 @@ func ExportDialog(view documentView) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" class=\"mt-4 min-w-0 border-0 p-0\"><legend class=\"mb-1.5 p-0 text-[13px] font-semibold\"><label class=\"inline-flex cursor-pointer items-center gap-2\"><input type=\"checkbox\" data-export-all checked class=\"size-3.5 cursor-pointer\"> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" class=\"mt-4 min-w-0 border-0 p-0\"><legend class=\"mb-1.5 p-0 text-[13px] font-semibold\"><label class=\"inline-flex cursor-pointer items-center gap-2\"><input type=\"checkbox\" data-export-all checked class=\"cursor-pointer\"> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -273,7 +273,7 @@ func ExportDialog(view documentView) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" checked class=\"size-3.5 cursor-pointer\"> ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" checked class=\"cursor-pointer\"> ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -340,9 +340,9 @@ func ExportDialog(view documentView) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var18 string
-			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(view.Labels.ExportCopy)
+			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(labels.ExportCopy)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/export.templ`, Line: 51, Col: 75}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/export.templ`, Line: 51, Col: 70}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 			if templ_7745c5c3_Err != nil {
@@ -353,9 +353,9 @@ func ExportDialog(view documentView) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var19 string
-			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(view.Labels.Copied)
+			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(labels.Copied)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/export.templ`, Line: 51, Col: 158}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/export.templ`, Line: 51, Col: 148}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 			if templ_7745c5c3_Err != nil {
@@ -367,7 +367,7 @@ func ExportDialog(view documentView) templ.Component {
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = exportAction("button", templ.Attributes{"data-export-copy": true, "data-copied-text": view.Labels.Copied}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var17), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = exportAction("button", templ.Attributes{"data-export-copy": true, "data-copied-text": labels.Copied}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var17), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -384,9 +384,9 @@ func ExportDialog(view documentView) templ.Component {
 			}
 			ctx = templ.InitializeContext(ctx)
 			var templ_7745c5c3_Var21 string
-			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(view.Labels.ExportDownload)
+			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(labels.ExportDownload)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/export.templ`, Line: 54, Col: 32}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/export.templ`, Line: 54, Col: 27}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 			if templ_7745c5c3_Err != nil {
@@ -415,9 +415,9 @@ func ExportDialog(view documentView) templ.Component {
 			}
 			ctx = templ.InitializeContext(ctx)
 			var templ_7745c5c3_Var23 string
-			templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(view.Labels.ExportClose)
+			templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(labels.ExportClose)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/export.templ`, Line: 58, Col: 30}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/export.templ`, Line: 58, Col: 25}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 			if templ_7745c5c3_Err != nil {
@@ -429,7 +429,7 @@ func ExportDialog(view documentView) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "</form></div><p role=\"status\" aria-live=\"polite\" class=\"sr-only\" data-export-status></p></dialog>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "</form></div><p role=\"status\" class=\"sr-only\" data-export-status></p></dialog>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

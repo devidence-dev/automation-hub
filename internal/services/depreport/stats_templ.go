@@ -31,7 +31,7 @@ func StatsPanel(s StatsView) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"glass mt-3.5 rounded-[26px] p-6 [--glass-bg:var(--glass-strong)] [--glass-shadow:var(--shadow-lg)]\"><p class=\"m-0 text-xs font-semibold tracking-[.12em] text-accent uppercase\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"glass mt-3.5 rounded-[26px] p-6 [--glass-bg:var(--glass-strong)] [--glass-shadow:var(--shadow-strong)]\"><p class=\"m-0 text-xs font-semibold tracking-[.12em] text-accent uppercase\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -44,14 +44,14 @@ func StatsPanel(s StatsView) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</p><div class=\"mt-[18px] grid grid-cols-1 items-end gap-[18px] min-[601px]:grid-cols-[auto_minmax(0,1fr)] min-[601px]:gap-7\"><div><p class=\"m-0 text-[72px] leading-[0.9] font-light tracking-[-0.04em] tabular-nums\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</p><div class=\"mt-[18px] grid grid-cols-1 items-end gap-[18px] min-[601px]:grid-cols-[auto_minmax(0,1fr)] min-[601px]:gap-7\"><div><p class=\"m-0 text-[72px] leading-[0.9] font-light tracking-[-0.04em] nums\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(s.Big)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/stats.templ`, Line: 10, Col: 95}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/stats.templ`, Line: 10, Col: 87}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -113,12 +113,12 @@ func DistributionBar(segments []BarSegment) templ.Component {
 			templ_7745c5c3_Var5 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"flex h-2 gap-[3px] overflow-hidden rounded-full\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div aria-hidden=\"true\" class=\"flex h-2 gap-[3px] overflow-hidden rounded-full\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		for _, seg := range segments {
-			var templ_7745c5c3_Var6 = []any{"bar-seg " + toneOf(seg.Type)}
+			var templ_7745c5c3_Var6 = []any{"bar-seg bg-tone " + toneOf(seg.Type)}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var6...)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -143,7 +143,7 @@ func DistributionBar(segments []BarSegment) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues("width:" + seg.Percent)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/stats.templ`, Line: 26, Col: 79}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/stats.templ`, Line: 26, Col: 87}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -193,7 +193,7 @@ func Legend(items []LegendItem) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var10 = []any{"swatch size-[7px] rounded-full " + toneOf(it.Type)}
+			var templ_7745c5c3_Var10 = []any{"bg-tone size-[7px] rounded-full " + toneOf(it.Type)}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var10...)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
