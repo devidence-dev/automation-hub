@@ -10,7 +10,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import "strconv"
 
-// Tabs are the tab list and the two panels, Dependencias first. report.js switches the selected tab,
+// Tabs are the tab list and the two panels, Dependencies first. report.js switches the selected tab,
 // moves the pill and shows the panel; the rendered state is the first tab selected.
 func Tabs(view documentView) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {

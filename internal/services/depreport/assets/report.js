@@ -8,6 +8,9 @@
 	const PANEL_SHIFT_PX = 24;
 	// How long the check icon and the announced text stay after a copy.
 	const SHOW_MS = 2000;
+	// How long a download link's object URL stays alive. Revoking in the same task can cancel the download in
+	// Safari and Firefox.
+	const REVOKE_MS = 1000;
 	const STATUS_ID = "copy-status";
 
 	const root = document.documentElement;
@@ -140,10 +143,12 @@
 		});
 	};
 
-	// Copy. A click on a button with data-copy copies that value through copyText. The button then shows
-	// the check icon (data-state="copied") and the copied text is announced in the live region for a moment.
+	// Copy. A click on a button with data-copy copies that value through copyText. A successful copy flashes
+	// the button: it shows the check icon or the copied text (data-state="copied") and the copied text is
+	// announced in the live region for a moment.
 	const timers = new WeakMap();
 
+	// fallbackCopy returns whether the browser reports the copy as done.
 	const fallbackCopy = (text) => {
 		const ta = document.createElement("textarea");
 		ta.value = text;
@@ -156,54 +161,67 @@
 		ta.focus();
 		ta.select();
 		ta.setSelectionRange(0, text.length);
+		let copied = false;
 		try {
-			document.execCommand("copy"); // NOSONAR iOS WebKit fallback: no non-deprecated copy path exists for it.
+			copied = document.execCommand("copy"); // NOSONAR iOS WebKit fallback: no non-deprecated copy path exists for it.
 		} catch {
-			// Without a copy command the button still shows the check icon.
+			// Without a copy command the copy failed, so the button does not flash.
 		}
 		ta.remove();
+		return copied;
 	};
 
-	const announce = (text) => {
-		const status = document.getElementById(STATUS_ID);
-		if (status) {
-			status.textContent = text;
+	// The live region of the open export dialog when there is one: the page behind a modal is inert, so the
+	// region outside the dialog is not announced then.
+	const statusRegion = () =>
+		document.querySelector("dialog[open] [data-export-status]") ||
+		document.getElementById(STATUS_ID);
+
+	// The text is cleared first and set on the next frame, so a repeated text is announced again.
+	const announce = (region, text) => {
+		if (!region) {
+			return;
 		}
+		region.textContent = "";
+		requestAnimationFrame(() => {
+			region.textContent = text;
+		});
 	};
 
 	const flash = (btn) => {
+		// One region for the whole flash, so the clearing timer empties the element that was written.
+		const region = statusRegion();
 		btn.dataset.state = "copied";
-		if (btn.dataset.copiedOnce) {
+		if (btn.dataset.copiedBefore && btn.dataset.copiedOnce) {
 			btn.title = btn.dataset.copiedBefore;
 		}
 		btn.dataset.copiedOnce = "1";
 		const text = btn.dataset.copiedText;
-		announce(text);
+		announce(region, text);
 		clearTimeout(timers.get(btn));
 		timers.set(
 			btn,
 			setTimeout(() => {
 				delete btn.dataset.state;
 				// Clear the announcement only when it is still this button's text.
-				const status = document.getElementById(STATUS_ID);
-				if (status && status.textContent === text) {
-					status.textContent = "";
+				if (region && region.textContent === text) {
+					region.textContent = "";
 				}
 			}, SHOW_MS),
 		);
 	};
 
-	// copyText resolves once the text is copied. The clipboard API may be missing or may reject the write
+	// copyText resolves to whether the text was copied. The clipboard API may be missing or may reject the write
 	// (no permission, insecure context), so both cases fall back to the text area. Without the API the
 	// fallback runs at once, inside the click, which browsers need to allow the copy command.
 	const copyText = (text) => {
 		if (navigator.clipboard?.writeText) {
-			return navigator.clipboard
-				.writeText(text)
-				.catch(() => fallbackCopy(text));
+			return navigator.clipboard.writeText(text).then(
+				() => true,
+				() => fallbackCopy(text),
+			);
 		}
-		fallbackCopy(text);
-		return Promise.resolve();
+		return Promise.resolve(fallbackCopy(text));
 	};
 
 	const onCopyClick = (event) => {
@@ -214,7 +232,11 @@
 			return;
 		}
 		// copyText never rejects: fallbackCopy swallows errors, so the promise needs no rejection handler.
-		void copyText(btn.dataset.copy).then(() => flash(btn));
+		void copyText(btn.dataset.copy).then((ok) => {
+			if (ok) {
+				flash(btn);
+			}
+		});
 	};
 
 	// Export dialog. A native modal dialog lets the user pick the repos whose updates go into a YAML export.
@@ -320,9 +342,11 @@
 		};
 
 		const onCopy = () => {
-			void copyText(buildExport()).then(() =>
-				announce(copyBtn.dataset.copiedText),
-			);
+			void copyText(buildExport()).then((ok) => {
+				if (ok) {
+					flash(copyBtn);
+				}
+			});
 		};
 
 		// The link lives in the open dialog: the page behind a modal is inert, and a click on an inert link
@@ -337,8 +361,8 @@
 			dialog.appendChild(link);
 			link.click();
 			link.remove();
-			// Revoke after this task so the click has finished reading the URL.
-			setTimeout(() => URL.revokeObjectURL(url), 0);
+			// Revoke later, not in this task: revoking at once can cancel the download in Safari and Firefox.
+			setTimeout(() => URL.revokeObjectURL(url), REVOKE_MS);
 		};
 
 		openBtn.addEventListener("click", openExport);

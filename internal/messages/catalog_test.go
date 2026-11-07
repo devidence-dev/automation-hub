@@ -32,6 +32,30 @@ func TestLoadNestedOverride(t *testing.T) {
 	}
 }
 
+func TestDefaultLangIsEnglish(t *testing.T) {
+	if got, _ := mustLoad(t, nil).Lookup("lang"); got != "en" {
+		t.Errorf("default lang = %q, want en", got)
+	}
+}
+
+func TestLoadLangOverrideKeepsLabels(t *testing.T) {
+	defaults := mustLoad(t, nil)
+	cat := mustLoad(t, map[string]any{"lang": "es"})
+
+	if got, _ := cat.Lookup("lang"); got != "es" {
+		t.Errorf("lang = %q, want es", got)
+	}
+	for _, key := range defaults.Keys() {
+		if key == "lang" {
+			continue
+		}
+		want, _ := defaults.Lookup(key)
+		if got, _ := cat.Lookup(key); got != want {
+			t.Errorf("%s = %q, want the English default %q", key, got, want)
+		}
+	}
+}
+
 func TestLoadRejectsUnknownKey(t *testing.T) {
 	_, err := Load(map[string]any{"caption": map[string]any{"headr": "x"}})
 	if err == nil || !strings.Contains(err.Error(), "caption.headr") {

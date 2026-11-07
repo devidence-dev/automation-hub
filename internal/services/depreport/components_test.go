@@ -48,8 +48,8 @@ func fixtureView(t *testing.T) documentView {
 func muxEntry() EntryView {
 	return EntryView{
 		Name: "github.com/gorilla/mux", Current: "1.8.0", New: "2.0.0", Type: UpdateMajor, TypeLabel: "major",
-		CurrentLabel: "Actual", NewLabel: "Nueva",
-		Copy: CopyView{Value: "github.com/gorilla/mux@2.0.0", Label: "Copiar nombre@versión", Copied: "¡Copiado!", CopiedBefore: "Copiar (copiado antes)"},
+		CurrentLabel: "Current", NewLabel: "New",
+		Copy: CopyView{Value: "github.com/gorilla/mux@2.0.0", Label: "Copy name@version", Copied: "Copied!", CopiedBefore: "Copy (copied before)"},
 	}
 }
 
@@ -82,13 +82,13 @@ func TestToneClasses(t *testing.T) {
 
 func TestRepoSummaryHasDotChipsAndNoEmoji(t *testing.T) {
 	g := RepoGroupView{
-		Repo: "devidence-dev/discord-tts-bot", Short: "discord-tts-bot", Note: "fork · solo informativo", //nolint:misspell // Spanish text fixed by the spec
+		Repo: "devidence-dev/discord-tts-bot", Short: "discord-tts-bot", Note: "fork · informational only",
 		Dot:   UpdateMinor,
 		Chips: []CountChip{{Type: UpdateMinor, Text: "1 minor"}},
 	}
 	out := renderOf(t, RepoGroup(g))
 	expectContains(t, out,
-		[]string{`<details class="glass group`, "tone-minor", "discord-tts-bot", "fork · solo informativo", "1 minor", `<svg class="chev`}, //nolint:misspell // Spanish text fixed by the spec
+		[]string{`<details class="glass group`, "tone-minor", "discord-tts-bot", "fork · informational only", "1 minor", `<svg class="chev`},
 		[]string{" open", ` name="`, "🔴", "🟡", "🚨", "⚠️", "♻️", "tone-major"})
 }
 
@@ -103,14 +103,14 @@ func TestRepoGroupHasNoOpenOrName(t *testing.T) {
 func TestDepRowColumnsAndCopy(t *testing.T) {
 	out := renderOf(t, DepRow(muxEntry()))
 	expectContains(t, out,
-		[]string{"grid-cols-[minmax(0,1fr)_auto_58px_30px]", "min-[601px]:grid-cols-", `aria-label="Copiar nombre@versión"`, `data-copy="github.com/gorilla/mux@2.0.0"`, "tone-major", "major"},
+		[]string{"grid-cols-[minmax(0,1fr)_auto_58px_30px]", "min-[601px]:grid-cols-", `aria-label="Copy name@version"`, `data-copy="github.com/gorilla/mux@2.0.0"`, "tone-major", "major"},
 		[]string{"tone-minor", "<table"})
 }
 
 func TestCopyButtonStates(t *testing.T) {
 	out := renderOf(t, CopyButton(muxEntry().Copy))
 	expectContains(t, out,
-		[]string{`data-copied-text="¡Copiado!"`, `data-copied-before="Copiar (copiado antes)"`, "group-data-[state=copied]:hidden", "data-[state=copied]:text-ok"},
+		[]string{`data-copied-text="Copied!"`, `data-copied-before="Copy (copied before)"`, "group-data-[state=copied]:hidden", "data-[state=copied]:text-ok"},
 		[]string{"<label", "<a "})
 	if n := strings.Count(out, "<svg"); n != 2 {
 		t.Errorf("copy button has %d icons, want 2 (clipboard and check)", n)
@@ -132,13 +132,13 @@ func TestIconsAreFixedAndInert(t *testing.T) {
 
 func TestStatsPanelValues(t *testing.T) {
 	s := StatsView{
-		Eyebrow: "Reporte de dependencias", Big: "53", Sub: "pendientes de 53 · 1 al día", //nolint:misspell // Spanish text fixed by the spec
+		Eyebrow: "Dependency report", Big: "53", Sub: "pending out of 53 · 1 up to date",
 		Segments: []BarSegment{{Type: UpdatePatch, Percent: "7.7%"}, {Type: UpdateMinor, Percent: "88.5%"}, {Type: UpdateMajor, Percent: "3.8%"}},
 		Legend:   []LegendItem{{Type: UpdatePatch, Label: "patch", Count: "4"}, {Type: UpdateMinor, Label: "minor", Count: "46"}, {Type: UpdateMajor, Label: "major", Count: "2"}},
 	}
 	out := renderOf(t, StatsPanel(s))
 	expectContains(t, out,
-		[]string{"Reporte de dependencias", ">53<", "pendientes de 53 · 1 al día", `style="width:7.7%;"`, `style="width:88.5%;"`, `style="width:3.8%;"`, "patch", "<b class=\"font-mono text-xs font-medium text-ink\">4</b>", "tone-patch", "tone-major"}, //nolint:misspell // Spanish text fixed by the spec
+		[]string{"Dependency report", ">53<", "pending out of 53 · 1 up to date", `style="width:7.7%;"`, `style="width:88.5%;"`, `style="width:3.8%;"`, "patch", "<b class=\"font-mono text-xs font-medium text-ink\">4</b>", "tone-patch", "tone-major"},
 		nil)
 	if strings.Index(out, "width:7.7%") > strings.Index(out, "width:3.8%") {
 		t.Error("bar segments are not in patch, minor, major order")
@@ -157,21 +157,21 @@ func TestStatsPanelZeroSegmentOmittedLegendKept(t *testing.T) {
 }
 
 func TestSummaryTextBoldAndRest(t *testing.T) {
-	out := renderOf(t, SummaryText(SummaryLine{Bold: "52 actualizaciones", Rest: "para 52 dependencias"})) //nolint:misspell // Spanish text fixed by the spec
-	expectContains(t, out, []string{"<b", "52 actualizaciones</b>", "para 52 dependencias"}, nil)          //nolint:misspell // Spanish text fixed by the spec
-	if out := renderOf(t, SummaryText(SummaryLine{Bold: "Todas las imágenes están al día"})); strings.Contains(out, "para") {
+	out := renderOf(t, SummaryText(SummaryLine{Bold: "52 updates", Rest: "across 52 dependencies"}))
+	expectContains(t, out, []string{"<b", "52 updates</b>", "across 52 dependencies"}, nil)
+	if out := renderOf(t, SummaryText(SummaryLine{Bold: "All images are up to date"})); strings.Contains(out, "across") {
 		t.Errorf("up-to-date summary has a rest:\n%s", out)
 	}
 }
 
 func TestErrorsCardRows(t *testing.T) {
 	view := documentView{
-		Labels:     labelSet{ErrorsHeading: "Errores del análisis"},
-		Errors:     []ErrorView{{Where: "raíz", Msg: "Fatal error outside any repo"}, {Where: "QuantWarden", Msg: "Failed to look up dependency"}},
-		ErrorsChip: "2 errores",
+		Labels:     labelSet{ErrorsHeading: "Scan errors"},
+		Errors:     []ErrorView{{Where: "root", Msg: "Fatal error outside any repo"}, {Where: "QuantWarden", Msg: "Failed to look up dependency"}},
+		ErrorsChip: "2 errors",
 	}
 	out := renderOf(t, ErrorsCard(view))
-	expectContains(t, out, []string{"Errores del análisis", "2 errores", "raíz", "Fatal error outside any repo", "QuantWarden", "tone-err"}, []string{"<table"})
+	expectContains(t, out, []string{"Scan errors", "2 errors", "root", "Fatal error outside any repo", "QuantWarden", "tone-err"}, []string{"<table"})
 }
 
 func TestTabsMarkup(t *testing.T) {
@@ -183,7 +183,7 @@ func TestTabsMarkup(t *testing.T) {
 	deps := strings.Index(out, `data-tab="deps"`)
 	images := strings.Index(out, `data-tab="images"`)
 	if deps < 0 || images < 0 || deps > images {
-		t.Errorf("tabs are not Dependencias then Imágenes (deps=%d images=%d)", deps, images) //nolint:misspell // Spanish text fixed by the spec
+		t.Errorf("tabs are not Dependencies then Images (deps=%d images=%d)", deps, images)
 	}
 	if !strings.Contains(out, `aria-selected="true"`) || strings.Index(out, `aria-selected="true"`) > images {
 		t.Error("the deps tab is not the selected one")
@@ -191,10 +191,10 @@ func TestTabsMarkup(t *testing.T) {
 }
 
 func TestThemeControlMarkup(t *testing.T) {
-	out := renderOf(t, ThemeControl(labelSet{ThemeGroup: "Tema", ThemeSystem: "Automático", ThemeLight: "Claro", ThemeDark: "Oscuro"}))
+	out := renderOf(t, ThemeControl(labelSet{ThemeGroup: "Theme", ThemeSystem: "Auto", ThemeLight: "Light", ThemeDark: "Dark"}))
 	expectContains(t, out,
-		[]string{`role="group"`, `aria-label="Tema"`, `data-theme-set="system" title="Automático" aria-label="Automático" aria-pressed="true"`,
-			`data-theme-set="light" title="Claro" aria-label="Claro" aria-pressed="false"`, `data-theme-set="dark" title="Oscuro" aria-label="Oscuro" aria-pressed="false"`},
+		[]string{`role="group"`, `aria-label="Theme"`, `data-theme-set="system" title="Auto" aria-label="Auto" aria-pressed="true"`,
+			`data-theme-set="light" title="Light" aria-label="Light" aria-pressed="false"`, `data-theme-set="dark" title="Dark" aria-label="Dark" aria-pressed="false"`},
 		nil)
 }
 

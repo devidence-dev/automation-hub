@@ -2,12 +2,17 @@ package depreport
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 )
+
+// spanishDefaultsPath lists the Spanish default texts of the catalog, one per line. They live in a data file so
+// that the test sources hold no Spanish text.
+const spanishDefaultsPath = "../../handlers/testdata/spanish-defaults.txt"
 
 // presentDocument renders s with the given overrides, in Guayaquil, with the default file names.
 func presentDocument(t *testing.T, overrides map[string]any, s Summary) string {
@@ -42,7 +47,7 @@ func panes(t *testing.T, out string) (images, deps string) {
 	depsAt := strings.Index(out, `data-panel="deps"`)
 	imagesAt := strings.Index(out, `data-panel="images"`)
 	if depsAt < 0 || imagesAt < depsAt {
-		t.Fatal("tab panes not found in document, or not in Dependencias-then-Imágenes order") //nolint:misspell // Spanish text fixed by the spec
+		t.Fatal("tab panes not found in document, or not in Dependencies-then-Images order")
 	}
 	// The export dialog repeats the repos of both tabs, so the images pane ends where it starts.
 	images = out[imagesAt:]
@@ -53,19 +58,19 @@ func panes(t *testing.T, out string) (images, deps string) {
 }
 
 // TestDocumentPresenterPresent checks that the presenter renders the ReportDocument component: an HTML5
-// document in Spanish.
+// document in English.
 func TestDocumentPresenterPresent(t *testing.T) {
 	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
 	if !strings.HasPrefix(out, "<!doctype html>") { // templ writes the doctype in lower case
 		t.Errorf("document starts with %.20q, want <!doctype html>", out)
 	}
-	if !strings.Contains(out, `<html lang="es">`) {
-		t.Error(`document lacks <html lang="es">`)
+	if !strings.Contains(out, `<html lang="en">`) {
+		t.Error(`document lacks <html lang="en">`)
 	}
 }
 
 // TestDocumentStartsOnAutomatic checks that the page carries no stored theme: the html tag has no
-// data-theme, and the Automático button is the pressed one.
+// data-theme, and the Auto button is the pressed one.
 func TestDocumentStartsOnAutomatic(t *testing.T) {
 	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
 	htmlTag := out[strings.Index(out, "<html"):]
@@ -73,8 +78,8 @@ func TestDocumentStartsOnAutomatic(t *testing.T) {
 	if strings.Contains(htmlTag, "data-theme") {
 		t.Errorf("html tag %q sets data-theme", htmlTag)
 	}
-	if !strings.Contains(out, `data-theme-set="system" title="Automático" aria-label="Automático" aria-pressed="true"`) {
-		t.Error("the Automático button is not pressed on load")
+	if !strings.Contains(out, `data-theme-set="system" title="Auto" aria-label="Auto" aria-pressed="true"`) {
+		t.Error("the Auto button is not pressed on load")
 	}
 }
 
@@ -158,7 +163,7 @@ func TestDocumentQuoteInVersionNoAttribute(t *testing.T) {
 
 func TestDocumentErrorsSection(t *testing.T) {
 	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
-	if !strings.Contains(out, "Failed to look up dependency") || !strings.Contains(out, "Errores del análisis") {
+	if !strings.Contains(out, "Failed to look up dependency") || !strings.Contains(out, "Scan errors") {
 		t.Error("lookup failure missing from the errors card")
 	}
 	warn := reportOf(t, `"devidence-dev/warn-only":{"problems":[{"level":40,"msg":"Just a warning"}]}`)
@@ -179,9 +184,9 @@ func TestDocumentNothingPending(t *testing.T) {
 	out := presentDocument(t, nil, summaryAt(rep))
 	for _, want := range []string{
 		`>0</span>`,
-		"pendientes de 30 · 30 al día",        //nolint:misspell // Spanish text fixed by the spec
-		"Todas las dependencias están al día", //nolint:misspell // Spanish text fixed by the spec
-		"Todas las imágenes están al día",
+		"pending out of 30 · 30 up to date",
+		"All dependencies are up to date",
+		"All images are up to date",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("document lacks %q", want)
@@ -195,40 +200,49 @@ func TestDocumentNothingPending(t *testing.T) {
 	}
 }
 
+// TestDocumentLangOverride checks that overriding lang changes only the html lang attribute: the labels
+// stay English.
 func TestDocumentLangOverride(t *testing.T) {
-	out := presentDocument(t, map[string]any{"lang": "en"}, summaryAt(loadFixtureReport(t)))
-	if !strings.Contains(out, `<html lang="en">`) {
-		t.Error(`document lacks <html lang="en">`)
+	out := presentDocument(t, map[string]any{"lang": "es"}, summaryAt(loadFixtureReport(t)))
+	if !strings.Contains(out, `<html lang="es">`) {
+		t.Error(`document lacks <html lang="es">`)
 	}
-	if !strings.Contains(out, "pendientes de") {
-		t.Error("labels are not Spanish after a lang override")
+	if !strings.Contains(out, "pending out of") {
+		t.Error("labels are not English after a lang override")
+	}
+	if strings.Contains(out, "pendientes de") {
+		t.Error("labels are Spanish after a lang override that only sets lang")
 	}
 }
 
-func TestDocumentDefaultsHaveNoEnglishLabels(t *testing.T) {
+// TestDocumentDefaultsHaveNoSpanishLabels checks the English defaults: the document has lang="en", none of
+// the Spanish default texts of the catalog, and no Spanish accent.
+func TestDocumentDefaultsHaveNoSpanishLabels(t *testing.T) {
 	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
-	for _, label := range []string{
-		"Dependency Report", "Pending Updates", "Up to Date", "Update Distribution", "Available Updates",
-		"Package File", ">Repository<", "Current Image", "Latest Image", ">Dependency<", ">Current<", ">New<",
-		">Type<", "<h5>Errors</h5>", "Copy current image", "Copy latest image", "Copied!",
-		"All dependencies are up to date", "updates available",
-	} {
+	data, err := os.ReadFile(spanishDefaultsPath) //nolint:gosec // G304: fixed data file in testdata
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, label := range strings.Split(strings.TrimSpace(string(data)), "\n") {
 		if strings.Contains(out, label) {
-			t.Errorf("document has the English label %q", label)
+			t.Errorf("document has the Spanish label %q", label)
 		}
 	}
-	if !strings.Contains(out, `<html lang="es">`) {
-		t.Error(`default document lacks <html lang="es">`)
+	if strings.ContainsAny(out, "áéíóúñ¿¡") {
+		t.Error("document has a Spanish accent")
+	}
+	if !strings.Contains(out, `<html lang="en">`) {
+		t.Error(`default document lacks <html lang="en">`)
 	}
 }
 
 func TestDocumentForkTag(t *testing.T) {
 	s := summaryAt(loadFixtureReport(t))
-	if out := presentDocument(t, nil, s); !strings.Contains(out, "fork · solo informativo") { //nolint:misspell // Spanish text fixed by the spec
+	if out := presentDocument(t, nil, s); !strings.Contains(out, "fork · informational only") {
 		t.Error("default document fork note missing from the summary row")
 	}
 	out := presentDocument(t, map[string]any{"fork": map[string]any{"tag_document": "fork"}}, s)
-	if !strings.Contains(out, ">fork</span>") || strings.Contains(out, "solo informativo") { //nolint:misspell // Spanish text fixed by the spec
+	if !strings.Contains(out, ">fork</span>") || strings.Contains(out, "informational only") {
 		t.Error("overridden fork note missing from the summary row")
 	}
 	view := documentViewOf(t, s)
@@ -287,7 +301,7 @@ func TestDocumentName(t *testing.T) {
 func TestPresentersShareSummary(t *testing.T) {
 	s := summaryAt(loadFixtureReport(t))
 	caption := presentCaption(t, nil, s)
-	wantStats := "📊 " + strconv.Itoa(s.Images.WithUpdates+s.Deps.WithUpdates) + " desactualizadas · " + strconv.Itoa(s.Images.UpToDate+s.Deps.UpToDate) + " al día"
+	wantStats := "📊 " + strconv.Itoa(s.Images.WithUpdates+s.Deps.WithUpdates) + " outdated · " + strconv.Itoa(s.Images.UpToDate+s.Deps.UpToDate) + " up to date"
 	if !strings.Contains(caption, wantStats) {
 		t.Errorf("caption lacks %q", wantStats)
 	}

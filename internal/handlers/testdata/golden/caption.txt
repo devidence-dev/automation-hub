@@ -4,8 +4,8 @@
 🟡 big-monorepo — 45 minor
 🟡 homelab — 1 minor · 3 patch
 🟡 discord-tts-bot (fork) — 1 minor
-✅ 2 repos al día
+✅ 2 repos up to date
 
-📊 53 desactualizadas · 5 al día
-🐳 Imágenes: 1 · 📚 Paquetes: 52
-⚠️ 3 errores en el scan
+📊 53 outdated · 5 up to date
+🐳 Images: 1 · 📚 Packages: 52
+⚠️ 3 scan errors

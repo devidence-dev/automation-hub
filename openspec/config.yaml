@@ -17,7 +17,8 @@ context: |
   paths, owners and URLs come from config with documented defaults (only external protocol limits, such as
   Telegram's 1024-char caption, may be constants); standard library first, no new dependency without user
   approval; a failing scan or job must never take down the bot.
-  User-facing bot confirmations are in English; dependency-report message texts are fixed Spanish strings.
+  All user-facing texts, including the dependency report, are English by default; they come from the message
+  catalog, and `messages:` in the config overrides single keys.
   Code, comments and OpenSpec artifacts are in English.
   Tooling: Docker-first, never install Go or tools on the host:
   `docker run --rm -v "$PWD":/app -w /app golang:$(cat .go-version) sh -c 'go vet ./... && go test -race ./...'`

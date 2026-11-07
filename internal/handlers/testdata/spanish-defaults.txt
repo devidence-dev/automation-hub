@@ -1,0 +1,34 @@
+Reporte de dependencias
+Reporte de imágenes
+Imágenes
+Dependencias
+Actualizaciones pendientes
+Al día
+Distribución de actualizaciones
+pendientes de
+Todas las dependencias están al día
+Todas las imágenes están al día
+Actualizaciones disponibles
+Archivo de paquete
+Repositorio
+Imagen actual
+Imagen nueva
+Dependencia
+Tipo
+Copiar imagen actual
+Copiar imagen nueva
+¡Copiado!
+Copiar (copiado antes)
+Copiar nombre@versión
+Exportar
+Exportar actualizaciones
+Copiar YAML
+Descargar YAML
+Cerrar
+Errores del análisis
+Tema
+Automático
+Claro
+Oscuro
+fork · solo informativo
+raíz
