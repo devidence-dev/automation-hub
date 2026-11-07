@@ -238,14 +238,14 @@ func CopyButton(c CopyView) templ.Component {
 			templ_7745c5c3_Var12 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<button type=\"button\" class=\"group grid size-[30px] shrink-0 cursor-pointer place-items-center rounded-[10px] border border-btn-edge bg-btn-bg text-muted transition-colors duration-150 hover:bg-btn-hover hover:text-ink data-[state=copied]:text-ok focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent\" aria-label=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<button type=\"button\" class=\"btn group grid size-[30px] shrink-0 place-items-center rounded-[10px] border border-btn-edge bg-btn-bg text-muted transition-colors duration-150 hover:bg-btn-hover hover:text-ink data-[state=copied]:text-ok focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent\" aria-label=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var13 string
 		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue(c.Label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/entry.templ`, Line: 40, Col: 353}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/entry.templ`, Line: 40, Col: 342}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 		if templ_7745c5c3_Err != nil {
@@ -258,7 +258,7 @@ func CopyButton(c CopyView) templ.Component {
 		var templ_7745c5c3_Var14 string
 		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.ResolveAttributeValue(c.Label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/entry.templ`, Line: 40, Col: 371}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/entry.templ`, Line: 40, Col: 360}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var14)
 		if templ_7745c5c3_Err != nil {
@@ -271,7 +271,7 @@ func CopyButton(c CopyView) templ.Component {
 		var templ_7745c5c3_Var15 string
 		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.ResolveAttributeValue(c.Value)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/entry.templ`, Line: 40, Col: 393}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/entry.templ`, Line: 40, Col: 382}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
 		if templ_7745c5c3_Err != nil {
@@ -284,7 +284,7 @@ func CopyButton(c CopyView) templ.Component {
 		var templ_7745c5c3_Var16 string
 		templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.ResolveAttributeValue(c.Copied)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/entry.templ`, Line: 40, Col: 423}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/entry.templ`, Line: 40, Col: 412}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var16)
 		if templ_7745c5c3_Err != nil {
@@ -297,7 +297,7 @@ func CopyButton(c CopyView) templ.Component {
 		var templ_7745c5c3_Var17 string
 		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue(c.CopiedBefore)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/entry.templ`, Line: 40, Col: 461}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/services/depreport/entry.templ`, Line: 40, Col: 450}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
 		if templ_7745c5c3_Err != nil {

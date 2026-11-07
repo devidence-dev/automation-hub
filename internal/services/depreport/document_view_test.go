@@ -325,6 +325,23 @@ func exportButtonTag(attr string) *regexp.Regexp {
 	return regexp.MustCompile(`<button\b[^>]*\s` + regexp.QuoteMeta(attr) + `(?:[\s=][^>]*)?>`)
 }
 
+// TestEveryButtonUsesBtn checks that each button of the fixture document carries the shared btn base, which
+// gives the pointer cursor and the disabled state. The loop covers every button, so a new one is checked too.
+func TestEveryButtonUsesBtn(t *testing.T) {
+	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
+	tags := regexp.MustCompile(`<button\b[^>]*>`).FindAllString(out, -1)
+	if len(tags) == 0 {
+		t.Fatal("the fixture document has no buttons")
+	}
+	classAttr := regexp.MustCompile(`\sclass="([^"]*)"`)
+	for _, tag := range tags {
+		m := classAttr.FindStringSubmatch(tag)
+		if m == nil || !strings.Contains(" "+m[1]+" ", " btn ") {
+			t.Errorf("button lacks the btn class: %s", tag)
+		}
+	}
+}
+
 // buttonLabel returns the text of the button after its opening tag up to </button>, with nested tags removed.
 func buttonLabel(dialog, tag string) string {
 	start := strings.Index(dialog, tag) + len(tag)
@@ -341,7 +358,7 @@ func buttonLabel(dialog, tag string) string {
 func TestExportActionButtons(t *testing.T) {
 	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
 	dialog := regexp.MustCompile(`(?s)<dialog .*?</dialog>`).FindString(out)
-	if n := strings.Count(dialog, `class="export-action `); n != 3 {
+	if n := strings.Count(dialog, `class="btn export-action `); n != 3 {
 		t.Fatalf("export-action buttons = %d, want 3", n)
 	}
 	shared := []string{"enabled:hover:bg-btn-hover", "focus-visible:outline-accent"}
@@ -362,7 +379,7 @@ func TestExportActionButtons(t *testing.T) {
 			t.Errorf("no button opening tag with %s", tt.attr)
 			continue
 		}
-		expectContains(t, tag, append(append([]string{`class="export-action group `, tt.typ, tt.attr}, tt.want...), shared...), absent)
+		expectContains(t, tag, append(append([]string{`class="btn export-action group `, tt.typ, tt.attr}, tt.want...), shared...), absent)
 		if got := buttonLabel(dialog, tag); got != tt.label {
 			t.Errorf("%s label = %q, want %q", tt.attr, got, tt.label)
 		}

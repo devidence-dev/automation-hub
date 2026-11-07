@@ -206,6 +206,15 @@
 	box-shadow: var(--hi), var(--glass-shadow, var(--shadow));
 }
 
+/* Shared base of every button: cursor and disabled state change here only. */
+@utility btn {
+	cursor: pointer;
+	&:disabled {
+		cursor: default;
+		opacity: 0.45;
+	}
+}
+
 /* The sliding pill of a tab list or of the theme control. report.js sets its width and position. */
 @utility pill {
 	position: absolute;
@@ -293,10 +302,6 @@
 	}
 	.export-dialog input[type="checkbox"] {
 		accent-color: var(--accent);
-	}
-	.export-action:disabled {
-		opacity: 0.45;
-		cursor: default;
 	}
 }
 

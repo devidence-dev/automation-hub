@@ -3,7 +3,7 @@ package depreport
 // ExportButton opens the export dialog. Up to 600px it shows the icon only; the accessible name is the
 // catalog label at every width. Its hover changes the glass background through --glass-bg, as the buttons do.
 templ ExportButton(labels labelSet) {
-	<button type="button" class="glass flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-[7px] text-xs font-medium text-ink transition-colors duration-150 hover:[--glass-bg:var(--btn-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" aria-haspopup="dialog" aria-controls="export-dialog" aria-label={ labels.ExportButton } title={ labels.ExportButton } data-export-open>
+	<button type="button" class="btn glass flex items-center gap-1.5 rounded-full px-3 py-[7px] text-xs font-medium text-ink transition-colors duration-150 hover:[--glass-bg:var(--btn-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" aria-haspopup="dialog" aria-controls="export-dialog" aria-label={ labels.ExportButton } title={ labels.ExportButton } data-export-open>
 		@Icon("export", "size-3.5")
 		<span class="sr-only min-[601px]:not-sr-only">{ labels.ExportButton }</span>
 	</button>
@@ -14,7 +14,7 @@ templ ExportButton(labels labelSet) {
 // children are the label. The hover applies only when enabled, so a disabled action keeps its surface. The
 // group class lets the copy label swap for its copied text.
 templ exportAction(typ string, attrs templ.Attributes) {
-	<button type={ typ } class="export-action group rounded-full border border-btn-edge bg-btn-bg px-3.5 py-2 text-[13px] font-medium text-ink transition-colors duration-150 enabled:hover:bg-btn-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" { attrs... }>{ children... }</button>
+	<button type={ typ } class="btn export-action group rounded-full border border-btn-edge bg-btn-bg px-3.5 py-2 text-[13px] font-medium text-ink transition-colors duration-150 enabled:hover:bg-btn-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" { attrs... }>{ children... }</button>
 }
 
 // ExportDialog is the modal of the export: one section per tab with listed updates, each with a section

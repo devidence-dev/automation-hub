@@ -144,7 +144,7 @@ func TabButton(t TabView) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" class=\"tab relative z-[1] flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-full border-0 bg-transparent p-2.5 font-medium text-muted transition-colors duration-300 hover:text-ink aria-[selected=true]:font-semibold aria-[selected=true]:text-tab-on-fg\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" class=\"btn tab relative z-[1] flex flex-1 items-center justify-center gap-2 rounded-full border-0 bg-transparent p-2.5 font-medium text-muted transition-colors duration-300 hover:text-ink aria-[selected=true]:font-semibold aria-[selected=true]:text-tab-on-fg\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

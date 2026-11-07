@@ -195,6 +195,18 @@ func TestReportCSSDisabledActionHover(t *testing.T) {
 	}
 }
 
+// TestReportCSSButtonBase checks the shared button base: every button has the pointer cursor, and a disabled one
+// the default cursor. The btn utility compiles to .btn and its nested :disabled rule.
+func TestReportCSSButtonBase(t *testing.T) {
+	css := cssCompact(ReportCSS)
+	if !strings.Contains(css, ".btn{cursor:pointer}") {
+		t.Error("compiled CSS lacks .btn{cursor:pointer}, so buttons get no pointer cursor")
+	}
+	if !regexp.MustCompile(`\.btn:disabled\{[^}]*cursor:default[;}]`).MatchString(css) {
+		t.Error("compiled CSS lacks the .btn:disabled rule with cursor:default")
+	}
+}
+
 func TestReportCSSHasNoOldFrameworkOrWideMinWidth(t *testing.T) {
 	css := strings.ToLower(cssCompact(ReportCSS))
 	if strings.Contains(css, "--bs-") {
