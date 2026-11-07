@@ -481,7 +481,8 @@
 		if (!btn) {
 			return;
 		}
-		copyText(btn.dataset.copy).then(() => flash(btn));
+		// copyText never rejects: fallbackCopy swallows errors, so the promise needs no rejection handler.
+		void copyText(btn.dataset.copy).then(() => flash(btn));
 	};
 
 	// Export dialog. A native modal dialog lets the user pick the repos whose updates go into a YAML export.
@@ -587,7 +588,9 @@
 		};
 
 		const onCopy = () => {
-			copyText(buildExport()).then(() => announce(copyBtn.dataset.copiedText));
+			void copyText(buildExport()).then(() =>
+				announce(copyBtn.dataset.copiedText),
+			);
 		};
 
 		// The link lives in the open dialog: the page behind a modal is inert, and a click on an inert link
