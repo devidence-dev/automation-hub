@@ -6,12 +6,12 @@ The HTML dependency report lists every pending image and dependency update, but 
 
 ## What Changes
 
-- The report header gets an **Exportar** button, shown only when at least one update is listed.
-- The button opens a modal dialog with two sections, **Imágenes** and **Dependencias**, each with a section checkbox and one checkbox per repo with pending updates in that tab. All start checked; a section checkbox selects or clears its repos and shows the mixed state when only some are checked. A section without pending repos is not shown.
+- The report header gets an **Export** button, shown only when at least one update is listed.
+- The button opens a modal dialog with two sections, **Images** and **Dependencies**, each with a section checkbox and one checkbox per repo with pending updates in that tab. All start checked; a section checkbox selects or clears its repos and shows the mixed state when only some are checked. A section without pending repos is not shown.
 - The export is **YAML**: the scan timestamp, then `images:` and `dependencies:` lists of the checked repos, each with its fork flag, package files and updates (name, current, new, type). YAML carries the same structure as JSON with fewer tokens (no braces, no quoted keys). Every string value is double-quoted, so report content cannot break the structure.
-- Two actions, disabled while nothing is checked: **Copiar YAML** (clipboard, with the existing fallback and announcement) and **Descargar YAML** (a `.yaml` file named from a catalog pattern with the scan date).
+- Two actions, disabled while nothing is checked: **Copy YAML** (clipboard, with the existing fallback and announcement) and **Download YAML** (a `.yaml` file named from a catalog pattern with the scan date).
 - The YAML fragments are built in Go at render time, so the format is unit-tested; the script only joins the checked fragments.
-- New Spanish labels come from the message catalog.
+- New labels come from the message catalog.
 
 ## Capabilities
 

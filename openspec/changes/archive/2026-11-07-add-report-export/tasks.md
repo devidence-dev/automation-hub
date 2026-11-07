@@ -9,7 +9,7 @@ Each task names the test or check that proves it. Tasks marked `(user)` are done
 
 ## 2. Catalog
 
-- [x] 2.1 Add `document.export.button` "Exportar", `document.export.title` "Exportar actualizaciones", `document.export.copy` "Copiar YAML", `document.export.download` "Descargar YAML", `document.export.close` "Cerrar" to `internal/messages/default.yaml`; add the `KeyDocExport*` constants to `keys.go` and to `allKeys`.
+- [x] 2.1 Add `document.export.button` "Export", `document.export.title` "Export actualizaciones", `document.export.copy` "Copy YAML", `document.export.download` "Download YAML", `document.export.close` "Close" to `internal/messages/default.yaml`; add the `KeyDocExport*` constants to `keys.go` and to `allKeys`.
   **Verify:** `TestDefaultsHaveEveryKey` (keys_test.go) passes with the new keys.
 
 ## 3. YAML fragments (Go, no markup yet)
@@ -26,10 +26,10 @@ Each task names the test or check that proves it. Tasks marked `(user)` are done
 ## 4. Markup
 
 - [x] 4.1 Add the `export` icon to `iconMarkup` (14px stroke style). Add `ExportButton` to `Header` between the stamp and `ThemeControl`, rendered only when `Export.Sections` is not empty: glass pill, icon plus label, label visually hidden up to 600px, `aria-label` and `aria-haspopup="dialog"`, `data-export-open`.
-  **Verify:** `document_view_test.go`: `TestExportButton` finds one button named `Exportar` for the fixture; `TestDocumentNothingPending` extended to assert no `data-export-open` and no `<dialog`.
+  **Verify:** `document_view_test.go`: `TestExportButton` finds one button named `Export` for the fixture; `TestDocumentNothingPending` extended to assert no `data-export-open` and no `<dialog`.
 
-- [x] 4.2 New `export.templ` `ExportDialog(view)`: `<dialog>` with `data-header`, `data-file-name`, `aria-labelledby` the title; one `<fieldset data-key=…>` per section with the section checkbox in its `<legend>` and one labeled checkbox per repo (`data-yaml`, short name, fork note, full name in `title`), all `checked`; buttons `Copiar YAML` (`data-export-copy`, `data-copied-text`), `Descargar YAML` (`data-export-download`) and `Cerrar` in a `<form method="dialog">`. Render it in `ReportDocument` after the tabs, only with sections. Regenerate assets.
-  **Verify:** `TestExportDialogMarkup`: section labels `Imágenes` then `Dependencias`, every repo checkbox `checked`, `data-file-name="dependency-updates-2026-10-12.yaml"`; `TestDocumentScriptEscaped` and a new case for a `"` in a version confirm `data-yaml` holds `&lt;script&gt;` / `&#34;` and adds no attribute; `TestReportScriptEmbedded` still counts one `<script`.
+- [x] 4.2 New `export.templ` `ExportDialog(view)`: `<dialog>` with `data-header`, `data-file-name`, `aria-labelledby` the title; one `<fieldset data-key=…>` per section with the section checkbox in its `<legend>` and one labeled checkbox per repo (`data-yaml`, short name, fork note, full name in `title`), all `checked`; buttons `Copy YAML` (`data-export-copy`, `data-copied-text`), `Download YAML` (`data-export-download`) and `Close` in a `<form method="dialog">`. Render it in `ReportDocument` after the tabs, only with sections. Regenerate assets.
+  **Verify:** `TestExportDialogMarkup`: section labels `Images` then `Dependencies`, every repo checkbox `checked`, `data-file-name="dependency-updates-2026-10-12.yaml"`; `TestDocumentScriptEscaped` and a new case for a `"` in a version confirm `data-yaml` holds `&lt;script&gt;` / `&#34;` and adds no attribute; `TestReportScriptEmbedded` still counts one `<script`.
 
 - [x] 4.3 Style the dialog in `input.css` with the existing glass tokens (backdrop, panel, checkbox accent, disabled buttons), no fixed `min-width` above 320px, width capped at the viewport minus the 16px gutters. Regenerate assets.
   **Verify:** `styles_test.go` responsive check (no `min-width` above 320px) still passes; `scripts/verify.sh` reports no asset drift.
@@ -47,5 +47,5 @@ Each task names the test or check that proves it. Tasks marked `(user)` are done
 - [x] 6.1 Run `docker run --rm -v "$PWD":/app -w /app golang:$(cat .go-version) sh -c 'go vet ./... && go test -race ./...'`, then `scripts/verify.sh` (asset drift, Biome, openspec validate), then `graphify update .`.
   **Verify:** all three exit 0.
 
-- [ ] 6.2 (user) Open the fixture document rendered from `internal/handlers/testdata/renovate-report.json` in a desktop browser and on a phone (320px): `Exportar` opens the dialog; clearing `Dependencias` clears its repos; clearing one repo shows the mixed state; nothing checked disables both actions; Escape and `Cerrar` close and focus returns to `Exportar`; `Copiar YAML` output pasted into an LLM parses as the expected YAML; `Descargar YAML` saves `dependency-updates-<date>.yaml`; an entry copy button still works.
+- [x] 6.2 (user) Open the fixture document rendered from `internal/handlers/testdata/renovate-report.json` in a desktop browser and on a phone (320px): `Export` opens the dialog; clearing `Dependencies` clears its repos; clearing one repo shows the mixed state; nothing checked disables both actions; Escape and `Close` close and focus returns to `Export`; `Copy YAML` output pasted into an LLM parses as the expected YAML; `Download YAML` saves `dependency-updates-<date>.yaml`; an entry copy button still works.
   **Verify:** the user confirms in the conversation.

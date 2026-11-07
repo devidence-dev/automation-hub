@@ -202,7 +202,6 @@
 @utility glass {
 	background: var(--glass-bg, var(--glass));
 	backdrop-filter: blur(24px) saturate(var(--sat));
-	-webkit-backdrop-filter: blur(24px) saturate(var(--sat));
 	border: 1px solid var(--edge);
 	box-shadow: var(--hi), var(--glass-shadow, var(--shadow));
 }
@@ -281,7 +280,8 @@
 	   gutters. The page behind it is frosted with the page background. */
 	.export-dialog {
 		width: min(520px, calc(100vw - 32px));
-		max-height: calc(100vh - 32px);
+		max-height: calc(100dvh - 32px);
+		margin: auto; /* preflight sets margin:0, which would drop the auto margin that centers a modal dialog */
 		overflow-y: auto;
 		padding: 22px;
 		border-radius: 24px;
@@ -290,7 +290,6 @@
 	.export-dialog::backdrop {
 		background: color-mix(in srgb, var(--bg) 60%, transparent);
 		backdrop-filter: blur(6px);
-		-webkit-backdrop-filter: blur(6px);
 	}
 	.export-dialog input[type="checkbox"] {
 		accent-color: var(--accent);

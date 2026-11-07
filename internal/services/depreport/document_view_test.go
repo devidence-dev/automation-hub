@@ -161,7 +161,7 @@ func TestGroupsSummaryRow(t *testing.T) {
 			deps:  true,
 			dot:   UpdateMinor,
 			short: "discord-tts-bot",
-			note:  "fork · solo informativo", //nolint:misspell // Spanish text fixed by the spec
+			note:  "fork · informational only",
 			chips: []string{"1 minor"},
 		},
 	}
@@ -228,13 +228,13 @@ func TestGroupsEntryFields(t *testing.T) {
 		t.Errorf("image copy = %q, want the latest reference only", img.Copy.Value)
 	}
 	dep := deps[0].Files[0].Entries[0]
-	if dep.Current != "0.30.0" || dep.New != "1.0.0" || dep.CurrentLabel != "Actual" || dep.NewLabel != "Nueva" || dep.TypeLabel != "major" {
-		t.Errorf("dependency entry = %+v, want versions 0.30.0 to 1.0.0 with labels Actual and Nueva", dep)
+	if dep.Current != "0.30.0" || dep.New != "1.0.0" || dep.CurrentLabel != "Current" || dep.NewLabel != "New" || dep.TypeLabel != "major" {
+		t.Errorf("dependency entry = %+v, want versions 0.30.0 to 1.0.0 with labels Current and New", dep)
 	}
 	if dep.Copy.Value != "golang.org/x/net@1.0.0" {
 		t.Errorf("dependency copy = %q, want name@new version", dep.Copy.Value)
 	}
-	if label := dep.Copy.Label; label != "Copiar nombre@versión" {
+	if label := dep.Copy.Label; label != "Copy name@version" {
 		t.Errorf("dependency copy label = %q", label)
 	}
 }
@@ -252,13 +252,13 @@ func TestSummaryLinesSingularAndPlural(t *testing.T) {
 			name:  "several dependencies",
 			repos: []string{viewRepo("acme/a", viewFile("go.mod", viewDep("x", "go", "1", "patch:2"), viewDep("y", "go", "1", "minor:2")))},
 			tab:   0,
-			want:  SummaryLine{Bold: "2 actualizaciones", Rest: "para 2 dependencias"}, //nolint:misspell // Spanish text fixed by the spec
+			want:  SummaryLine{Bold: "2 updates", Rest: "across 2 dependencies"},
 		},
 		{
 			name:  "one image",
 			repos: []string{viewRepo("acme/a", viewFile("Dockerfile", viewDep("ghcr.io/x/y", "docker", "v1", "minor:v2")))},
 			tab:   1,
-			want:  SummaryLine{Bold: "1 actualización", Rest: "para 1 imagen"},
+			want:  SummaryLine{Bold: "1 update", Rest: "across 1 image"},
 		},
 	}
 	for _, tt := range tests {
@@ -285,7 +285,7 @@ func TestSplitPath(t *testing.T) {
 	}
 }
 
-// TestExportButton checks the header button: one button named Exportar before the theme control when there
+// TestExportButton checks the header button: one button named Export before the theme control when there
 // is something to export, and none otherwise.
 func TestExportButton(t *testing.T) {
 	tests := []struct {
@@ -309,12 +309,66 @@ func TestExportButton(t *testing.T) {
 			button := regexp.MustCompile(`<button[^>]*data-export-open[^>]*>`).FindString(out)
 			buttonAt := strings.Index(out, button)
 			expectContains(t, button,
-				[]string{`type="button"`, `aria-haspopup="dialog"`, `aria-controls="export-dialog"`, `aria-label="Exportar"`}, nil)
-			expectContains(t, out, []string{"min-[601px]:not-sr-only", ">Exportar</span>"}, nil)
+				[]string{`type="button"`, `aria-haspopup="dialog"`, `aria-controls="export-dialog"`, `aria-label="Export"`,
+					"hover:[--glass-bg:var(--btn-hover)]"}, []string{"hover:text-accent", "hover:text-ink"})
+			expectContains(t, out, []string{"min-[601px]:not-sr-only", ">Export</span>"}, nil)
 			if buttonAt > strings.Index(out, "data-theme-set") {
 				t.Error("export button is not before the theme control")
 			}
 		})
+	}
+}
+
+// exportButtonTag matches the opening tag of the button that carries the data attribute attr as a whole name.
+func exportButtonTag(attr string) *regexp.Regexp {
+	// The optional group consumes a separator but never the closing >, so the match ends at this tag.
+	return regexp.MustCompile(`<button\b[^>]*\s` + regexp.QuoteMeta(attr) + `(?:[\s=][^>]*)?>`)
+}
+
+// buttonLabel returns the text of the button after its opening tag up to </button>, with nested tags removed.
+func buttonLabel(dialog, tag string) string {
+	start := strings.Index(dialog, tag) + len(tag)
+	end := strings.Index(dialog[start:], "</button>")
+	if end < 0 {
+		return ""
+	}
+	return strings.TrimSpace(regexp.MustCompile(`<[^>]+>`).ReplaceAllString(dialog[start:start+end], ""))
+}
+
+// TestExportActionButtons checks the three dialog actions. Each is found by its opening tag: it shares the
+// export-action class, the enabled-only hover and the focus classes, and keeps the data attribute that
+// report.js reads. Copy and download are plain buttons; close is the submit button of the dialog form.
+func TestExportActionButtons(t *testing.T) {
+	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
+	dialog := regexp.MustCompile(`(?s)<dialog .*?</dialog>`).FindString(out)
+	if n := strings.Count(dialog, `class="export-action `); n != 3 {
+		t.Fatalf("export-action buttons = %d, want 3", n)
+	}
+	shared := []string{"enabled:hover:bg-btn-hover", "focus-visible:outline-accent"}
+	absent := []string{" hover:bg-btn-hover", " hover:text-ink"}
+	tests := []struct {
+		attr, typ string
+		// label is the button text without tags. The copy label holds two spans, the label and the copied text.
+		label string
+		want  []string
+	}{
+		{"data-export-copy", `type="button"`, "Copy YAMLCopied!", []string{`data-copied-text="Copied!"`}},
+		{"data-export-download", `type="button"`, "Download YAML", nil},
+		{"data-export-close", `type="submit"`, "Close", nil},
+	}
+	for _, tt := range tests {
+		tag := exportButtonTag(tt.attr).FindString(dialog)
+		if tag == "" {
+			t.Errorf("no button opening tag with %s", tt.attr)
+			continue
+		}
+		expectContains(t, tag, append(append([]string{`class="export-action group `, tt.typ, tt.attr}, tt.want...), shared...), absent)
+		if got := buttonLabel(dialog, tag); got != tt.label {
+			t.Errorf("%s label = %q, want %q", tt.attr, got, tt.label)
+		}
+	}
+	if at := strings.Index(dialog, `<form method="dialog"`); at < 0 || strings.Index(dialog, "data-export-close") < at {
+		t.Error("the close button is not inside the dialog form")
 	}
 }
 
@@ -334,14 +388,14 @@ func TestExportDialogMarkup(t *testing.T) {
 		`id="export-dialog"`, "data-export-dialog", `aria-labelledby="export-title"`,
 		`data-file-name="dependency-updates-2026-10-12.yaml"`,
 		`data-header="scanned_at: &#34;2026-10-12 09:07 America/Guayaquil&#34;` + "\n" + `"`,
-		`<h2 id="export-title"`, "Exportar actualizaciones",
-		"data-export-copy", `data-copied-text="¡Copiado!"`, "Copiar YAML",
-		"data-export-download", "Descargar YAML",
-		`<form method="dialog"`, "data-export-close", "Cerrar",
+		`<h2 id="export-title"`, "Export updates",
+		"data-export-copy", `data-copied-text="Copied!"`, "Copy YAML",
+		"data-export-download", "Download YAML",
+		`<form method="dialog"`, "data-export-close", "Close",
 	}, []string{"<script"})
 
 	sections := regexp.MustCompile(`(?s)<fieldset data-export-section data-key="(\w+)".*?</fieldset>`).FindAllStringSubmatch(dialog, -1)
-	wantSections := []struct{ key, label string }{{"images", "Imágenes"}, {"dependencies", "Dependencias"}} //nolint:misspell // Spanish text fixed by the spec
+	wantSections := []struct{ key, label string }{{"images", "Images"}, {"dependencies", "Dependencies"}}
 	if len(sections) != len(wantSections) {
 		t.Fatalf("sections = %d, want %d", len(sections), len(wantSections))
 	}
@@ -364,4 +418,39 @@ func TestExportDialogMarkup(t *testing.T) {
 			t.Errorf("repo checkbox is not checked: %s", in)
 		}
 	}
+}
+
+// TestExportStatusRegion checks that the dialog holds its own live region. A modal makes the page outside it
+// inert, so report.js announces the copies inside the open dialog.
+func TestExportStatusRegion(t *testing.T) {
+	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
+	dialog := regexp.MustCompile(`(?s)<dialog .*?</dialog>`).FindString(out)
+	statuses := regexp.MustCompile(`<[a-z]+ [^>]*role="status"[^>]*>`).FindAllString(dialog, -1)
+	if len(statuses) != 1 {
+		t.Fatalf("status regions in the dialog = %d, want 1", len(statuses))
+	}
+	expectContains(t, statuses[0], []string{"data-export-status", `aria-live="polite"`, `class="sr-only"`}, nil)
+}
+
+// TestExportCopyFeedback checks the copy action: its label swaps for the copied text while the button carries
+// data-state="copied", as the entry copy button swaps its icon.
+func TestExportCopyFeedback(t *testing.T) {
+	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
+	dialog := regexp.MustCompile(`(?s)<dialog .*?</dialog>`).FindString(out)
+	copyBtn := regexp.MustCompile(`(?s)<button\b[^>]*data-export-copy[^>]*>.*?</button>`).FindString(dialog)
+	expectContains(t, copyBtn, []string{
+		`<span class="group-data-[state=copied]:hidden">Copy YAML</span>`,
+		`<span class="hidden group-data-[state=copied]:inline">Copied!</span>`,
+	}, nil)
+}
+
+// TestHeaderWraps checks that the header and its right-hand group wrap, so at 320px no part overflows the row.
+func TestHeaderWraps(t *testing.T) {
+	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
+	start, end := strings.Index(out, "<header"), strings.Index(out, "</header>")
+	if start < 0 || end < start {
+		t.Fatal("header not found in document")
+	}
+	header := out[start:end]
+	expectContains(t, header, []string{`<header class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 pt-1">`, `<div class="flex flex-wrap items-center gap-2">`, "data-theme-set", "data-export-open"}, nil)
 }

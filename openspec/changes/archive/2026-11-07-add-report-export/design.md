@@ -44,7 +44,7 @@ Each repo checkbox carries its fragment in `data-yaml`; each section carries its
 
 ### D6. Dialog markup and behavior
 Native `<dialog>` opened with `showModal()`: modal focus, inert background and Escape come from the browser. Inside: title, one `<fieldset>` per section with the section checkbox in the `<legend>` and the repo checkboxes as labeled list items (short name, fork note, full name in `title`), then the action buttons. `report.js`:
-- on open: check every box, sync, `showModal()`; on `close`: focus the `Exportar` button.
+- on open: check every box, sync, `showModal()`; on `close`: focus the `Export` button.
 - section checkbox `change`: set all its repos; repo `change`: section `checked` = all, `indeterminate` = some.
 - after any change: disable both actions when no repo is checked.
 - copy: build the text, then the shared copy routine.
@@ -57,7 +57,7 @@ The body of `onCopyClick` becomes `copyText(text)` (clipboard API, fallback text
 The button sits between the stamp and the theme control, styled like the glass stamp. Its text label is hidden up to 600px (`max-[600px]:sr-only` or the existing breakpoint pattern) and `aria-label` keeps the name. New `export` icon in `iconMarkup` (14px stroke, same style).
 
 ### D9. Catalog keys
-`document.export.button` "Exportar", `document.export.title` "Exportar actualizaciones", `document.export.copy` "Copiar YAML", `document.export.download` "Descargar YAML", `document.export.close` "Cerrar". Section labels reuse `document.tab.images` / `document.tab.deps`; the copied text reuses `document.copy.copied`. Keys added to `keys.go` and `allKeys`.
+`document.export.button` "Export", `document.export.title` "Export updates", `document.export.copy` "Copy YAML", `document.export.download` "Download YAML", `document.export.close` "Close". Section labels reuse `document.tab.images` / `document.tab.deps`; the copied text reuses `document.copy.copied`. Keys added to `keys.go` and `allKeys`.
 
 ## Risks / Trade-offs
 

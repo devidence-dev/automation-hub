@@ -29,7 +29,7 @@ func TestCaptionFixture(t *testing.T) {
 
 func TestCaptionNothingPending(t *testing.T) {
 	s := Summary{ReceivedAt: fixedAt, Repos: 1, Deps: Tab{Total: 42, UpToDate: 42}}
-	want := "📦 <b>Dependency report</b> · 2026-10-12\n\n✅ Todo al día\n\n📊 0 desactualizadas · 42 al día\n🐳 Imágenes: 0 · 📚 Paquetes: 0"
+	want := "📦 <b>Dependency report</b> · 2026-10-12\n\n✅ All up to date\n\n📊 0 outdated · 42 up to date\n🐳 Images: 0 · 📚 Packages: 0"
 	if got := presentCaption(t, nil, s); got != want {
 		t.Errorf("caption = %q, want %q", got, want)
 	}
@@ -73,7 +73,7 @@ func TestCaptionOverflow(t *testing.T) {
 		t.Fatalf("caption has %d runes, over %d", n, captionLimit)
 	}
 	kept := strings.Count(got, "🟡 ")
-	more := fmt.Sprintf("… y %d repos más (ver reporte)", 60-kept)
+	more := fmt.Sprintf("… and %d more repos (see report)", 60-kept)
 	if kept == 60 || !strings.Contains(got, more) {
 		t.Errorf("kept %d lines; caption lacks %q:\n%s", kept, more, got)
 	}

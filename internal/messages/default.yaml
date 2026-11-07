@@ -1,20 +1,20 @@
 # Default texts of the hub's output. Every key can be overridden under `messages:` in the config.
 # Placeholders such as {date} are filled by the code; an override must keep the same ones.
-lang: es
+lang: en
 failure:
-  title: "❌ Renovate falló (exit {exit}) en el pod {pod}"
+  title: "❌ Renovate failed (exit {exit}) in pod {pod}"
 fork:
   tag_caption: " (fork)"
-  tag_document: "fork · solo informativo"
+  tag_document: "fork · informational only"
 caption:
   header: "📦 <b>Dependency report</b> · {date}"
-  all_up_to_date: "✅ Todo al día"
-  repos_up_to_date: "✅ {count} repos al día"
-  more_repos: "… y {count} repos más (ver reporte)"
+  all_up_to_date: "✅ All up to date"
+  repos_up_to_date: "✅ {count} repos up to date"
+  more_repos: "… and {count} more repos (see report)"
   repo_line: "{emoji} {name} — {counts}"
-  stats: "📊 {updated} desactualizadas · {current} al día"
-  tabs: "🐳 Imágenes: {images} · 📚 Paquetes: {packages}"
-  errors: "⚠️ {count} errores en el scan"
+  stats: "📊 {updated} outdated · {current} up to date"
+  tabs: "🐳 Images: {images} · 📚 Packages: {packages}"
+  errors: "⚠️ {count} scan errors"
   emoji:
     major: "🔴"
     other: "🟡"
@@ -24,43 +24,43 @@ counts:
   patch: "{count} patch"
   separator: " · "
 document:
-  title: "Reporte de dependencias - Devidence"
+  title: "Dependency report - Devidence"
   # Unused since batch 3: the eyebrow of each panel replaces the brand line. Kept so that an existing override still validates.
-  brand: "Reporte de dependencias"
+  brand: "Dependency report"
   eyebrow:
-    deps: "Reporte de dependencias"
-    images: "Reporte de imágenes"
+    deps: "Dependency report"
+    images: "Image report"
   tab:
-    images: "Imágenes"
-    deps: "Dependencias"
+    images: "Images"
+    deps: "Dependencies"
   # Unused since batch 3: the panel shows the sub line instead. Kept so that an existing override still validates.
   total: "Total"
-  pending: "Actualizaciones pendientes"
-  up_to_date: "Al día"
-  distribution: "Distribución de actualizaciones"
+  pending: "Pending updates"
+  up_to_date: "Up to date"
+  distribution: "Update distribution"
   panel:
-    sub: "pendientes de {total} · {up_to_date} al día"
+    sub: "pending out of {total} · {up_to_date} up to date"
   status:
-    updates_bold: "{updates} actualizaciones"
-    updates_bold_one: "{updates} actualización"
-    updates_rest: "para {deps} dependencias"
-    updates_rest_one: "para {deps} dependencia"
-    images_rest: "para {deps} imágenes"
-    images_rest_one: "para {deps} imagen"
-    up_to_date: "Todas las dependencias están al día"
-    images_up_to_date: "Todas las imágenes están al día"
+    updates_bold: "{updates} updates"
+    updates_bold_one: "{updates} update"
+    updates_rest: "across {deps} dependencies"
+    updates_rest_one: "across {deps} dependency"
+    images_rest: "across {deps} images"
+    images_rest_one: "across {deps} image"
+    up_to_date: "All dependencies are up to date"
+    images_up_to_date: "All images are up to date"
   # The update type names of the legend and of the row chips.
   type:
     patch: "patch"
     minor: "minor"
     major: "major"
   theme:
-    group: "Tema"
-    system: "Automático"
-    light: "Claro"
-    dark: "Oscuro"
+    group: "Theme"
+    system: "Auto"
+    light: "Light"
+    dark: "Dark"
   # Unused since the copy-button redesign; kept so that an existing override still validates.
-  available: "Actualizaciones disponibles"
+  available: "Available updates"
   # Unused since batch 3: the repo emoji and the emoji counters are not shown (decision a of the liquid glass port).
   # Kept so that an existing override still validates.
   summary:
@@ -72,34 +72,34 @@ document:
   # The columns are not rendered as table headers, except current and new, which label the versions for
   # screen readers. The other keys are unused; they stay so that an existing override of them still passes.
   columns:
-    package_file: "Archivo de paquete"
-    repository: "Repositorio"
-    current_image: "Imagen actual"
-    latest_image: "Imagen nueva"
-    dependency: "Dependencia"
-    current: "Actual"
-    new: "Nueva"
-    type: "Tipo"
+    package_file: "Package file"
+    repository: "Repository"
+    current_image: "Current image"
+    latest_image: "New image"
+    dependency: "Dependency"
+    current: "Current"
+    new: "New"
+    type: "Type"
   # Copy buttons are icon-only; the accessible name and tooltip are these labels. An image entry copies
   # only its latest reference. current_image is unused; it stays so that an existing override still
   # passes startup validation.
   copy:
-    current_image: "Copiar imagen actual"
-    latest_image: "Copiar imagen nueva"
-    copied: "¡Copiado!"
-    copied_before: "Copiar (copiado antes)"
-    new_version: "Copiar nombre@versión"
+    current_image: "Copy current image"
+    latest_image: "Copy new image"
+    copied: "Copied!"
+    copied_before: "Copy (copied before)"
+    new_version: "Copy name@version"
   export:
-    button: "Exportar"
-    title: "Exportar actualizaciones"
-    copy: "Copiar YAML"
-    download: "Descargar YAML"
-    close: "Cerrar"
+    button: "Export"
+    title: "Export updates"
+    copy: "Copy YAML"
+    download: "Download YAML"
+    close: "Close"
   errors:
-    heading: "Errores del análisis"
-    count: "{count} errores"
+    heading: "Scan errors"
+    count: "{count} errors"
     count_one: "{count} error"
-    root: "raíz"
+    root: "root"
     # Unused since batch 3: the errors card shows the repo and the message in two cells.
     item: "{where}: {msg}"
 bot:

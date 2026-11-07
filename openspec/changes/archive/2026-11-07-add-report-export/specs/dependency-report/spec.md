@@ -20,34 +20,34 @@ The header SHALL show an export button, labeled by `document.export.button`, whe
 
 #### Scenario: Updates listed
 - **WHEN** the document of a report where `devidence-dev/homelab` has the image `ghcr.io/immich-app/immich-server` from `v1.118.0` to `v1.119.0` is rendered
-- **THEN** the header has one button named `Exportar`, and activating it opens the export dialog as a modal with focus inside it
+- **THEN** the header has one button named `Export`, and activating it opens the export dialog as a modal with focus inside it
 
 #### Scenario: Nothing listed
 - **WHEN** the report has 12 docker deps and 30 non-docker deps, none with a `major`, `minor` or `patch` update
-- **THEN** the document has no `Exportar` button and no export dialog
+- **THEN** the document has no `Export` button and no export dialog
 
 #### Scenario: Phone width
 - **WHEN** the document is shown in a 320 CSS pixel wide viewport
-- **THEN** the header shows the export button as an icon, named `Exportar`, with no horizontal page scrolling
+- **THEN** the header shows the export button as an icon, named `Export`, with no horizontal page scrolling
 
 ### Requirement: Export selection
 The export dialog SHALL have one section for images (`document.tab.images`) and one for dependencies (`document.tab.deps`), in that order, each with a section checkbox and one checkbox per repo with listed updates in that tab, in the order of that tab's repo cards. A section without listed updates SHALL be left out. Every checkbox SHALL start checked on each open.
 
 #### Scenario: Both sections
 - **WHEN** images are listed for `devidence-dev/homelab` and dependencies for `devidence-dev/QuantWarden` and `devidence-dev/homelab`
-- **THEN** the dialog shows `Imágenes` with the repo `homelab`, then `Dependencias` with `QuantWarden` and `homelab` in card order, all checked
+- **THEN** the dialog shows `Images` with the repo `homelab`, then `Dependencies` with `QuantWarden` and `homelab` in card order, all checked
 
 #### Scenario: Section toggles its repos
-- **WHEN** the user clears the `Dependencias` section checkbox
-- **THEN** every repo checkbox of `Dependencias` is cleared and the `Imágenes` checkboxes keep their state
+- **WHEN** the user clears the `Dependencies` section checkbox
+- **THEN** every repo checkbox of `Dependencies` is cleared and the `Images` checkboxes keep their state
 
 #### Scenario: Mixed section
-- **WHEN** `Dependencias` lists `QuantWarden` and `homelab` and the user clears only `homelab`
-- **THEN** the `Dependencias` section checkbox shows the mixed (indeterminate) state, and checking it again checks both repos
+- **WHEN** `Dependencies` lists `QuantWarden` and `homelab` and the user clears only `homelab`
+- **THEN** the `Dependencies` section checkbox shows the mixed (indeterminate) state, and checking it again checks both repos
 
 #### Scenario: Only dependencies listed
 - **WHEN** no image update is listed and `devidence-dev/QuantWarden` has a dependency update
-- **THEN** the dialog shows only the `Dependencias` section
+- **THEN** the dialog shows only the `Dependencies` section
 
 #### Scenario: Reopened dialog
 - **WHEN** the user clears `homelab`, closes the dialog with Escape and opens it again
@@ -58,29 +58,29 @@ The dialog SHALL offer a copy action (`document.export.copy`) and a download act
 
 #### Scenario: Nothing checked
 - **WHEN** the user clears both section checkboxes
-- **THEN** `Copiar YAML` and `Descargar YAML` are disabled, and checking `homelab` again enables both
+- **THEN** `Copy YAML` and `Download YAML` are disabled, and checking `homelab` again enables both
 
 #### Scenario: Close
-- **WHEN** the dialog is open and the user presses Escape or activates `Cerrar`
-- **THEN** the dialog closes and focus returns to the `Exportar` button
+- **WHEN** the dialog is open and the user presses Escape or activates `Close`
+- **THEN** the dialog closes and focus returns to the `Export` button
 
 ### Requirement: Export copy
 The copy action SHALL put the export on the clipboard, falling back to a hidden text area when the clipboard API is missing or rejects the write, and SHALL announce `document.copy.copied` in the polite live region.
 
 #### Scenario: Copy
-- **WHEN** the scan was received on 2026-10-12 at 09:07 America/Guayaquil and the user activates `Copiar YAML` with every repo checked
-- **THEN** the clipboard holds the export of every listed update and `¡Copiado!` is announced
+- **WHEN** the scan was received on 2026-10-12 at 09:07 America/Guayaquil and the user activates `Copy YAML` with every repo checked
+- **THEN** the clipboard holds the export of every listed update and `Copied!` is announced
 
 #### Scenario: Clipboard API blocked
 - **WHEN** `navigator.clipboard` rejects the write
-- **THEN** the export is copied through a hidden text area and `¡Copiado!` is announced
+- **THEN** the export is copied through a hidden text area and `Copied!` is announced
 
 ### Requirement: Export download
 The download action SHALL save the export as a `text/yaml` file named by `dependency_report.export_name` (default `dependency-updates-{date}.yaml`), with `{date}` replaced by the scan date in the configured timezone, formatted with `dependency_report.date_layout`. `export_name` SHALL follow the same validation as `document_name`.
 
 #### Scenario: Download
-- **WHEN** the scan was received on 2026-10-12 at 09:07 America/Guayaquil and the user activates `Descargar YAML` with every repo checked
-- **THEN** the browser saves `dependency-updates-2026-10-12.yaml` with the same content as `Copiar YAML` puts on the clipboard
+- **WHEN** the scan was received on 2026-10-12 at 09:07 America/Guayaquil and the user activates `Download YAML` with every repo checked
+- **THEN** the browser saves `dependency-updates-2026-10-12.yaml` with the same content as `Copy YAML` puts on the clipboard
 
 #### Scenario: Date near midnight UTC
 - **WHEN** the report is received at 2026-10-13 02:30 UTC, which is 2026-10-12 21:30 in America/Guayaquil
@@ -98,7 +98,7 @@ The download action SHALL save the export as a `text/yaml` file named by `depend
 The export SHALL be a YAML document: `scanned_at` with the header timestamp, then `images` and `dependencies`, each present only when one of its repos is checked. Each is a list of the checked repos in card order, each with `repo` (full name), `fork`, and `files` in card order, each with `path` and `updates` in card order, each with `name`, `current`, `new` and `type` (`major`, `minor` or `patch`). Field names SHALL be fixed and not translated.
 
 #### Scenario: One image
-- **WHEN** only `devidence-dev/homelab` is checked under `Imágenes`, with `ghcr.io/immich-app/immich-server` in `kubernetes/apps/immich/values.yaml` from `v1.118.0` to `v1.119.0`, type `minor`, scanned 2026-10-12 09:07 America/Guayaquil
+- **WHEN** only `devidence-dev/homelab` is checked under `Images`, with `ghcr.io/immich-app/immich-server` in `kubernetes/apps/immich/values.yaml` from `v1.118.0` to `v1.119.0`, type `minor`, scanned 2026-10-12 09:07 America/Guayaquil
 - **THEN** the export is exactly:
   ```yaml
   scanned_at: "2026-10-12 09:07 America/Guayaquil"
@@ -115,11 +115,11 @@ The export SHALL be a YAML document: `scanned_at` with the header timestamp, the
   ```
 
 #### Scenario: Fork repo
-- **WHEN** `devidence-dev/discord-tts-bot` is a configured fork and is checked under `Dependencias`
+- **WHEN** `devidence-dev/discord-tts-bot` is a configured fork and is checked under `Dependencies`
 - **THEN** its entry has `fork: true`
 
 #### Scenario: Unchecked section left out
-- **WHEN** every `Imágenes` repo is cleared and `QuantWarden` is checked under `Dependencias`
+- **WHEN** every `Images` repo is cleared and `QuantWarden` is checked under `Dependencies`
 - **THEN** the export has `scanned_at` and `dependencies` with only `devidence-dev/QuantWarden`, and no `images` key
 
 ### Requirement: Safe export content

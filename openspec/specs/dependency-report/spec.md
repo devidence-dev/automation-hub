@@ -40,11 +40,11 @@ The endpoint SHALL accept `multipart/form-data` with fields `exit_code`, `pod`, 
 - **THEN** the response is 413 and nothing is sent
 
 ### Requirement: Renovate failure message
-If `exit_code` is not `0` or `report` is missing, the system SHALL send one text message: the catalog text `failure.title`, which by default is `❌ Renovate falló (exit {exit}) en el pod {pod}` with the exit code and the HTML-escaped pod name, followed by the HTML-escaped `log_tail` inside `<pre>`. The log keeps its last lines that fit within 4096 characters.
+If `exit_code` is not `0` or `report` is missing, the system SHALL send one text message: the catalog text `failure.title`, which by default is `❌ Renovate failed (exit {exit}) in pod {pod}` with the exit code and the HTML-escaped pod name, followed by the HTML-escaped `log_tail` inside `<pre>`. The log keeps its last lines that fit within 4096 characters.
 
 #### Scenario: Exit code 1
 - **WHEN** `exit_code=1`, `pod=dependency-report-manual-1791763200-x7k2p` and `log_tail` contains `<html>`
-- **THEN** the message starts with `❌ Renovate falló (exit 1) en el pod dependency-report-manual-1791763200-x7k2p` and shows `&lt;html&gt;`
+- **THEN** the message starts with `❌ Renovate failed (exit 1) in pod dependency-report-manual-1791763200-x7k2p` and shows `&lt;html&gt;`
 
 #### Scenario: Title override
 - **WHEN** the config has `messages: {failure: {title: "❌ Renovate failed (exit {exit}) in pod {pod}"}}` and `exit_code=1` with `pod=dependency-report-manual-1791763200-x7k2p`
@@ -81,11 +81,11 @@ The system SHALL send the HTML report of a successful run as one Telegram docume
 
 #### Scenario: Successful run
 - **WHEN** a valid request with `exit_code=0` and a report with `devidence-dev/QuantWarden` having pending updates is received on 2026-10-12 at 09:07 America/Guayaquil
-- **THEN** one document named `dependency-report-2026-10-12.html` is sent, whose header shows `2026-10-12 09:07 America/Guayaquil`, whose `lang` is `es`, and whose caption starts with `📦 <b>Dependency report</b> · 2026-10-12`
+- **THEN** one document named `dependency-report-2026-10-12.html` is sent, whose header shows `2026-10-12 09:07 America/Guayaquil`, whose `lang` is `en`, and whose caption starts with `📦 <b>Dependency report</b> · 2026-10-12`
 
 #### Scenario: Defaults for file name, header and labels
 - **WHEN** the config has no `timezone` and no `messages:` section, and a report with a `major` update is received at 2026-10-13 02:30 UTC, which is 2026-10-12 21:30 in America/Guayaquil
-- **THEN** the document is named `dependency-report-2026-10-12.html`; its header shows `2026-10-12 21:30 America/Guayaquil`; its `lang` is `es`; its labels are Spanish; and its update chips use the catalog names `major`, `minor` and `patch`
+- **THEN** the document is named `dependency-report-2026-10-12.html`; its header shows `2026-10-12 21:30 America/Guayaquil`; its `lang` is `en`; its labels are English; and its update chips use the catalog names `major`, `minor` and `patch`
 
 #### Scenario: Self-contained document
 - **WHEN** the successful run of the previous scenario is rendered
@@ -93,7 +93,7 @@ The system SHALL send the HTML report of a successful run as one Telegram docume
 
 #### Scenario: Fonts blocked
 - **WHEN** the document, which MAY load Geist and Geist Mono from Google Fonts, is opened in a browser that cannot reach fonts.googleapis.com
-- **THEN** the text is shown in the system font stack with no missing glyph for the Spanish labels and the emoji
+- **THEN** the text is shown in the system font stack with no missing glyph for the labels and the emoji
 
 #### Scenario: Date near midnight UTC
 - **WHEN** the report is received at 2026-10-13 02:30 UTC, which is 2026-10-12 21:30 in America/Guayaquil
@@ -112,23 +112,23 @@ The system SHALL send the HTML report of a successful run as one Telegram docume
 - **THEN** the failure message is sent and no document is sent
 
 ### Requirement: Summary caption
-The caption SHALL be sent with HTML parse mode and SHALL contain, in this order: the header `caption.header`, a blank line, one line per repository with a listed update (see "Caption repository lines"), `✅ <N> repos al día` (N = repositories with no pending update) omitted when N is 0, a blank line, the stats lines `📊 <X> desactualizadas · <Y> al día` and `🐳 Imágenes: <a> · 📚 Paquetes: <b>`, and `⚠️ <N> errores en el scan` only when a repository or the report root has a `level >= 50` problem.
+The caption SHALL be sent with HTML parse mode and SHALL contain, in this order: the header `caption.header`, a blank line, one line per repository with a listed update (see "Caption repository lines"), `✅ <N> repos up to date` (N = repositories with no pending update) omitted when N is 0, a blank line, the stats lines `📊 <X> outdated · <Y> up to date` and `🐳 Images: <a> · 📚 Packages: <b>`, and `⚠️ <N> scan errors` only when a repository or the report root has a `level >= 50` problem.
 
 #### Scenario: No listed update
 - **WHEN** no dependency has a listed update
-- **THEN** the caption is the header, a blank line, `✅ Todo al día`, a blank line and the stats lines, with no repository line and no `✅ <N> repos al día` line
+- **THEN** the caption is the header, a blank line, `✅ All up to date`, a blank line and the stats lines, with no repository line and no `✅ <N> repos up to date` line
 
 #### Scenario: Stats lines across both tabs
 - **WHEN** the report of 2026-10-12 has 3 docker deps, one with a `minor` update, and 5 non-docker deps, two of them with a `patch` and a `major` update, and 2 repositories have no pending update
-- **THEN** the caption header is the default `📦 <b>Dependency report</b> · {date}` with `{date}` the file-name date, so `📦 <b>Dependency report</b> · 2026-10-12`; the caption has `✅ 2 repos al día` followed by a blank line; the stats count both tabs, so `📊 3 desactualizadas · 5 al día` (1 + 2 with a listed update, 2 + 3 without) and `🐳 Imágenes: 1 · 📚 Paquetes: 2` (1 in "Imágenes", 2 in "Dependencias")
+- **THEN** the caption header is the default `📦 <b>Dependency report</b> · {date}` with `{date}` the file-name date, so `📦 <b>Dependency report</b> · 2026-10-12`; the caption has `✅ 2 repos up to date` followed by a blank line; the stats count both tabs, so `📊 3 outdated · 5 up to date` (1 + 2 with a listed update, 2 + 3 without) and `🐳 Images: 1 · 📚 Packages: 2` (1 in "Images", 2 in "Dependencies")
 
 #### Scenario: Error count line
 - **WHEN** `devidence-dev/QuantWarden` has a problem with `level` 50, the report root has a problem with `level` 50, and another repository has only a problem with `level` 40
-- **THEN** the caption's last line is `⚠️ 2 errores en el scan`, and the `level` 40 problem adds nothing to the caption
+- **THEN** the caption's last line is `⚠️ 2 scan errors`, and the `level` 40 problem adds nothing to the caption
 
 #### Scenario: Caption over the limit
 - **WHEN** 60 repositories with long names have pending updates and the caption with all its repository lines would exceed 1024 characters
-- **THEN** repository lines are dropped from the end, a line `… y <N> repos más (ver reporte)` follows the last kept one, and the header, the `✅` line and the stats lines are kept, so that the caption has at most 1024 characters
+- **THEN** repository lines are dropped from the end, a line `… and <N> more repos (see report)` follows the last kept one, and the header, the `✅` line and the stats lines are kept, so that the caption has at most 1024 characters
 
 ### Requirement: Caption repository lines
 Each repository line SHALL be `<emoji> <name><fork tag> — <counts>`. The name is the last path segment, and the fork tag is `fork.tag_caption` for a repository in `dependency_report.forks`. The emoji is 🔴 when any dependency has a `major` update, otherwise 🟡. The counts are the non-zero `<N> major`, `<N> minor` and `<N> patch`, joined by ` · `, each dependency counted once under its highest update type. Lines are sorted by `major` presence, then total count descending, then name.
@@ -150,23 +150,23 @@ Each repository line SHALL be `<emoji> <name><fork tag> — <counts>`. The name 
 - **THEN** its line shows `o&lt;r&gt;`, and no raw `<r>` appears in the caption
 
 ### Requirement: Document tabs
-The document SHALL have two tabs, "Dependencias" first and "Imágenes" second, each with a count badge of its listed updates. Clicking a tab, or pressing Enter or Space on it, SHALL show its panel. "Dependencias" lists every dependency whose Renovate `datasource` is not `docker`, "Imágenes" every `docker` one. Only `major`, `minor` or `patch` updates are listed.
+The document SHALL have two tabs, "Dependencies" first and "Images" second, each with a count badge of its listed updates. Clicking a tab, or pressing Enter or Space on it, SHALL show its panel. "Dependencies" lists every dependency whose Renovate `datasource` is not `docker`, "Images" every `docker` one. Only `major`, `minor` or `patch` updates are listed.
 
 #### Scenario: Image dependency
 - **WHEN** `devidence-dev/homelab` has the file `kubernetes/apps/media/immich/values.yaml` with dep `ghcr.io/immich-app/immich-server`, datasource `docker`, current `v1.118.0` and a `minor` update to `v1.119.0`
-- **THEN** the "Imágenes" panel has, in the section `homelab`, under the file `kubernetes/apps/media/immich/values.yaml`, an entry named `ghcr.io/immich-app/immich-server` from `v1.118.0` to `v1.119.0` with a `minor` chip, and "Dependencias" has no entry for it
+- **THEN** the "Images" panel has, in the section `homelab`, under the file `kubernetes/apps/media/immich/values.yaml`, an entry named `ghcr.io/immich-app/immich-server` from `v1.118.0` to `v1.119.0` with a `minor` chip, and "Dependencies" has no entry for it
 
 #### Scenario: Non-image dependency
 - **WHEN** `devidence-dev/QuantWarden` has `go.mod` with dep `golang.org/x/net`, datasource `go`, current `0.30.0` and a `major` update to `1.0.0`
-- **THEN** the "Dependencias" panel has, in the section `QuantWarden`, under the file `go.mod`, an entry `golang.org/x/net` from `0.30.0` to `1.0.0` with a `major` chip, and "Imágenes" has no entry for it
+- **THEN** the "Dependencies" panel has, in the section `QuantWarden`, under the file `go.mod`, an entry `golang.org/x/net` from `0.30.0` to `1.0.0` with a `major` chip, and "Images" has no entry for it
 
 #### Scenario: Grouping order
-- **WHEN** `devidence-dev/QuantWarden` has the package files `go.mod` and `Dockerfile` with listed updates in "Dependencias" and "Imágenes" respectively
+- **WHEN** `devidence-dev/QuantWarden` has the package files `go.mod` and `Dockerfile` with listed updates in "Dependencies" and "Images" respectively
 - **THEN** each panel has one section `QuantWarden`, and file groups within a section are sorted by package file path
 
 #### Scenario: Dockerfile image and missing datasource
 - **WHEN** `devidence-dev/discord-tts-bot` has a `Dockerfile` dep `golang` with datasource `docker`, and another dep with a `patch` update has no `datasource` field
-- **THEN** `golang` is listed in "Imágenes" and the other dep is listed in "Dependencias"
+- **THEN** `golang` is listed in "Images" and the other dep is listed in "Dependencies"
 
 #### Scenario: Digest only
 - **WHEN** a dep's only update is of type `digest` or `pin`
@@ -174,23 +174,23 @@ The document SHALL have two tabs, "Dependencias" first and "Imágenes" second, e
 
 #### Scenario: Several updates for one dep
 - **WHEN** `github.com/gorilla/mux` at `1.8.0` has a `major` update to `2.0.0` and a `minor` update to `1.9.0`
-- **THEN** "Dependencias" has two entries for it, one with a `major` chip and one with a `minor` chip
+- **THEN** "Dependencies" has two entries for it, one with a `major` chip and one with a `minor` chip
 
 #### Scenario: Exact duplicates
 - **WHEN** `go.uber.org/zap` at `1.27.0` has the same `patch` update to `1.27.1` listed twice
-- **THEN** "Dependencias" has one row for it
+- **THEN** "Dependencies" has one row for it
 
 #### Scenario: Fork tag
 - **WHEN** `devidence-dev/discord-tts-bot` is in `dependency_report.forks` and has a listed update
-- **THEN** its repo card shows the short name `discord-tts-bot` followed by the note `fork · solo informativo`, and its expanded card shows the full name `devidence-dev/discord-tts-bot`
+- **THEN** its repo card shows the short name `discord-tts-bot` followed by the note `fork · informational only`, and its expanded card shows the full name `devidence-dev/discord-tts-bot`
 
 #### Scenario: Tab totals
 - **WHEN** the report has 3 docker deps, one of them with a `minor` update, and 5 non-docker deps, two of them with a `patch` update and a `major` update
-- **THEN** "Dependencias" has the badge `2` and its panel shows 5 total and 3 up to date, and "Imágenes" has the badge `1` and shows 3 total and 2 up to date
+- **THEN** "Dependencies" has the badge `2` and its panel shows 5 total and 3 up to date, and "Images" has the badge `1` and shows 3 total and 2 up to date
 
 #### Scenario: Keyboard
-- **WHEN** the focus is on "Dependencias" and the user presses Right
-- **THEN** the focus moves to "Imágenes" without changing the panel, and Enter or Space then shows it; the selected tab has `aria-selected="true"` and the other has `false`
+- **WHEN** the focus is on "Dependencies" and the user presses Right
+- **THEN** the focus moves to "Images" without changing the panel, and Enter or Space then shows it; the selected tab has `aria-selected="true"` and the other has `false`
 
 #### Scenario: Document fork tag override
 - **WHEN** the config has `messages: {fork: {tag_document: "fork"}}` and `devidence-dev/discord-tts-bot` is in `dependency_report.forks` with a listed update
@@ -205,7 +205,7 @@ When a repo or the report root has problems with `level >= 50`, the document SHA
 
 #### Scenario: Root problem
 - **WHEN** the report root has a problem with `level` 50 and `msg` `Fatal error outside any repo`
-- **THEN** the errors card has a row `raíz` with `Fatal error outside any repo`, and the caption shows the error count including it
+- **THEN** the errors card has a row `root` with `Fatal error outside any repo`, and the caption shows the error count including it
 
 #### Scenario: Warning level only
 - **WHEN** the only problem of a repo has `level` 40
@@ -213,14 +213,14 @@ When a repo or the report root has problems with `level >= 50`, the document SHA
 
 #### Scenario: Three errors
 - **WHEN** the report has three problems with `level` 50
-- **THEN** the card heading is `Errores del análisis`, its chip reads `3 errores`, and it has three rows
+- **THEN** the card heading is `Scan errors`, its chip reads `3 errors`, and it has three rows
 
 ### Requirement: Nothing pending document
-When no dependency has a listed update, the system SHALL still send the document, with `✅ Todo al día` in its caption in place of the repository lines, showing zero updates in both tabs, the up-to-date status line of each tab and no repo cards.
+When no dependency has a listed update, the system SHALL still send the document, with `✅ All up to date` in its caption in place of the repository lines, showing zero updates in both tabs, the up-to-date status line of each tab and no repo cards.
 
 #### Scenario: All up to date
 - **WHEN** the report has 12 docker deps and 30 non-docker deps, none with a `major`, `minor` or `patch` update
-- **THEN** one document is sent whose caption contains `✅ Todo al día` and `📊 0 desactualizadas · 42 al día`, whose tabs show badges `0` and `0`, whose panels show 0 updates, 12 and 30 up to date, the status lines `Todas las dependencias están al día` and `Todas las imágenes están al día`, and no repo cards
+- **THEN** one document is sent whose caption contains `✅ All up to date` and `📊 0 outdated · 42 up to date`, whose tabs show badges `0` and `0`, whose panels show 0 updates, 12 and 30 up to date, the status lines `All dependencies are up to date` and `All images are up to date`, and no repo cards
 
 ### Requirement: Safe document content
 All variable text in the document (repo, package file, dependency, versions, error messages) MUST be escaped for HTML, so that report content is shown as text and never interpreted as markup or script.
@@ -280,7 +280,7 @@ The summary row of a card SHALL show, in order: a dot, the short repo name with 
 
 #### Scenario: Summary row of a fork
 - **WHEN** `devidence-dev/discord-tts-bot` is a fork with one `minor` update
-- **THEN** its summary row shows `discord-tts-bot`, the note `fork · solo informativo` and the chip `1 minor`
+- **THEN** its summary row shows `discord-tts-bot`, the note `fork · informational only` and the chip `1 minor`
 
 #### Scenario: Summary counts match the caption
 - **WHEN** `devidence-dev/QuantWarden` has `github.com/gorilla/mux` with a `major` and a `minor` update, `golang.org/x/net` with a `major` update and `go.uber.org/zap` with a `patch` update
@@ -305,7 +305,7 @@ Each dependency entry SHALL be one aligned row, with name, versions, type chip a
 - **THEN** the default entry row has two columns outside any media query, so the chip and copy button sit in the second row up to 600px
 
 ### Requirement: Document theme
-The document SHALL use three color schemes, from one set of tokens: the light values by default, the dark values when the system prefers a dark color scheme and Automático is selected, and the dark values when Oscuro is selected for the page view. The tokens SHALL be declared on `:root`, redefined under `@media (prefers-color-scheme: dark)` for `:root:not([data-theme=light])`, and redefined for `:root[data-theme=dark]`.
+The document SHALL use three color schemes, from one set of tokens: the light values by default, the dark values when the system prefers a dark color scheme and Auto is selected, and the dark values when Dark is selected for the page view. The tokens SHALL be declared on `:root`, redefined under `@media (prefers-color-scheme: dark)` for `:root:not([data-theme=light])`, and redefined for `:root[data-theme=dark]`.
 
 #### Scenario: Light tokens
 - **WHEN** the compiled CSS is read
@@ -324,38 +324,38 @@ The document SHALL use three color schemes, from one set of tokens: the light va
 - **THEN** its text is `#B93A24` on the tinted background of the mock, and in the dark block its text is `#FFA391`
 
 ### Requirement: Theme control
-The header SHALL show a segmented control with three buttons, Automático, Claro and Oscuro, in a group labeled `document.theme.group`. The pressed button SHALL carry `aria-pressed="true"`. The control SHALL start on Automático on every open, and the choice SHALL NOT be stored: Claro or Oscuro applies to the current page view only, and `report.js` SHALL NOT use `localStorage` or `sessionStorage`. Rationale: the user's request of 2026-10-12, and no storage errors on `file://`.
+The header SHALL show a segmented control with three buttons, Auto, Light and Dark, in a group labeled `document.theme.group`. The pressed button SHALL carry `aria-pressed="true"`. The control SHALL start on Auto on every open, and the choice SHALL NOT be stored: Light or Dark applies to the current page view only, and `report.js` SHALL NOT use `localStorage` or `sessionStorage`. Rationale: the user's request of 2026-10-12, and no storage errors on `file://`.
 
 #### Scenario: Opened after a dark choice
-- **WHEN** the user chose Oscuro in an earlier page view and the file is opened again
-- **THEN** the document has no `data-theme` on `<html>`, the Automático button is pressed, and the page shows the system scheme
+- **WHEN** the user chose Dark in an earlier page view and the file is opened again
+- **THEN** the document has no `data-theme` on `<html>`, the Auto button is pressed, and the page shows the system scheme
 
 #### Scenario: Choice lasts for the page view
-- **WHEN** the user presses Oscuro and then reloads the page
-- **THEN** the reloaded page starts on Automático with no `data-theme`, and nothing was written to storage
+- **WHEN** the user presses Dark and then reloads the page
+- **THEN** the reloaded page starts on Auto with no `data-theme`, and nothing was written to storage
 
 #### Scenario: No storage access
 - **WHEN** `report.js` is read
 - **THEN** it contains no `localStorage`, no `sessionStorage` and no `dv-theme` key
 
 #### Scenario: Theme change animates
-- **WHEN** the user presses Claro and the browser supports view transitions without reduced motion
-- **THEN** the change runs in a view transition and the pill slides to the Claro button
+- **WHEN** the user presses Light and the browser supports view transitions without reduced motion
+- **THEN** the change runs in a view transition and the pill slides to the Light button
 
 ### Requirement: Summary panel
 Each tab SHALL show a panel with the eyebrow `document.eyebrow.deps` or `document.eyebrow.images`, the big number of listed updates, the sub line `document.panel.sub`, a stacked bar of the update types and a legend in the order patch, minor, major. The bar SHALL omit zero segments; the legend SHALL keep every type, with zero counts.
 
 #### Scenario: Distribution bar of the deps tab
-- **WHEN** the "Dependencias" tab has 4 patch, 46 minor and 2 major updates
+- **WHEN** the "Dependencies" tab has 4 patch, 46 minor and 2 major updates
 - **THEN** the bar has three segments of widths 7.7%, 88.5% and 3.8%, in patch, minor and major order, and the legend reads `patch 4`, `minor 46`, `major 2`
 
 #### Scenario: Zero segment omitted
-- **WHEN** the "Imágenes" tab has 1 minor update and no patch or major update
+- **WHEN** the "Images" tab has 1 minor update and no patch or major update
 - **THEN** the bar has one segment of width 100% and the legend still reads `patch 0`, `minor 1` and `major 0`
 
 #### Scenario: Summary line
-- **WHEN** the "Dependencias" tab has 52 listed updates for 52 dependencies
-- **THEN** the line under the panel shows `52 actualizaciones` in bold and `para 52 dependencias`
+- **WHEN** the "Dependencies" tab has 52 listed updates for 52 dependencies
+- **THEN** the line under the panel shows `52 updates` in bold and `across 52 dependencies`
 
 ### Requirement: Motion
 The document SHALL animate the pill of the selected tab and of the theme control, the panel that appears, the chevron of an open card and the theme change, and SHALL turn all of these off under `prefers-reduced-motion: reduce`.
@@ -369,7 +369,7 @@ The document SHALL animate the pill of the selected tab and of the theme control
 - **THEN** the panel animates from 24px to the side in its direction of travel, with opacity from 0 to 1 and blur from 4px to 0, over 420 ms
 
 ### Requirement: Header and logo
-The header SHALL show the devidence logo as one inline SVG with `role="img"` and the label `devidence.dev`, the scan timestamp in a stamp, and the theme control. The logo SHALL take its wordmark colors from the tokens of the active scheme, and the document SHALL NOT reference any image file.
+The header SHALL show the devidence logo as one inline SVG with `role="img"` and the label `devidence.dev`, the scan timestamp in a stamp, the export button (see "Export button") and the theme control. The logo SHALL take its wordmark colors from the tokens of the active scheme, and the document SHALL NOT reference any image file.
 
 #### Scenario: Logo follows the theme
 - **WHEN** the theme is dark, from the system or from the control
@@ -384,7 +384,7 @@ Every entry SHALL have one icon-only copy button, named by its catalog label. It
 
 #### Scenario: Image copy
 - **WHEN** the user copies the image `ghcr.io/immich-app/immich-server` from `v1.118.0` to `v1.119.0`
-- **THEN** the clipboard holds `ghcr.io/immich-app/immich-server:v1.119.0`, the button is named `Copiar imagen nueva`, and the check mark shows for about 2 seconds while `¡Copiado!` is announced
+- **THEN** the clipboard holds `ghcr.io/immich-app/immich-server:v1.119.0`, the button is named `Copy new image`, and the check mark shows for about 2 seconds while `Copied!` is announced
 
 #### Scenario: Image entry has one copy button
 - **WHEN** the image entry of the previous scenario is rendered
@@ -392,8 +392,126 @@ Every entry SHALL have one icon-only copy button, named by its catalog label. It
 
 #### Scenario: Dependency copy
 - **WHEN** the user copies `golang.org/x/net` from `0.30.0` to `1.0.0`
-- **THEN** the clipboard holds `golang.org/x/net@1.0.0`, the button is named `Copiar nombre@versión`, and `¡Copiado!` is announced
+- **THEN** the clipboard holds `golang.org/x/net@1.0.0`, the button is named `Copy name@version`, and `Copied!` is announced
 
 #### Scenario: Clipboard API blocked
 - **WHEN** `navigator.clipboard` rejects the write
-- **THEN** the text is copied through a hidden text area and the check mark shows while `¡Copiado!` is announced
+- **THEN** the text is copied through a hidden text area and the check mark shows while `Copied!` is announced
+
+### Requirement: Export button
+The header SHALL show an export button, labeled by `document.export.button`, when at least one update is listed in either tab. It SHALL open the export dialog as a modal. Up to 600px the button SHALL show its icon only and keep the label as its accessible name. When no update is listed, the document SHALL have no export button and no export dialog.
+
+#### Scenario: Updates listed
+- **WHEN** the document of a report where `devidence-dev/homelab` has the image `ghcr.io/immich-app/immich-server` from `v1.118.0` to `v1.119.0` is rendered
+- **THEN** the header has one button named `Export`, and activating it opens the export dialog as a modal with focus inside it
+
+#### Scenario: Nothing listed
+- **WHEN** the report has 12 docker deps and 30 non-docker deps, none with a `major`, `minor` or `patch` update
+- **THEN** the document has no `Export` button and no export dialog
+
+#### Scenario: Phone width
+- **WHEN** the document is shown in a 320 CSS pixel wide viewport
+- **THEN** the header shows the export button as an icon, named `Export`, with no horizontal page scrolling
+
+### Requirement: Export selection
+The export dialog SHALL have one section for images (`document.tab.images`) and one for dependencies (`document.tab.deps`), in that order, each with a section checkbox and one checkbox per repo with listed updates in that tab, in the order of that tab's repo cards. A section without listed updates SHALL be left out. Every checkbox SHALL start checked on each open.
+
+#### Scenario: Both sections
+- **WHEN** images are listed for `devidence-dev/homelab` and dependencies for `devidence-dev/QuantWarden` and `devidence-dev/homelab`
+- **THEN** the dialog shows `Images` with the repo `homelab`, then `Dependencies` with `QuantWarden` and `homelab` in card order, all checked
+
+#### Scenario: Section toggles its repos
+- **WHEN** the user clears the `Dependencies` section checkbox
+- **THEN** every repo checkbox of `Dependencies` is cleared and the `Images` checkboxes keep their state
+
+#### Scenario: Mixed section
+- **WHEN** `Dependencies` lists `QuantWarden` and `homelab` and the user clears only `homelab`
+- **THEN** the `Dependencies` section checkbox shows the mixed (indeterminate) state, and checking it again checks both repos
+
+#### Scenario: Only dependencies listed
+- **WHEN** no image update is listed and `devidence-dev/QuantWarden` has a dependency update
+- **THEN** the dialog shows only the `Dependencies` section
+
+#### Scenario: Reopened dialog
+- **WHEN** the user clears `homelab`, closes the dialog with Escape and opens it again
+- **THEN** every checkbox is checked again
+
+### Requirement: Export actions
+The dialog SHALL offer a copy action (`document.export.copy`) and a download action (`document.export.download`), both disabled while no repo is checked, and a close button (`document.export.close`). The close button and Escape SHALL close the dialog.
+
+#### Scenario: Nothing checked
+- **WHEN** the user clears both section checkboxes
+- **THEN** `Copy YAML` and `Download YAML` are disabled, and checking `homelab` again enables both
+
+#### Scenario: Close
+- **WHEN** the dialog is open and the user presses Escape or activates `Close`
+- **THEN** the dialog closes and focus returns to the `Export` button
+
+### Requirement: Export copy
+The copy action SHALL put the export on the clipboard, falling back to a hidden text area when the clipboard API is missing or rejects the write, and SHALL announce `document.copy.copied` in the polite live region.
+
+#### Scenario: Copy
+- **WHEN** the scan was received on 2026-10-12 at 09:07 America/Guayaquil and the user activates `Copy YAML` with every repo checked
+- **THEN** the clipboard holds the export of every listed update and `Copied!` is announced
+
+#### Scenario: Clipboard API blocked
+- **WHEN** `navigator.clipboard` rejects the write
+- **THEN** the export is copied through a hidden text area and `Copied!` is announced
+
+### Requirement: Export download
+The download action SHALL save the export as a `text/yaml` file named by `dependency_report.export_name` (default `dependency-updates-{date}.yaml`), with `{date}` replaced by the scan date in the configured timezone, formatted with `dependency_report.date_layout`. `export_name` SHALL follow the same validation as `document_name`.
+
+#### Scenario: Download
+- **WHEN** the scan was received on 2026-10-12 at 09:07 America/Guayaquil and the user activates `Download YAML` with every repo checked
+- **THEN** the browser saves `dependency-updates-2026-10-12.yaml` with the same content as `Copy YAML` puts on the clipboard
+
+#### Scenario: Date near midnight UTC
+- **WHEN** the report is received at 2026-10-13 02:30 UTC, which is 2026-10-12 21:30 in America/Guayaquil
+- **THEN** the download is named `dependency-updates-2026-10-12.yaml`
+
+#### Scenario: Configured export name
+- **WHEN** the config has `export_name: "renovate-{date}.yaml"` and the scan was received on 2026-10-12 at 09:07 America/Guayaquil
+- **THEN** the download is named `renovate-2026-10-12.yaml`
+
+#### Scenario: Invalid export name
+- **WHEN** the config has `export_name: "updates.yaml"` (no `{date}`) or `export_name: "a/{date}.yaml"`
+- **THEN** loading the config fails with an error naming `dependency_report.export_name`, and the hub does not start with that config
+
+### Requirement: Export content
+The export SHALL be a YAML document: `scanned_at` with the header timestamp, then `images` and `dependencies`, each present only when one of its repos is checked. Each is a list of the checked repos in card order, each with `repo` (full name), `fork`, and `files` in card order, each with `path` and `updates` in card order, each with `name`, `current`, `new` and `type` (`major`, `minor` or `patch`). Field names SHALL be fixed and not translated.
+
+#### Scenario: One image
+- **WHEN** only `devidence-dev/homelab` is checked under `Images`, with `ghcr.io/immich-app/immich-server` in `kubernetes/apps/immich/values.yaml` from `v1.118.0` to `v1.119.0`, type `minor`, scanned 2026-10-12 09:07 America/Guayaquil
+- **THEN** the export is exactly:
+  ```yaml
+  scanned_at: "2026-10-12 09:07 America/Guayaquil"
+  images:
+    - repo: "devidence-dev/homelab"
+      fork: false
+      files:
+        - path: "kubernetes/apps/immich/values.yaml"
+          updates:
+            - name: "ghcr.io/immich-app/immich-server"
+              current: "v1.118.0"
+              new: "v1.119.0"
+              type: "minor"
+  ```
+
+#### Scenario: Fork repo
+- **WHEN** `devidence-dev/discord-tts-bot` is a configured fork and is checked under `Dependencies`
+- **THEN** its entry has `fork: true`
+
+#### Scenario: Unchecked section left out
+- **WHEN** every `Images` repo is cleared and `QuantWarden` is checked under `Dependencies`
+- **THEN** the export has `scanned_at` and `dependencies` with only `devidence-dev/QuantWarden`, and no `images` key
+
+### Requirement: Safe export content
+Every string value of the export SHALL be a YAML double-quoted scalar with `"`, `\` and control characters escaped, so report content stays one value and never adds keys, list items or documents. The export data in the document SHALL be escaped for HTML like any other report text.
+
+#### Scenario: Quote and newline in a version
+- **WHEN** a dep has the current version `1.0.0"\n  injected: true`
+- **THEN** its `current` value is the one double-quoted scalar `"1.0.0\"\n  injected: true"` and the export has no `injected` key
+
+#### Scenario: Script in a dependency name
+- **WHEN** a dep is named `<script>alert(1)</script>` and has a `patch` update from `1.0.0` to `1.0.1`
+- **THEN** the document contains no `<script>alert(1)</script>`, and the copied export holds the name `"<script>alert(1)</script>"` as text

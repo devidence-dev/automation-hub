@@ -269,7 +269,7 @@ func TestDependencyReportHandler(t *testing.T) {
 			req:        reportRequest{token: testToken, fields: map[string]string{"exit_code": "1", "pod": "pod-x"}, files: map[string]string{"log_tail": "<html>"}},
 			wantStatus: http.StatusAccepted, wantCalls: 1,
 			check: func(t *testing.T, calls []sentCall) {
-				if calls[0].kind != "message" || !strings.HasPrefix(calls[0].text, "❌ Renovate falló (exit 1) en el pod pod-x") || !strings.Contains(calls[0].text, "&lt;html&gt;") {
+				if calls[0].kind != "message" || !strings.HasPrefix(calls[0].text, "❌ Renovate failed (exit 1) in pod pod-x") || !strings.Contains(calls[0].text, "&lt;html&gt;") {
 					t.Errorf("call = %+v", calls[0])
 				}
 			},
@@ -279,7 +279,7 @@ func TestDependencyReportHandler(t *testing.T) {
 			req:        reportRequest{token: testToken, fields: map[string]string{"exit_code": "0", "pod": "pod-x"}},
 			wantStatus: http.StatusAccepted, wantCalls: 1,
 			check: func(t *testing.T, calls []sentCall) {
-				if calls[0].kind != "message" || !strings.HasPrefix(calls[0].text, "❌ Renovate falló (exit 0)") {
+				if calls[0].kind != "message" || !strings.HasPrefix(calls[0].text, "❌ Renovate failed (exit 0)") {
 					t.Errorf("call = %+v", calls[0])
 				}
 			},
@@ -451,7 +451,7 @@ func TestDocumentWhenAllUpToDate(t *testing.T) {
 	if doc.filename != "dependency-report-2026-10-12.html" {
 		t.Errorf("document = %q", doc.filename)
 	}
-	want := "📦 <b>Dependency report</b> · 2026-10-12\n\n✅ Todo al día\n\n📊 0 desactualizadas · 0 al día\n🐳 Imágenes: 0 · 📚 Paquetes: 0"
+	want := "📦 <b>Dependency report</b> · 2026-10-12\n\n✅ All up to date\n\n📊 0 outdated · 0 up to date\n🐳 Images: 0 · 📚 Packages: 0"
 	if doc.text != want {
 		t.Errorf("caption = %q, want %q", doc.text, want)
 	}

@@ -10,8 +10,8 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import "strconv"
 
-// ThemeControl is the segmented control of the theme: Automático (the system choice), Claro and Oscuro.
-// report.js moves the pill and sets data-theme for the page view only; nothing is stored. Automático is
+// ThemeControl is the segmented control of the theme: Auto (the system choice), Light and Dark.
+// report.js moves the pill and sets data-theme for the page view only; nothing is stored. Auto is
 // pressed on every open.
 func ThemeControl(labels labelSet) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {

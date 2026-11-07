@@ -10,15 +10,15 @@ The system SHALL embed one default message catalog in the binary, holding every 
 
 #### Scenario: Defaults render today's caption
 - **WHEN** the config has no `messages:` section and the report has no pending update on 2026-10-12 with 42 up-to-date dependencies and no images or packages listed
-- **THEN** the caption is exactly `📦 <b>Dependency report</b> · 2026-10-12`, an empty line, `✅ Todo al día`, an empty line, `📊 0 desactualizadas · 42 al día` and `🐳 Imágenes: 0 · 📚 Paquetes: 0`
+- **THEN** the caption is exactly `📦 <b>Dependency report</b> · 2026-10-12`, an empty line, `✅ All up to date`, an empty line, `📊 0 outdated · 42 up to date` and `🐳 Images: 0 · 📚 Packages: 0`
 
 #### Scenario: Default language
 - **WHEN** the config has no `messages:` section
-- **THEN** the document's `<html>` element has `lang="es"`
+- **THEN** the document's `<html>` element has `lang="en"`
 
 #### Scenario: Default fork note and chips
 - **WHEN** the config has no `messages:` section and a document shows the repo `QuantWarden` with a `major` and a `patch` update
-- **THEN** its dot is major, its chips read `1 major` and `1 patch`, and its fork note, when it is a fork, reads `fork · solo informativo`
+- **THEN** its dot is major, its chips read `1 major` and `1 patch`, and its fork note, when it is a fork, reads `fork · informational only`
 
 #### Scenario: Catalog contents
 - **WHEN** the default catalog is loaded
@@ -40,8 +40,8 @@ The `messages:` section SHALL use the same nested keys as the default catalog. E
 - **THEN** the caption starts with `🔔 <b>Deps</b> · 2026-10-12`, and its repository lines and stats lines are unchanged
 
 #### Scenario: Language attribute override
-- **WHEN** the config has `messages:` with `lang: en`
-- **THEN** the document's `<html>` element has `lang="en"`, and its labels stay Spanish because only `lang` was overridden
+- **WHEN** the config has `messages:` with `lang: es`
+- **THEN** the document's `<html>` element has `lang="es"`, and its labels stay English because only `lang` was overridden
 
 ### Requirement: Startup validation of the catalog
 Config loading MUST fail, before the process starts the bot, IMAP monitoring, the HTTP server or the scheduler, when an override names a key that does not exist in the default catalog, when an override is not a text where the default is a text, or when an override drops a placeholder that the default text has. The error SHALL name the key and, for a missing placeholder, the placeholder.
@@ -63,4 +63,4 @@ Catalog texts use named placeholders in braces, such as `{date}`, `{count}`, `{e
 
 #### Scenario: Pod name is escaped
 - **WHEN** a failure is received with `pod` set to `<x>` and `exit_code=1`
-- **THEN** the failure message starts with `❌ Renovate falló (exit 1) en el pod &lt;x&gt;`
+- **THEN** the failure message starts with `❌ Renovate failed (exit 1) in pod &lt;x&gt;`

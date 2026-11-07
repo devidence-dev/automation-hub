@@ -86,7 +86,7 @@ func TestUnusedKeyOverrideValidates(t *testing.T) {
 // filled, so a missing or misspelled placeholder fails here and not in a document.
 func TestNewKeysRender(t *testing.T) {
 	cat := defaultCatalog(t)
-	vars := map[string]string{"total": "53", "up_to_date": "1", "updates": "52", "deps": "52", "count": "3", "where": "raíz", "msg": "boom"}
+	vars := map[string]string{"total": "53", "up_to_date": "1", "updates": "52", "deps": "52", "count": "3", "where": "root", "msg": "boom"}
 	for _, key := range []string{
 		KeyDocPanelSub, KeyDocStatusUpdatesBold1, KeyDocStatusUpdatesRest1, KeyDocStatusImagesRest, KeyDocStatusImagesRest1,
 		KeyDocStatusImagesUpTo, KeyDocTypePatch, KeyDocTypeMinor, KeyDocTypeMajor, KeyDocThemeGroup, KeyDocThemeSystem,

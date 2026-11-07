@@ -39,7 +39,7 @@ func assertKeepsLastLines(t *testing.T, pod string) {
 
 func TestBuildFailureMessageEscapesTail(t *testing.T) {
 	got := buildFailure(t, nil, 1, failurePod, "<html>\nfoo & bar\n")
-	want := "❌ Renovate falló (exit 1) en el pod " + failurePod + "\n<pre>&lt;html&gt;\nfoo &amp; bar</pre>"
+	want := "❌ Renovate failed (exit 1) in pod " + failurePod + "\n<pre>&lt;html&gt;\nfoo &amp; bar</pre>"
 	if got != want {
 		t.Errorf("message = %q, want %q", got, want)
 	}
@@ -61,14 +61,14 @@ func TestBuildFailureMessageHugeLineIsCut(t *testing.T) {
 }
 
 func TestBuildFailureMessageEmptyTail(t *testing.T) {
-	if got := buildFailure(t, nil, 1, failurePod, ""); got != "❌ Renovate falló (exit 1) en el pod "+failurePod {
+	if got := buildFailure(t, nil, 1, failurePod, ""); got != "❌ Renovate failed (exit 1) in pod "+failurePod {
 		t.Errorf("message = %q", got)
 	}
 }
 
 func TestBuildFailureMessageEscapesPod(t *testing.T) {
 	got := buildFailure(t, nil, 1, "<x>", "")
-	if want := "❌ Renovate falló (exit 1) en el pod &lt;x&gt;"; got != want {
+	if want := "❌ Renovate failed (exit 1) in pod &lt;x&gt;"; got != want {
 		t.Errorf("message = %q, want %q", got, want)
 	}
 }

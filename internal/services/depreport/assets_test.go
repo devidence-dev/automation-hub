@@ -66,7 +66,7 @@ func TestReportScriptEmbedded(t *testing.T) {
 }
 
 // TestReportScriptHasNoStorage checks that report.js reads and writes no storage: the theme choice lasts
-// for the page view only, so every open starts on Automático and no storage error can happen.
+// for the page view only, so every open starts on Auto and no storage error can happen.
 func TestReportScriptHasNoStorage(t *testing.T) {
 	for _, api := range []string{"localStorage", "sessionStorage", "dv-theme"} {
 		if strings.Contains(reportScript, api) {

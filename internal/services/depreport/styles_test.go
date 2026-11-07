@@ -162,6 +162,39 @@ func TestReportCSSExportDialogFitsPhone(t *testing.T) {
 	}
 }
 
+// TestReportCSSExportDialogCentered checks that the dialog keeps the auto margin that centers it, since
+// preflight zeroes margins, and that its height is the dynamic viewport less the gutters.
+func TestReportCSSExportDialogCentered(t *testing.T) {
+	css := cssCompact(ReportCSS)
+	if !regexp.MustCompile(`\.export-dialog\{[^}]*[;{]margin:auto[;}]`).MatchString(css) {
+		t.Error("the export dialog rule lacks margin:auto")
+	}
+	if !regexp.MustCompile(`\.export-dialog\{[^}]*[;{]max-height:calc\(100dvh-32px\)[;}]`).MatchString(css) {
+		t.Error("the export dialog rule lacks max-height:calc(100dvh - 32px)")
+	}
+}
+
+// TestReportCSSBackdropFilterUnprefixed checks that the glass card and the dialog backdrop keep the unprefixed
+// backdrop-filter. The minifier drops it when a hand-written -webkit- copy sits beside it, so the source
+// declares only the unprefixed property and the build adds the prefix. The [;{] before the name rejects
+// -webkit-backdrop-filter.
+func TestReportCSSBackdropFilterUnprefixed(t *testing.T) {
+	css := cssCompact(ReportCSS)
+	for _, sel := range []string{".glass{", ".export-dialog::backdrop{"} {
+		if !regexp.MustCompile(regexp.QuoteMeta(sel) + `[^}]*[;{]backdrop-filter:`).MatchString(css) {
+			t.Errorf("compiled %s rule lacks the unprefixed backdrop-filter", sel)
+		}
+	}
+}
+
+// TestReportCSSDisabledActionHover checks that the action hover applies only to enabled buttons, so a disabled
+// Copy or Download keeps its surface. The variant compiles to the :enabled:hover selector.
+func TestReportCSSDisabledActionHover(t *testing.T) {
+	if css := cssCompact(ReportCSS); !strings.Contains(css, `.enabled\:hover\:bg-btn-hover:enabled:hover{`) {
+		t.Error("compiled CSS lacks the enabled-only hover selector of the export actions")
+	}
+}
+
 func TestReportCSSHasNoOldFrameworkOrWideMinWidth(t *testing.T) {
 	css := strings.ToLower(cssCompact(ReportCSS))
 	if strings.Contains(css, "--bs-") {
