@@ -275,7 +275,7 @@
 		min-width: 0;
 		font-size: var(--text-sm);
 		line-height: var(--text-sm--line-height);
-		font-weight: 500;
+		font-weight: 400;
 		color: var(--ink);
 		overflow-wrap: anywhere;
 	}
@@ -292,7 +292,7 @@
 	}
 }
 
-@utility copy-btn {
+@utility icon-btn {
 	display: grid;
 	width: 30px;
 	height: 30px;
@@ -406,6 +406,7 @@
 		padding: 22px;
 		border-radius: 24px;
 		color: var(--ink);
+		overscroll-behavior: contain;
 	}
 	.export-dialog::backdrop {
 		background: color-mix(in srgb, var(--bg) 60%, transparent);
@@ -413,6 +414,11 @@
 	}
 	.export-dialog input[type="checkbox"] {
 		accent-color: var(--accent);
+	}
+	/* The page behind a modal must not scroll; a stable gutter keeps the width while the scrollbar hides. */
+	html:has(.export-dialog[open]) {
+		overflow: hidden;
+		scrollbar-gutter: stable;
 	}
 }
 
@@ -423,6 +429,14 @@
 .no-anim > .tab,
 .no-anim .tab-count {
 	transition: none;
+}
+
+.theme-control > .pill {
+	view-transition-name: theme-pill;
+}
+::view-transition-group(theme-pill) {
+	animation-duration: 0.45s;
+	animation-timing-function: var(--ease);
 }
 
 ::view-transition-old(root),
@@ -439,6 +453,9 @@
 	.tab-count {
 		transition: none;
 	}
+	::view-transition-group(theme-pill),
+	::view-transition-old(theme-pill),
+	::view-transition-new(theme-pill),
 	::view-transition-old(root),
 	::view-transition-new(root) {
 		animation: none;
@@ -469,6 +486,57 @@ summary:focus-visible,
 	}
 }
 @media (prefers-reduced-motion: no-preference) {
+	.export-dialog {
+		opacity: 0;
+		transform: scale(0.96);
+		transition:
+			opacity 0.2s var(--ease),
+			transform 0.2s var(--ease),
+			overlay 0.2s allow-discrete,
+			display 0.2s allow-discrete;
+	}
+	.export-dialog[open] {
+		opacity: 1;
+		transform: scale(1);
+	}
+	/* during the 200ms close transition the dialog is still shown but no longer modal, so clicks must not land on it */
+	.export-dialog:not([open]) {
+		pointer-events: none;
+	}
+	.export-dialog::backdrop {
+		opacity: 0;
+		transition:
+			opacity 0.2s var(--ease),
+			overlay 0.2s allow-discrete,
+			display 0.2s allow-discrete;
+	}
+	.export-dialog[open]::backdrop {
+		opacity: 1;
+	}
+	@starting-style {
+		.export-dialog[open] {
+			opacity: 0;
+			transform: scale(0.96);
+		}
+		.export-dialog[open]::backdrop {
+			opacity: 0;
+		}
+	}
+	@supports (interpolate-size: allow-keywords) {
+		:root {
+			interpolate-size: allow-keywords;
+		}
+		details::details-content {
+			height: 0;
+			overflow: clip;
+			transition:
+				height 0.3s var(--ease),
+				content-visibility 0.3s allow-discrete;
+		}
+		details[open]::details-content {
+			height: auto;
+		}
+	}
 	[data-panel][data-dir]:not([hidden]) {
 		animation: panel-in 420ms var(--ease);
 	}

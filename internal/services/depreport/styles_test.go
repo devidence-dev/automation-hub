@@ -176,6 +176,20 @@ func TestReportCSSExportDialogCentered(t *testing.T) {
 	}
 }
 
+// TestReportCSSDialogScrollLock checks that an open export dialog locks the page behind it: the root hides its
+// overflow and keeps a stable gutter, and the dialog keeps its overscroll to itself.
+func TestReportCSSDialogScrollLock(t *testing.T) {
+	css := cssCompact(ReportCSS)
+	for _, want := range []string{`html:has\(\.export-dialog\[open\]\)\{(?:[^}]*;)?overflow:hidden[;}]`, `html:has\(\.export-dialog\[open\]\)\{(?:[^}]*;)?scrollbar-gutter:stable[;}]`} {
+		if !regexp.MustCompile(want).MatchString(css) {
+			t.Errorf("the open export dialog lacks the root rule %s", want)
+		}
+	}
+	if !regexp.MustCompile(`\.export-dialog\{(?:[^}]*;)?overscroll-behavior:contain[;}]`).MatchString(css) {
+		t.Error("the export dialog rule lacks overscroll-behavior:contain")
+	}
+}
+
 // TestReportCSSBackdropFilterUnprefixed checks that the glass card and the dialog backdrop keep the unprefixed
 // backdrop-filter. The minifier drops it when a hand-written -webkit- copy sits beside it, so the source
 // declares only the unprefixed property and the build adds the prefix. The [;{] before the name rejects
@@ -320,7 +334,7 @@ func TestReportCSSButtonFocus(t *testing.T) {
 	if !regexp.MustCompile(`\.btn:focus-visible\{[^}]*outline:2pxsolidvar\(--accent\);outline-offset:2px`).MatchString(css) {
 		t.Error("button focus outline missing")
 	}
-	if !strings.Contains(css, ".copy-btn[data-state=copied]{color:var(--ok)}") {
+	if !strings.Contains(css, ".icon-btn[data-state=copied]{color:var(--ok)}") {
 		t.Error("copied-state color missing")
 	}
 }
@@ -385,4 +399,52 @@ func cssBlock(css, selector string) string {
 		}
 	}
 	return ""
+}
+
+func TestReportCSSDetailsMotion(t *testing.T) {
+	css := cssCompact(ReportCSS)
+	motion := cssBlock(css, "@media(prefers-reduced-motion:no-preference){")
+	support := cssBlock(motion, "@supports(interpolate-size:allow-keywords){")
+	for _, want := range []string{":root{interpolate-size:allow-keywords}", "details::details-content{height:0", "height.3svar(--ease)", "content-visibility.3sallow-discrete", "details[open]::details-content{height:auto}"} {
+		if !strings.Contains(support, want) {
+			t.Errorf("details motion lacks %q", want)
+		}
+	}
+	if strings.Count(css, "details::details-content") != strings.Count(motion, "details::details-content") {
+		t.Error("details motion outside no-preference")
+	}
+}
+
+func TestReportCSSDialogMotion(t *testing.T) {
+	css := cssCompact(ReportCSS)
+	motion := cssBlock(css, "@media(prefers-reduced-motion:no-preference){")
+	for _, want := range []string{".export-dialog{", "opacity.2svar(--ease)", "transform.2svar(--ease)", "overlay.2sallow-discrete", "display.2sallow-discrete", ".export-dialog[open]{", ".export-dialog:not([open]){pointer-events:none}", ".export-dialog::backdrop{", ".export-dialog[open]::backdrop{", "@starting-style{"} {
+		if !strings.Contains(motion, want) {
+			t.Errorf("dialog motion lacks %q", want)
+		}
+	}
+	start := cssBlock(motion, "@starting-style{")
+	if !strings.Contains(start, ".export-dialog[open]") || !strings.Contains(start, ".export-dialog[open]::backdrop") || !strings.Contains(start, "scale(.96)") {
+		t.Error("dialog entry states missing")
+	}
+	if strings.Contains(strings.Replace(css, motion, "", 1), "overlay.2sallow-discrete") {
+		t.Error("dialog transition outside no-preference")
+	}
+}
+
+func TestReportCSSThemePillTransition(t *testing.T) {
+	css := cssCompact(ReportCSS)
+	if !strings.Contains(css, ".theme-control>.pill{view-transition-name:theme-pill}") || strings.Count(css, "view-transition-name:theme-pill") != 1 {
+		t.Error("theme pill transition name missing or not unique")
+	}
+	group := cssBlock(css, "::view-transition-group(theme-pill){")
+	if !strings.Contains(group, "animation-duration:.45s") || !strings.Contains(group, "animation-timing-function:var(--ease)") {
+		t.Error("theme pill timing missing")
+	}
+	reduce := cssBlock(css, "@media(prefers-reduced-motion:reduce){")
+	for _, want := range []string{"::view-transition-group(theme-pill)", "::view-transition-old(theme-pill)", "::view-transition-new(theme-pill)", "animation:none"} {
+		if !strings.Contains(reduce, want) {
+			t.Errorf("reduced motion lacks %s", want)
+		}
+	}
 }

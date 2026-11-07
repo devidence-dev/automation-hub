@@ -98,6 +98,25 @@ func matchesAttributes(part, tag string) bool {
 }
 
 func TestReportScriptContract(t *testing.T) {
+	_, choose, ok := strings.Cut(reportScript, "const chooseTheme =")
+	if !ok {
+		t.Fatal("chooseTheme section missing")
+	}
+	choose, _, ok = strings.Cut(choose, "// Tabs.")
+	if !ok {
+		t.Fatal("chooseTheme section end missing")
+	}
+	callback := strings.Index(choose, ".startViewTransition(() => {")
+	add := strings.Index(choose, `themeGroup.classList.add("no-anim")`)
+	move := strings.Index(choose, "movePill(themeGroup, button)")
+	apply := strings.Index(choose, "applyTheme(choice)")
+	flush := strings.Index(choose, "getComputedStyle(")
+	remove := strings.Index(choose, `themeGroup.classList.remove("no-anim")`)
+	fallback := strings.Index(choose, "} else {")
+	if callback < 0 || callback >= add || add >= move || move >= apply || apply >= flush || flush >= remove || remove >= fallback || !strings.Contains(choose[fallback:], "movePill(themeGroup, button)") {
+		t.Error("theme transition update order or fallback incorrect")
+	}
+
 	markup := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
 	if err := scriptContract(reportScript, markup); err != nil {
 		t.Fatal(err)

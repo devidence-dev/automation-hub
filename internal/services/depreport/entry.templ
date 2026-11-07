@@ -37,7 +37,7 @@ templ DepRow(e EntryView, labels rowLabels) {
 // CopyButton is the icon-only copy button of an entry. Its accessible name and tooltip are the catalog
 // label. It shows the clipboard icon, and the check icon while copy.js sets data-state="copied".
 templ CopyButton(c CopyView) {
-	<button type="button" class="btn copy-btn group" aria-label={ c.Label } title={ c.Label } data-copy={ c.Value }>
+	<button type="button" class="btn icon-btn group" aria-label={ c.Label } title={ c.Label } data-copy={ c.Value }>
 		@Icon("copy", "group-data-[state=copied]:hidden")
 		@Icon("check", "hidden group-data-[state=copied]:block")
 	</button>

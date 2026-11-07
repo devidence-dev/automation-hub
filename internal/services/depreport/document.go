@@ -83,6 +83,7 @@ type chromeLabels struct {
 
 type HeaderView struct {
 	ScanTimestamp string
+	ScanDateTime  string
 	HasExport     bool
 	Labels        chromeLabels
 }
@@ -148,14 +149,15 @@ type docBuilder struct {
 // tab is second, as the liquid glass design requires. fileName is the download name of the export.
 func buildDocumentView(r *renderer, loc *time.Location, s Summary, fileName string) documentView {
 	b := &docBuilder{r: r, labels: newLabels(r)}
-	scanTimestamp := s.ReceivedAt.In(loc).Format(scanLayout) + " " + loc.String()
+	scanAt := s.ReceivedAt.In(loc)
+	scanTimestamp := scanAt.Format(scanLayout) + " " + loc.String()
 	deps := b.tab(tabSpec{ID: "deps", LabelKey: KeyDocTabDeps, EyebrowKey: KeyDocEyebrowDeps, Selected: true}, s.Deps)
 	images := b.tab(tabSpec{ID: "images", LabelKey: KeyDocTabImages, EyebrowKey: KeyDocEyebrowImages, Images: true}, s.Images)
 	export := buildExport(scanTimestamp, fileName, images, deps)
 	return documentView{
 		Lang:      r.text(KeyLang, nil),
 		Title:     r.text(KeyDocTitle, nil),
-		Header:    HeaderView{ScanTimestamp: scanTimestamp, HasExport: len(export.Sections) > 0, Labels: b.labels.chromeLabels},
+		Header:    HeaderView{ScanTimestamp: scanTimestamp, ScanDateTime: scanAt.Format(time.RFC3339), HasExport: len(export.Sections) > 0, Labels: b.labels.chromeLabels},
 		Labels:    b.labels.chromeLabels,
 		RowLabels: rowLabels{Current: b.labels.Current, New: b.labels.New},
 		Tabs:      []TabView{deps, images},

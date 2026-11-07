@@ -38,20 +38,23 @@ templ ReportDocument(view documentView) {
 	</html>
 }
 
-// Header is the logo, the scan stamp, the export button (when there is something to export) and the theme control.
-// Below 600px the parts wrap onto further rows instead of overflowing a 320px screen.
+// Header arranges the logo and theme above the scan stamp and export on narrow screens.
 templ Header(view HeaderView) {
-	<header class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 pt-1">
-		@Logo()
-		<div class="flex flex-wrap items-center gap-2">
-			<span class="glass-pill gap-2 font-mono text-xs text-muted">
-				<i aria-hidden="true" class="size-1.5 rounded-full bg-patch dot-glow [--dot-ring:var(--patch-glow)]"></i>
-				{ view.ScanTimestamp }
+	<header class="grid grid-cols-[1fr_auto] [grid-template-areas:'logo_theme'_'meta_meta'] min-[601px]:grid-cols-[auto_1fr_auto] min-[601px]:[grid-template-areas:'logo_meta_theme'] items-center gap-4 px-1 pt-1">
+		<div class="[grid-area:logo]">
+			@Logo()
+		</div>
+		<div class="[grid-area:theme]">
+			@ThemeControl(view.Labels)
+		</div>
+		<div class="[grid-area:meta] flex min-w-0 items-center gap-2 min-[601px]:justify-end">
+			<span class="glass-pill min-w-0 flex-1 gap-2 font-mono text-xs text-muted min-[601px]:flex-initial">
+				<i aria-hidden="true" class="size-1.5 shrink-0 rounded-full bg-patch dot-glow [--dot-ring:var(--patch-glow)]"></i>
+				<time class="min-w-0 flex-1 truncate" datetime={ view.ScanDateTime } title={ view.ScanTimestamp }>{ view.ScanTimestamp }</time>
 			</span>
 			if view.HasExport {
 				@ExportButton(view.Labels)
 			}
-			@ThemeControl(view.Labels)
 		</div>
 	</header>
 }

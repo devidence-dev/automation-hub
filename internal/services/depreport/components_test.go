@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/a-h/templ"
 )
@@ -119,14 +120,70 @@ func TestDepRowColumnsAndCopy(t *testing.T) {
 func TestCopyButtonStates(t *testing.T) {
 	out := renderOf(t, CopyButton(muxEntry().Copy))
 	expectContains(t, out,
-		[]string{`data-copy=`, "group-data-[state=copied]:hidden", "copy-btn"},
+		[]string{`data-copy=`, "group-data-[state=copied]:hidden", "icon-btn"},
 		[]string{"<label", "<a "})
 	if n := strings.Count(out, "<svg"); n != 2 {
 		t.Errorf("copy button has %d icons, want 2 (clipboard and check)", n)
 	}
 }
 
+// TestExportDialogCornerClose checks the icon-only close button beside the title: it is the one dismiss button,
+// it sits in the dialog form before the sections, and its name and title come from the catalog label that the
+// bottom action shares.
+func TestExportDialogCornerClose(t *testing.T) {
+	for _, tt := range []struct {
+		name      string
+		overrides map[string]any
+		want      string
+	}{
+		{"default", nil, "Close"},
+		{"override", map[string]any{"document": map[string]any{"export": map[string]any{"close": "Cerrar"}}}, "Cerrar"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &renderer{cat: catalogWith(t, tt.overrides)}
+			view := buildDocumentView(r, loadZone(t, "America/Guayaquil"), summaryAt(loadFixtureReport(t)), "")
+			if r.err != nil {
+				t.Fatal(r.err)
+			}
+			checkCornerClose(t, renderOf(t, ExportDialog(view.Export, view.Labels)), tt.want)
+		})
+	}
+}
+
+// checkCornerClose checks the corner close button of a rendered dialog and the label of the bottom action.
+func checkCornerClose(t *testing.T, out, want string) {
+	t.Helper()
+	tags := regexp.MustCompile(`<button\b[^>]*\sdata-export-dismiss(?:[\s=][^>]*)?>`).FindAllString(out, -1)
+	if len(tags) != 1 {
+		t.Fatalf("data-export-dismiss buttons = %d, want 1", len(tags))
+	}
+	start := strings.Index(out, tags[0])
+	before := out[:start]
+	if at := strings.LastIndex(before, "<form"); at < 0 || !strings.HasPrefix(out[at:], `<form method="dialog"`) || strings.Contains(before[at:], "</form>") {
+		t.Error("the corner button is not inside the dialog form")
+	}
+	if strings.Index(out, "<fieldset") < start {
+		t.Error("the corner button comes after the first section")
+	}
+	end := strings.Index(out[start:], "</button>")
+	if end < 0 {
+		t.Fatal("corner button unterminated")
+	}
+	expectContains(t, out[start:start+end], []string{`class="btn icon-btn"`, `type="submit"`, `aria-label="` + want + `"`, `title="` + want + `"`, iconMarkup["close"], `aria-hidden="true"`}, nil)
+	if label := buttonLabel(out, tags[0]); label != "" {
+		t.Errorf("corner button has text %q, want icon only", label)
+	}
+	if label := buttonLabel(out, exportButtonTag("data-export-close").FindString(out)); label != want {
+		t.Errorf("bottom action label = %q, want %q", label, want)
+	}
+}
+
 func TestIconsAreFixedAndInert(t *testing.T) {
+	for _, name := range []string{"download", "close"} {
+		if iconMarkup[name] == "" {
+			t.Errorf("missing icon %s", name)
+		}
+	}
 	for name := range iconMarkup {
 		out := renderOf(t, Icon(name, "test-class"))
 		expectContains(t, out, []string{`viewBox="0 0 14 14"`, `aria-hidden="true"`, `class="icon test-class"`}, []string{"<script", "<text", "href="})
@@ -237,5 +294,67 @@ func TestCopyConstantsOnce(t *testing.T) {
 				t.Errorf("copy button contains %s", attr)
 			}
 		}
+	}
+}
+
+func TestHeaderTimeElement(t *testing.T) {
+	for _, tt := range []struct{ zone, datetime, visible string }{
+		{"America/Guayaquil", "2026-10-12T09:07:00-05:00", "2026-10-12 09:07 America/Guayaquil"},
+		{"Asia/Kolkata", "2026-10-12T19:37:00+05:30", "2026-10-12 19:37 Asia/Kolkata"},
+	} {
+		t.Run(tt.zone, func(t *testing.T) {
+			loc, err := time.LoadLocation(tt.zone)
+			if err != nil {
+				t.Fatal(err)
+			}
+			s := summaryAt(loadFixtureReport(t))
+			s.ReceivedAt = time.Date(2026, 10, 12, 14, 7, 0, 0, time.UTC)
+			view := buildDocumentView(&renderer{cat: catalogWith(t, nil)}, loc, s, "")
+			out := renderOf(t, Header(view.Header))
+			expectContains(t, out, []string{`datetime="` + tt.datetime + `" title="` + tt.visible + `">` + tt.visible + `</time>`}, nil)
+		})
+	}
+}
+
+func TestHeaderOrderAndAreas(t *testing.T) {
+	out := renderOf(t, Header(fixtureView(t).Header))
+	expectContains(t, out, []string{"grid-cols-[1fr_auto]", "[grid-template-areas:'logo_theme'_'meta_meta']", "min-[601px]:[grid-template-areas:'logo_meta_theme']", "min-[601px]:grid-cols-[auto_1fr_auto]", "min-w-0 flex-1 truncate", "min-[601px]:flex-initial", "glass-pill shrink-0"}, nil)
+	logo, theme, stamp, export := strings.Index(out, "[grid-area:logo]"), strings.Index(out, "data-theme-set"), strings.Index(out, "<time"), strings.Index(out, "data-export-open")
+	if logo < 0 || logo >= theme || theme >= stamp || stamp >= export {
+		t.Errorf("incorrect header order: %d %d %d %d", logo, theme, stamp, export)
+	}
+}
+
+func TestExportButtonLabelVisible(t *testing.T) {
+	out := renderOf(t, ExportButton(fixtureView(t).Labels))
+	expectContains(t, out, []string{`aria-label="Export"`, `<span>Export</span>`}, []string{"sr-only"})
+}
+
+func TestExportActionIcons(t *testing.T) {
+	out := renderOf(t, ExportDialog(fixtureView(t).Export, fixtureView(t).Labels))
+	for _, tt := range []struct{ attr, label, path string }{
+		{"data-export-copy", "Copy YAML", iconMarkup["copy"]}, {"data-export-download", "Download YAML", iconMarkup["download"]}, {"data-export-close", "Close", iconMarkup["close"]},
+	} {
+		t.Run(tt.attr, func(t *testing.T) {
+			tag := exportButtonTag(tt.attr).FindString(out)
+			start := strings.Index(out, tag)
+			if tag == "" {
+				t.Fatal("button missing")
+			}
+			end := strings.Index(out[start:], "</button>")
+			if end < 0 {
+				t.Fatal("button unterminated")
+			}
+			button := out[start : start+end]
+			expectContains(t, button, []string{"inline-flex items-center gap-1.5", `aria-hidden="true"`, tt.path, tt.label}, nil)
+			if strings.Index(button, tt.path) > strings.Index(button, tt.label) {
+				t.Error("icon follows label")
+			}
+			if tt.attr == "data-export-copy" {
+				expectContains(t, button, []string{iconMarkup["check"], "group-data-[state=copied]:hidden", "hidden group-data-[state=copied]:block"}, nil)
+			} else if strings.Count(button, "<svg") != 1 {
+				t.Error("expected one icon")
+			}
+		})
 	}
 }

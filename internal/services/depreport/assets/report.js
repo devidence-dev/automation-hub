@@ -50,12 +50,19 @@
 			return;
 		}
 		const choice = button.dataset.themeSet;
-		movePill(themeGroup, button);
 		if (typeof document.startViewTransition === "function" && !reduceMotion()) {
 			document
-				.startViewTransition(() => applyTheme(choice))
+				.startViewTransition(() => {
+					themeGroup.classList.add("no-anim");
+					movePill(themeGroup, button);
+					applyTheme(choice);
+					// Flush the final position while transitions are disabled, before capture.
+					getComputedStyle(themeGroup.querySelector(".pill")).transform;
+					themeGroup.classList.remove("no-anim");
+				})
 				.finished.catch(() => {});
 		} else {
+			movePill(themeGroup, button);
 			applyTheme(choice);
 		}
 	};

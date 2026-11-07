@@ -285,7 +285,7 @@ func TestSplitPath(t *testing.T) {
 	}
 }
 
-// TestExportButton checks the header button: one button named Export before the theme control when there
+// TestExportButton checks the header button: one button named Export after the theme control when there
 // is something to export, and none otherwise.
 func TestExportButton(t *testing.T) {
 	tests := []struct {
@@ -311,9 +311,9 @@ func TestExportButton(t *testing.T) {
 			expectContains(t, button,
 				[]string{`type="button"`, `aria-haspopup="dialog"`, `aria-controls="export-dialog"`, `aria-label="Export"`,
 					"glass-pill", "hover:[--glass-bg:var(--btn-hover)]"}, []string{"hover:text-accent", "hover:text-ink"})
-			expectContains(t, out, []string{"min-[601px]:not-sr-only", ">Export</span>"}, nil)
-			if buttonAt > strings.Index(out, "data-theme-set") {
-				t.Error("export button is not before the theme control")
+			expectContains(t, out, []string{">Export</span>"}, nil)
+			if buttonAt < strings.Index(out, "data-theme-set") {
+				t.Error("export button is not after the theme control")
 			}
 		})
 	}
@@ -381,7 +381,8 @@ func TestExportActionButtons(t *testing.T) {
 			t.Errorf("%s label = %q, want %q", tt.attr, got, tt.label)
 		}
 	}
-	if at := strings.Index(dialog, `<form method="dialog"`); at < 0 || strings.Index(dialog, "data-export-close") < at {
+	// LastIndex: the corner close has its own dialog form first, so the bottom action must follow the last one.
+	if at := strings.LastIndex(dialog, `<form method="dialog"`); at < 0 || strings.Index(dialog, "data-export-close") < at {
 		t.Error("the close button is not inside the dialog form")
 	}
 }
@@ -458,13 +459,13 @@ func TestExportCopyFeedback(t *testing.T) {
 	}, nil)
 }
 
-// TestHeaderWraps checks that the header and its right-hand group wrap, so at 320px no part overflows the row.
-func TestHeaderWraps(t *testing.T) {
+// TestHeaderGrid checks that the rendered document uses the responsive header areas.
+func TestHeaderGrid(t *testing.T) {
 	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
 	start, end := strings.Index(out, "<header"), strings.Index(out, "</header>")
 	if start < 0 || end < start {
 		t.Fatal("header not found in document")
 	}
 	header := out[start:end]
-	expectContains(t, header, []string{`<header class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 pt-1">`, `<div class="flex flex-wrap items-center gap-2">`, "data-theme-set", "data-export-open", "glass-pill"}, nil)
+	expectContains(t, header, []string{"grid-cols-[1fr_auto]", "[grid-area:logo]", "[grid-area:theme]", "[grid-area:meta]", "data-theme-set", "data-export-open", "glass-pill"}, nil)
 }
