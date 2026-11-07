@@ -22,20 +22,24 @@ func DocumentName(scannedAt time.Time, loc *time.Location, pattern, layout strin
 
 // DocumentPresenter renders the HTML report from the catalog and the summary.
 type DocumentPresenter struct {
-	cat *messages.Catalog
-	loc *time.Location
+	cat        *messages.Catalog
+	loc        *time.Location
+	exportName string // file name pattern of the YAML export
+	dateLayout string // Go layout of the {date} of both file names
 }
 
-// NewDocumentPresenter returns a presenter that shows the scan time in loc.
-func NewDocumentPresenter(cat *messages.Catalog, loc *time.Location) *DocumentPresenter {
-	return &DocumentPresenter{cat: cat, loc: loc}
+// NewDocumentPresenter returns a presenter that shows the scan time in loc. The export is named by
+// exportName and dateLayout, the same way as the document.
+func NewDocumentPresenter(cat *messages.Catalog, loc *time.Location, exportName, dateLayout string) *DocumentPresenter {
+	return &DocumentPresenter{cat: cat, loc: loc, exportName: exportName, dateLayout: dateLayout}
 }
 
 // Present returns the HTML document of the summary: the view built from the catalog, rendered by the
 // ReportDocument component.
 func (p *DocumentPresenter) Present(s Summary) ([]byte, error) {
 	r := &renderer{cat: p.cat}
-	view := buildDocumentView(r, p.loc, s)
+	fileName := DocumentName(s.ReceivedAt, p.loc, p.exportName, p.dateLayout)
+	view := buildDocumentView(r, p.loc, s, fileName)
 	if r.err != nil {
 		return nil, r.err
 	}
@@ -55,6 +59,7 @@ type documentView struct {
 	Tabs          []TabView
 	Errors        []ErrorView
 	ErrorsChip    string // the count of the errors card, empty when there are none
+	Export        ExportView
 }
 
 // labelSet holds the texts of the document that are not per tab.
@@ -73,6 +78,11 @@ type labelSet struct {
 	TypePatch      string
 	TypeMinor      string
 	TypeMajor      string
+	ExportButton   string
+	ExportTitle    string
+	ExportCopy     string
+	ExportDownload string
+	ExportClose    string
 }
 
 // TabView is one tab of the document: its label and count badge, its panel and its repo cards.
@@ -115,20 +125,21 @@ type docBuilder struct {
 }
 
 // buildDocumentView builds the view. The dependencies tab comes first and is selected; the images
-// tab is second, as the liquid glass design requires.
-func buildDocumentView(r *renderer, loc *time.Location, s Summary) documentView {
+// tab is second, as the liquid glass design requires. fileName is the download name of the export.
+func buildDocumentView(r *renderer, loc *time.Location, s Summary, fileName string) documentView {
 	b := &docBuilder{r: r, labels: newLabels(r)}
+	scanTimestamp := s.ReceivedAt.In(loc).Format(scanLayout) + " " + loc.String()
+	deps := b.tab(tabSpec{ID: "deps", LabelKey: KeyDocTabDeps, EyebrowKey: KeyDocEyebrowDeps, Selected: true}, s.Deps)
+	images := b.tab(tabSpec{ID: "images", LabelKey: KeyDocTabImages, EyebrowKey: KeyDocEyebrowImages, Images: true}, s.Images)
 	return documentView{
 		Lang:          r.text(KeyLang, nil),
 		Title:         r.text(KeyDocTitle, nil),
-		ScanTimestamp: s.ReceivedAt.In(loc).Format(scanLayout) + " " + loc.String(),
+		ScanTimestamp: scanTimestamp,
 		Labels:        b.labels,
-		Tabs: []TabView{
-			b.tab(tabSpec{ID: "deps", LabelKey: KeyDocTabDeps, EyebrowKey: KeyDocEyebrowDeps, Selected: true}, s.Deps),
-			b.tab(tabSpec{ID: "images", LabelKey: KeyDocTabImages, EyebrowKey: KeyDocEyebrowImages, Images: true}, s.Images),
-		},
-		Errors:     b.errorRows(s.Errors),
-		ErrorsChip: b.errorsChip(len(s.Errors)),
+		Tabs:          []TabView{deps, images},
+		Errors:        b.errorRows(s.Errors),
+		ErrorsChip:    b.errorsChip(len(s.Errors)),
+		Export:        buildExport(scanTimestamp, fileName, images, deps),
 	}
 }
 
@@ -148,6 +159,11 @@ func newLabels(r *renderer) labelSet {
 		TypePatch:      r.text(KeyDocTypePatch, nil),
 		TypeMinor:      r.text(KeyDocTypeMinor, nil),
 		TypeMajor:      r.text(KeyDocTypeMajor, nil),
+		ExportButton:   r.text(KeyDocExportButton, nil),
+		ExportTitle:    r.text(KeyDocExportTitle, nil),
+		ExportCopy:     r.text(KeyDocExportCopy, nil),
+		ExportDownload: r.text(KeyDocExportDownload, nil),
+		ExportClose:    r.text(KeyDocExportClose, nil),
 	}
 }
 

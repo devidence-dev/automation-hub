@@ -36,6 +36,7 @@ const (
 	defaultTokenHeader  = "X-Report-Token"
 	defaultMaxBodyBytes = 10 << 20 // 10 MiB
 	defaultDocumentName = "dependency-report-{date}.html"
+	defaultExportName   = "dependency-updates-{date}.yaml"
 	defaultDateLayout   = "2006-01-02"
 )
 
@@ -357,6 +358,8 @@ type DependencyReportConfig struct {
 	MaxBodyBytes int64 `mapstructure:"max_body_bytes"`
 	// DocumentName is the file name pattern, with {date} replaced by the day in the timezone.
 	DocumentName string `mapstructure:"document_name"`
+	// ExportName is the file name pattern of the YAML export, with {date} replaced the same way.
+	ExportName string `mapstructure:"export_name"`
 	// DateLayout is the Go time layout of that date.
 	DateLayout string `mapstructure:"date_layout"`
 }
@@ -723,6 +726,9 @@ func applyReportDefaults(r *DependencyReportConfig) {
 	if !viper.IsSet("dependency_report.document_name") {
 		r.DocumentName = defaultDocumentName
 	}
+	if !viper.IsSet("dependency_report.export_name") {
+		r.ExportName = defaultExportName
+	}
 	if !viper.IsSet("dependency_report.date_layout") {
 		r.DateLayout = defaultDateLayout
 	}
@@ -834,12 +840,19 @@ func validateReportSettings(r *DependencyReportConfig) error {
 		return fmt.Errorf("dependency_report.token_header must be a header name without spaces")
 	case r.MaxBodyBytes <= 0:
 		return fmt.Errorf("dependency_report.max_body_bytes must be a positive integer, got %d", r.MaxBodyBytes)
-	case !strings.Contains(r.DocumentName, "{date}") || strings.ContainsAny(r.DocumentName, `/\`):
+	case !validFileNamePattern(r.DocumentName):
 		return fmt.Errorf("dependency_report.document_name must contain {date} and no / or \\: %q", r.DocumentName)
+	case !validFileNamePattern(r.ExportName):
+		return fmt.Errorf("dependency_report.export_name must contain {date} and no / or \\: %q", r.ExportName)
 	case r.DateLayout == "":
 		return fmt.Errorf("dependency_report.date_layout must not be empty")
 	}
 	return nil
+}
+
+// validFileNamePattern reports whether a file name pattern has {date} and no path separator.
+func validFileNamePattern(pattern string) bool {
+	return strings.Contains(pattern, "{date}") && !strings.ContainsAny(pattern, `/\`)
 }
 
 // validateEmail rejects a negative poll interval or log preview length and checks each email service.

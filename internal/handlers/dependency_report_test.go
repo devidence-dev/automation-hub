@@ -152,6 +152,7 @@ func testReportConfig() config.DependencyReportConfig {
 		TokenHeader:    "X-Report-Token",
 		MaxBodyBytes:   testMaxBody,
 		DocumentName:   "dependency-report-{date}.html",
+		ExportName:     "dependency-updates-{date}.yaml",
 		DateLayout:     "2006-01-02",
 	}
 }

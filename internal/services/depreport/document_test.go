@@ -9,10 +9,10 @@ import (
 	"time"
 )
 
-// presentDocument renders s with the given overrides, in Guayaquil.
+// presentDocument renders s with the given overrides, in Guayaquil, with the default file names.
 func presentDocument(t *testing.T, overrides map[string]any, s Summary) string {
 	t.Helper()
-	p := NewDocumentPresenter(catalogWith(t, overrides), loadZone(t, "America/Guayaquil"))
+	p := NewDocumentPresenter(catalogWith(t, overrides), loadZone(t, "America/Guayaquil"), "dependency-updates-{date}.yaml", "2006-01-02")
 	out, err := p.Present(s)
 	if err != nil {
 		t.Fatalf("Present() error = %v", err)
@@ -24,11 +24,16 @@ func presentDocument(t *testing.T, overrides map[string]any, s Summary) string {
 func documentViewOf(t *testing.T, s Summary) documentView {
 	t.Helper()
 	r := &renderer{cat: catalogWith(t, nil)}
-	view := buildDocumentView(r, loadZone(t, "America/Guayaquil"), s)
+	view := buildDocumentView(r, loadZone(t, "America/Guayaquil"), s, "")
 	if r.err != nil {
 		t.Fatal(r.err)
 	}
 	return view
+}
+
+// dataYAML returns the data-yaml attributes of the export checkboxes, joined, so the checks read them alone.
+func dataYAML(out string) string {
+	return strings.Join(regexp.MustCompile(`data-yaml="[^"]*"`).FindAllString(out, -1), "\n")
 }
 
 // panes splits the document at the two tab panes.
@@ -39,7 +44,12 @@ func panes(t *testing.T, out string) (images, deps string) {
 	if depsAt < 0 || imagesAt < depsAt {
 		t.Fatal("tab panes not found in document, or not in Dependencias-then-Imágenes order") //nolint:misspell // Spanish text fixed by the spec
 	}
-	return out[imagesAt:], out[depsAt:imagesAt]
+	// The export dialog repeats the repos of both tabs, so the images pane ends where it starts.
+	images = out[imagesAt:]
+	if at := strings.Index(images, "<dialog"); at >= 0 {
+		images = images[:at]
+	}
+	return images, out[depsAt:imagesAt]
 }
 
 // TestDocumentPresenterPresent checks that the presenter renders the ReportDocument component: an HTML5
@@ -122,6 +132,9 @@ func TestDocumentScriptEscaped(t *testing.T) {
 	if !strings.Contains(out, "&lt;script&gt;alert(1)&lt;/script&gt;") || strings.Contains(out, "<script>alert(1)</script>") {
 		t.Error("a dependency name with a script is not escaped")
 	}
+	if want := `name: &#34;&lt;script&gt;alert(1)&lt;/script&gt;&#34;`; !strings.Contains(dataYAML(out), want) {
+		t.Errorf("export attribute lacks the escaped name %q", want)
+	}
 }
 
 func TestDocumentQuoteInVersionNoAttribute(t *testing.T) {
@@ -137,6 +150,9 @@ func TestDocumentQuoteInVersionNoAttribute(t *testing.T) {
 	}
 	if strings.Contains(out, `" onmouseover`) {
 		t.Error("version created an onmouseover attribute")
+	}
+	if want := `current: &#34;1.0.0\&#34; onmouseover=\&#34;alert(1)&#34;`; !strings.Contains(dataYAML(out), want) {
+		t.Errorf("export attribute lacks the escaped version %q", want)
 	}
 }
 
@@ -173,6 +189,9 @@ func TestDocumentNothingPending(t *testing.T) {
 	}
 	if strings.Contains(out, "<details") || strings.Contains(out, `class="bar-seg`) {
 		t.Error("repo cards or bar segments rendered without pending updates")
+	}
+	if regexp.MustCompile(`<button[^>]*data-export-open`).MatchString(out) || strings.Contains(out, "<dialog") {
+		t.Error("export button or dialog rendered without pending updates")
 	}
 }
 
@@ -211,6 +230,21 @@ func TestDocumentForkTag(t *testing.T) {
 	out := presentDocument(t, map[string]any{"fork": map[string]any{"tag_document": "fork"}}, s)
 	if !strings.Contains(out, ">fork</span>") || strings.Contains(out, "solo informativo") { //nolint:misspell // Spanish text fixed by the spec
 		t.Error("overridden fork note missing from the summary row")
+	}
+	view := documentViewOf(t, s)
+	forks := 0
+	for _, tab := range view.Tabs {
+		for _, g := range tab.Groups {
+			if g.Fork != (g.Repo == testForkRepo) {
+				t.Errorf("group %s Fork = %v, want %v", g.Repo, g.Fork, g.Repo == testForkRepo)
+			}
+			if g.Fork {
+				forks++
+			}
+		}
+	}
+	if forks == 0 {
+		t.Error("no fork group in the fixture")
 	}
 }
 

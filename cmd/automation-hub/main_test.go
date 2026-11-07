@@ -87,7 +87,7 @@ func TestRegisterRoutesDependencyReport(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			router := routesFor(t, &config.Config{DependencyReport: &config.DependencyReportConfig{
 				WebhookToken: "secret", TelegramChatID: "1", Path: "/hooks/deps", TokenHeader: "X-Report-Token",
-				MaxBodyBytes: 1 << 20, DocumentName: "dependency-report-{date}.html", DateLayout: "2006-01-02",
+				MaxBodyBytes: 1 << 20, DocumentName: "dependency-report-{date}.html", ExportName: "dependency-updates-{date}.yaml", DateLayout: "2006-01-02",
 			}})
 			rec := httptest.NewRecorder()
 			router.ServeHTTP(rec, jobPost(t, tt.path, tt.token))
@@ -161,7 +161,7 @@ func TestRegisterRoutesHookNamedDependencyReportIgnored(t *testing.T) {
 		Hook: []config.WebhookConfig{{Name: "dependency-report", Path: "/hooks/deps"}},
 		DependencyReport: &config.DependencyReportConfig{
 			WebhookToken: "secret", TelegramChatID: "1", Path: "/hooks/deps", TokenHeader: "X-Report-Token",
-			MaxBodyBytes: 1 << 20, DocumentName: "dependency-report-{date}.html", DateLayout: "2006-01-02",
+			MaxBodyBytes: 1 << 20, DocumentName: "dependency-report-{date}.html", ExportName: "dependency-updates-{date}.yaml", DateLayout: "2006-01-02",
 		},
 	}
 	router := routesWith(t, cfg, zap.New(core))

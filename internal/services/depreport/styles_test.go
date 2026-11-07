@@ -152,6 +152,16 @@ func TestReportCSSRemovedTokens(t *testing.T) {
 	}
 }
 
+// TestReportCSSExportDialogFitsPhone checks the export dialog width: 520px at most, and the viewport less
+// the 16px gutters on each side below that.
+func TestReportCSSExportDialogFitsPhone(t *testing.T) {
+	css := cssCompact(ReportCSS)
+	// The minifier writes min() without calc(): min() takes a sum, so both forms are the same width.
+	if !strings.Contains(css, ".export-dialog{width:min(520px,100vw-32px)") {
+		t.Error("compiled CSS lacks the export dialog width min(520px, 100vw - 32px)")
+	}
+}
+
 func TestReportCSSHasNoOldFrameworkOrWideMinWidth(t *testing.T) {
 	css := strings.ToLower(cssCompact(ReportCSS))
 	if strings.Contains(css, "--bs-") {

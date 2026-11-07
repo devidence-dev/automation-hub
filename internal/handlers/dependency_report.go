@@ -39,7 +39,7 @@ func NewDependencyReportHandler(cfg config.DependencyReportConfig, cat *messages
 		loc:       loc,
 		aggregate: depreport.Aggregate,
 		caption:   depreport.NewCaptionPresenter(cat, loc, cfg.DateLayout),
-		document:  depreport.NewDocumentPresenter(cat, loc),
+		document:  depreport.NewDocumentPresenter(cat, loc, cfg.ExportName, cfg.DateLayout),
 		deliverer: depreport.NewDeliverer(sender, cfg.TelegramChatID, logger),
 		logger:    logger,
 		now:       time.Now,

@@ -9,4 +9,5 @@ var iconMarkup = map[string]string{
 	"system":  `<circle cx="7" cy="7" r="5.25"/><path d="M7 1.75a5.25 5.25 0 0 1 0 10.5z" fill="currentColor" stroke="none"/>`,
 	"light":   `<circle cx="7" cy="7" r="2.6"/><path d="M7 1v1.4M7 11.6V13M1 7h1.4M11.6 7H13M2.8 2.8l1 1M10.2 10.2l1 1M2.8 11.2l1-1M10.2 3.8l1-1"/>`,
 	"dark":    `<path d="M11.8 8.6A5 5 0 0 1 5.4 2.2a5 5 0 1 0 6.4 6.4z"/>`,
+	"export":  `<path d="M7 9V2.5M4.5 5 7 2.5 9.5 5"/><path d="M2.5 8.5v2a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-2"/>`,
 }

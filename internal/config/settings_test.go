@@ -52,7 +52,7 @@ func TestDependencyReportDefaults(t *testing.T) {
 		t.Fatal("DependencyReport is nil")
 	}
 	if r.Path != "/webhook/dependency-report" || r.TokenHeader != "X-Report-Token" || r.MaxBodyBytes != 10485760 ||
-		r.DocumentName != "dependency-report-{date}.html" || r.DateLayout != "2006-01-02" {
+		r.DocumentName != "dependency-report-{date}.html" || r.ExportName != "dependency-updates-{date}.yaml" || r.DateLayout != "2006-01-02" {
 		t.Errorf("defaults = %+v", r)
 	}
 }
@@ -85,6 +85,11 @@ func TestDependencyReportDocumentNameNeedsDate(t *testing.T) {
 	expectSettingError(t, `document_name: "a/{date}.html"`, "dependency_report.document_name")
 }
 
+func TestDependencyReportExportNameNeedsDate(t *testing.T) {
+	expectSettingError(t, `export_name: "updates.yaml"`, "dependency_report.export_name")
+	expectSettingError(t, `export_name: "a/{date}.yaml"`, "dependency_report.export_name")
+}
+
 func TestDependencyReportZeroBodyLimit(t *testing.T) {
 	expectSettingError(t, "max_body_bytes: 0", "dependency_report.max_body_bytes")
 }
@@ -100,11 +105,11 @@ func TestDependencyReportTokenHeaderAndLayout(t *testing.T) {
 }
 
 func TestDependencyReportCustomSettings(t *testing.T) {
-	cfg, err := loadYAML(t, reportSection+"  path: \"/hooks/deps\"\n  token_header: \"X-Deps-Token\"\n")
+	cfg, err := loadYAML(t, reportSection+"  path: \"/hooks/deps\"\n  token_header: \"X-Deps-Token\"\n  export_name: \"renovate-{date}.yaml\"\n")
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
-	if cfg.DependencyReport.Path != "/hooks/deps" || cfg.DependencyReport.TokenHeader != "X-Deps-Token" {
+	if cfg.DependencyReport.Path != "/hooks/deps" || cfg.DependencyReport.TokenHeader != "X-Deps-Token" || cfg.DependencyReport.ExportName != "renovate-{date}.yaml" {
 		t.Errorf("settings = %+v", cfg.DependencyReport)
 	}
 }

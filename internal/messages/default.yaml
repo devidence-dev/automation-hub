@@ -89,6 +89,12 @@ document:
     copied: "¡Copiado!"
     copied_before: "Copiar (copiado antes)"
     new_version: "Copiar nombre@versión"
+  export:
+    button: "Exportar"
+    title: "Exportar actualizaciones"
+    copy: "Copiar YAML"
+    download: "Descargar YAML"
+    close: "Cerrar"
   errors:
     heading: "Errores del análisis"
     count: "{count} errores"
