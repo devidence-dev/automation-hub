@@ -1,6 +1,6 @@
 # 🤖 Automation Hub
 
-![Go Version](https://img.shields.io/badge/Go-1.27.2-00ADD8?logo=go)
+![Go Version](https://img.shields.io/badge/Go-1.27.3-00ADD8?logo=go)
 ![Docker](https://img.shields.io/badge/Docker-Required-2496ED?logo=docker&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-ARM64%20%7C%20AMD64-green)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=devidence-dev_automation-hub&metric=alert_status&token=<SONARCLOUD_BADGE_TOKEN>)](https://sonarcloud.io/summary/new_code?id=devidence-dev_automation-hub)
@@ -38,7 +38,7 @@ This project implements comprehensive **security and code quality** measures:
 
 | Component | Version | Notes |
 |-----------|---------|--------|
-| **Go** | 1.27.2 (`.go-version`) | For local development and tests |
+| **Go** | 1.27.3 (`.go-version`) | For local development and tests |
 | **Docker** | Current release | Runs the local gate and the asset generator, and builds the image |
 
 **Build targets:** ARM64 (CI builds the `arm64` binary) and AMD64 (the Dockerfile follows `TARGETARCH`)
@@ -163,7 +163,7 @@ go test ./...
 Without Go on the host, run the tests in the image that matches `.go-version`:
 
 ```bash
-docker run --rm -v "$PWD":/app -w /app golang:1.27.2 go test ./...
+docker run --rm -v "$PWD":/app -w /app golang:$(cat .go-version) go test ./...
 ```
 
 `configs/config.yaml` is tracked in this repository, so keep real secrets out of it.
@@ -262,6 +262,7 @@ dependency_report:
   token_header: "X-Report-Token"                 # header carrying webhook_token
   max_body_bytes: 10485760                       # 10 MiB, must be positive
   document_name: "dependency-report-{date}.html" # must contain {date}, no / or \
+  export_name: "dependency-updates-{date}.yaml"  # YAML export of the dialog; must contain {date}, no / or \
   date_layout: "2006-01-02"                      # Go time layout of {date}
 
 messages:                                        # optional: override single texts

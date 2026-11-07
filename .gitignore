@@ -232,10 +232,9 @@ log/
 docker-compose.override.yml
 .DS_Store
 
-# graphify: cache y config local, no aportan a otros clones
-graphify-out/cache/
-graphify-out/.graphify_root
-graphify-out/.graphify_python11
+# graphify: solo graph.json se versiona, el resto se regenera local
+graphify-out/*
+!graphify-out/graph.json
 
 .claude/
 

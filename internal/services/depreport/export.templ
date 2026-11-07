@@ -1,0 +1,49 @@
+package depreport
+
+// ExportButton opens the export dialog. Up to 600px it shows the icon only; the accessible name is the
+// catalog label at every width.
+templ ExportButton(labels labelSet) {
+	<button type="button" class="glass flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-[7px] text-xs font-medium text-ink transition-colors duration-150 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" aria-haspopup="dialog" aria-controls="export-dialog" aria-label={ labels.ExportButton } title={ labels.ExportButton } data-export-open>
+		@Icon("export", "size-3.5")
+		<span class="sr-only min-[601px]:not-sr-only">{ labels.ExportButton }</span>
+	</button>
+}
+
+// ExportDialog is the modal of the export: one section per tab with listed updates, each with a section
+// checkbox and one checkbox per repo, then the copy, download and close actions. report.js reads the data
+// attributes; the YAML fragments are escaped as attribute values, so report text stays inert.
+templ ExportDialog(view documentView) {
+	<dialog id="export-dialog" data-export-dialog aria-labelledby="export-title" data-header={ view.Export.Header } data-file-name={ view.Export.FileName } class="glass export-dialog [--glass-bg:var(--glass-strong)] [--glass-shadow:var(--shadow-lg)]">
+		<h2 id="export-title" class="m-0 text-[15px] font-semibold">{ view.Labels.ExportTitle }</h2>
+		for _, s := range view.Export.Sections {
+			<fieldset data-export-section data-key={ s.Key } class="mt-4 min-w-0 border-0 p-0">
+				<legend class="mb-1.5 p-0 text-[13px] font-semibold">
+					<label class="inline-flex cursor-pointer items-center gap-2">
+						<input type="checkbox" data-export-all checked class="size-3.5 cursor-pointer"/>
+						{ s.Label }
+					</label>
+				</legend>
+				<ul class="m-0 flex list-none flex-col gap-1 p-0 pl-6">
+					for _, r := range s.Repos {
+						<li>
+							<label title={ r.Repo } class="inline-flex cursor-pointer items-center gap-2 text-[13px]">
+								<input type="checkbox" data-export-repo data-yaml={ r.YAML } checked class="size-3.5 cursor-pointer"/>
+								{ r.Short }
+								if r.Note != "" {
+									<span class="text-xs text-muted">{ r.Note }</span>
+								}
+							</label>
+						</li>
+					}
+				</ul>
+			</fieldset>
+		}
+		<div class="mt-5 flex flex-wrap items-center gap-2">
+			<button type="button" class="export-action rounded-full border border-btn-edge bg-btn-bg px-3.5 py-2 text-[13px] font-medium text-ink transition-colors duration-150 hover:bg-btn-hover" data-export-copy data-copied-text={ view.Labels.Copied }>{ view.Labels.ExportCopy }</button>
+			<button type="button" class="export-action rounded-full border border-btn-edge bg-btn-bg px-3.5 py-2 text-[13px] font-medium text-ink transition-colors duration-150 hover:bg-btn-hover" data-export-download>{ view.Labels.ExportDownload }</button>
+			<form method="dialog" class="ml-auto">
+				<button type="submit" class="export-action rounded-full border border-btn-edge bg-btn-bg px-3.5 py-2 text-[13px] font-medium text-ink transition-colors duration-150 hover:bg-btn-hover" data-export-close>{ view.Labels.ExportClose }</button>
+			</form>
+		</div>
+	</dialog>
+}

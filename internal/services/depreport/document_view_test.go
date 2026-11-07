@@ -3,6 +3,7 @@ package depreport
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -280,6 +281,87 @@ func TestSplitPath(t *testing.T) {
 	for _, tt := range tests {
 		if dir, short := splitPath(tt.path); dir != tt.dir || short != tt.short {
 			t.Errorf("splitPath(%q) = (%q, %q), want (%q, %q)", tt.path, dir, short, tt.dir, tt.short)
+		}
+	}
+}
+
+// TestExportButton checks the header button: one button named Exportar before the theme control when there
+// is something to export, and none otherwise.
+func TestExportButton(t *testing.T) {
+	tests := []struct {
+		name string
+		rep  Report
+		want int // export buttons in the document
+	}{
+		{name: "updates listed", rep: loadFixtureReport(t), want: 1},
+		{name: "nothing listed", rep: reportOf(t, viewRepo("acme/a", viewFile("go.mod", viewDep("x", "go", "1.0.0")))), want: 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out := presentDocument(t, nil, summaryAt(tt.rep))
+			// report.js names the attribute in its selector, so the count matches the button element only.
+			if n := len(regexp.MustCompile(`<button[^>]*data-export-open`).FindAllString(out, -1)); n != tt.want {
+				t.Fatalf("export buttons = %d, want %d", n, tt.want)
+			}
+			if tt.want == 0 {
+				return
+			}
+			button := regexp.MustCompile(`<button[^>]*data-export-open[^>]*>`).FindString(out)
+			buttonAt := strings.Index(out, button)
+			expectContains(t, button,
+				[]string{`type="button"`, `aria-haspopup="dialog"`, `aria-controls="export-dialog"`, `aria-label="Exportar"`}, nil)
+			expectContains(t, out, []string{"min-[601px]:not-sr-only", ">Exportar</span>"}, nil)
+			if buttonAt > strings.Index(out, "data-theme-set") {
+				t.Error("export button is not before the theme control")
+			}
+		})
+	}
+}
+
+// TestExportDialogMarkup checks the dialog of the fixture: its attributes, its two sections in order, one
+// checked checkbox per repo card and the three actions.
+func TestExportDialogMarkup(t *testing.T) {
+	s := summaryAt(loadFixtureReport(t))
+	out := presentDocument(t, nil, s)
+	if n := strings.Count(out, "<dialog"); n != 1 {
+		t.Fatalf("dialogs = %d, want 1", n)
+	}
+	if strings.Index(out, "<dialog") < strings.Index(out, `data-panel="images"`) {
+		t.Error("the dialog is not rendered after the tabs")
+	}
+	dialog := regexp.MustCompile(`(?s)<dialog .*?</dialog>`).FindString(out)
+	expectContains(t, dialog, []string{
+		`id="export-dialog"`, "data-export-dialog", `aria-labelledby="export-title"`,
+		`data-file-name="dependency-updates-2026-10-12.yaml"`,
+		`data-header="scanned_at: &#34;2026-10-12 09:07 America/Guayaquil&#34;` + "\n" + `"`,
+		`<h2 id="export-title"`, "Exportar actualizaciones",
+		"data-export-copy", `data-copied-text="¡Copiado!"`, "Copiar YAML",
+		"data-export-download", "Descargar YAML",
+		`<form method="dialog"`, "data-export-close", "Cerrar",
+	}, []string{"<script"})
+
+	sections := regexp.MustCompile(`(?s)<fieldset data-export-section data-key="(\w+)".*?</fieldset>`).FindAllStringSubmatch(dialog, -1)
+	wantSections := []struct{ key, label string }{{"images", "Imágenes"}, {"dependencies", "Dependencias"}} //nolint:misspell // Spanish text fixed by the spec
+	if len(sections) != len(wantSections) {
+		t.Fatalf("sections = %d, want %d", len(sections), len(wantSections))
+	}
+	for i, w := range wantSections {
+		if sections[i][1] != w.key || !strings.Contains(sections[i][0], w.label) {
+			t.Errorf("section %d = %q, want key %s with label %s", i, sections[i][1], w.key, w.label)
+		}
+	}
+	if n := strings.Count(dialog, "data-export-all checked"); n != len(wantSections) {
+		t.Errorf("checked section checkboxes = %d, want %d", n, len(wantSections))
+	}
+
+	view := documentViewOf(t, s)
+	repos := regexp.MustCompile(`<input type="checkbox" data-export-repo[^>]*>`).FindAllString(dialog, -1)
+	if want := len(view.Tabs[0].Groups) + len(view.Tabs[1].Groups); len(repos) != want {
+		t.Fatalf("repo checkboxes = %d, want one per card (%d)", len(repos), want)
+	}
+	for _, in := range repos {
+		if !strings.Contains(in, " checked") {
+			t.Errorf("repo checkbox is not checked: %s", in)
 		}
 	}
 }

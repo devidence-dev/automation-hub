@@ -1,8 +1,9 @@
 package depreport
 
 // ReportDocument is the whole document: the head with the inline stylesheet and the favicon, the header,
-// the tabs, the errors card, the live region that announces copies and the report script (openspec
-// design D2, D20). The document has no data-theme on <html>: the theme starts on Automático. Every script and style is inline, so the file needs no other file.
+// the tabs, the errors card, the export dialog, the live region that announces copies and the report script
+// (openspec design D2, D20). The document has no data-theme on <html>: the theme starts on Automático. Every
+// script and style is inline, so the file needs no other file.
 templ ReportDocument(view documentView) {
 	<!doctype html>
 	<html lang={ view.Lang }>
@@ -25,6 +26,9 @@ templ ReportDocument(view documentView) {
 				if view.ErrorsChip != "" {
 					@ErrorsCard(view)
 				}
+				if len(view.Export.Sections) > 0 {
+					@ExportDialog(view)
+				}
 			</div>
 			<p id="copy-status" role="status" aria-live="polite" class="sr-only"></p>
 			@templ.Raw("<script>" + reportScript + "</script>")
@@ -32,7 +36,7 @@ templ ReportDocument(view documentView) {
 	</html>
 }
 
-// Header is the logo, the scan stamp and the theme control.
+// Header is the logo, the scan stamp, the export button (when there is something to export) and the theme control.
 templ Header(view documentView) {
 	<header class="flex items-center justify-between gap-4 px-1 pt-1">
 		@Logo()
@@ -41,6 +45,9 @@ templ Header(view documentView) {
 				<i aria-hidden="true" class="size-1.5 rounded-full bg-patch shadow-[0_0_8px_var(--patch)]"></i>
 				{ view.ScanTimestamp }
 			</span>
+			if len(view.Export.Sections) > 0 {
+				@ExportButton(view.Labels)
+			}
 			@ThemeControl(view.Labels)
 		</div>
 	</header>

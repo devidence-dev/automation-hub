@@ -54,6 +54,11 @@ const (
 	KeyDocThemeSystem        = "document.theme.system"
 	KeyDocThemeLight         = "document.theme.light"
 	KeyDocThemeDark          = "document.theme.dark"
+	KeyDocExportButton       = "document.export.button"
+	KeyDocExportTitle        = "document.export.title"
+	KeyDocExportCopy         = "document.export.copy"
+	KeyDocExportDownload     = "document.export.download"
+	KeyDocExportClose        = "document.export.close"
 	KeyColPackageFile        = "document.columns.package_file"
 	KeyColRepository         = "document.columns.repository"
 	KeyColCurrentImage       = "document.columns.current_image"
@@ -98,4 +103,5 @@ var allKeys = []string{
 	KeyDocStatusUpdatesBold1, KeyDocStatusUpdatesRest1, KeyDocStatusImagesRest, KeyDocStatusImagesRest1, KeyDocStatusImagesUpTo,
 	KeyDocTypePatch, KeyDocTypeMinor, KeyDocTypeMajor,
 	KeyDocThemeGroup, KeyDocThemeSystem, KeyDocThemeLight, KeyDocThemeDark,
+	KeyDocExportButton, KeyDocExportTitle, KeyDocExportCopy, KeyDocExportDownload, KeyDocExportClose,
 }

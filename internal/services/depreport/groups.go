@@ -11,6 +11,7 @@ type RepoGroupView struct {
 	Repo  string // full repo name, shown when the card is open
 	Short string // short repo name, shown in the summary row
 	Note  string // fork note of the summary row, empty when the repo is not a fork
+	Fork  bool   // the repo is one of the configured forks
 	Dot   UpdateType
 	Chips []CountChip // one chip per update type with dependencies in the card
 	Files []FileGroupView
@@ -78,6 +79,7 @@ func groupTab(r *renderer, tab Tab, labels labelSet, images bool) []RepoGroupVie
 		}
 		if p.Fork {
 			g.Note = strings.TrimSpace(r.text(KeyForkTagDocument, nil))
+			g.Fork = true
 		}
 		sortFiles(g.Files)
 		g.Dot = dotOf(p)
