@@ -1,0 +1,14 @@
+{
+  "name": "devidence",
+  "description": "Claude Code plugins for the devidence-dev repositories",
+  "owner": {
+    "name": "PX1"
+  },
+  "plugins": [
+    {
+      "name": "automation-hub",
+      "source": "./plugins/automation-hub",
+      "description": "Apply dependency-report YAML exports to the local devidence-dev repositories"
+    }
+  ]
+}

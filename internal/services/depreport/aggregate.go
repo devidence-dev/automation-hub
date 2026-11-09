@@ -13,9 +13,11 @@ import (
 // unknownValue stands in for a dep name or version that Renovate does not give.
 const unknownValue = "?"
 
-// dockerDatasource is the Renovate datasource of container images. Those deps go to the images
-// tab; every other dep, including one without a datasource, goes to the dependencies tab.
-const dockerDatasource = "docker"
+// Renovate datasource IDs for images and Helm charts.
+const (
+	dockerDatasource = "docker"
+	helmDatasource   = "helm"
+)
 
 // errorLevel is the Renovate log level from which a problem is listed as a scan error.
 const errorLevel = 50
@@ -31,7 +33,7 @@ type Row struct {
 	Type        UpdateType
 }
 
-// Tab is one of the two tabs of the document.
+// Tab is one of the tabs of the document.
 type Tab struct {
 	Rows        []Row         // sorted by repo, package file, dep, update type and versions
 	Pending     []RepoPending // repos of this tab with a listed update, in caption order
@@ -65,6 +67,7 @@ type Summary struct {
 	ReceivedAt time.Time // when the hub received the report
 	Images     Tab
 	Deps       Tab
+	Charts     Tab
 	Repos      int           // repos in the report, with or without pending updates
 	Pending    []RepoPending // repos with a listed update, in caption order
 	Errors     []ScanError
@@ -73,21 +76,22 @@ type Summary struct {
 // Aggregate computes the summary of a report received at receivedAt. forks are the repo names
 // tagged as forks.
 func Aggregate(rep Report, forks []string, receivedAt time.Time) Summary {
-	images, deps := newTabBuilder(), newTabBuilder()
+	tabs := newTabBuilders()
 	for _, name := range sortedRepoNames(rep) {
 		fork := slices.Contains(forks, name)
 		for _, files := range rep.Repositories[name].PackageFiles {
 			for _, file := range files {
-				addFileDeps(images, deps, name, fork, file)
+				addFileDeps(tabs, name, fork, file)
 			}
 		}
 	}
 	return Summary{
 		ReceivedAt: receivedAt,
-		Images:     images.finish(),
-		Deps:       deps.finish(),
+		Images:     tabs.images.finish(),
+		Deps:       tabs.deps.finish(),
+		Charts:     tabs.charts.finish(),
 		Repos:      len(rep.Repositories),
-		Pending:    pendingByRepo(forks, images, deps),
+		Pending:    pendingByRepo(forks, tabs.images, tabs.deps, tabs.charts),
 		Errors:     scanErrors(rep),
 	}
 }
@@ -116,6 +120,27 @@ func newTabBuilder() *tabBuilder {
 		highest:  map[depKey]UpdateType{},
 		seenRows: map[Row]bool{},
 	}
+}
+
+// tabBuilders are the three tab builders of a summary: images, dependencies and charts.
+type tabBuilders struct{ images, deps, charts *tabBuilder }
+
+func newTabBuilders() *tabBuilders {
+	return &tabBuilders{images: newTabBuilder(), deps: newTabBuilder(), charts: newTabBuilder()}
+}
+
+// forDatasource selects a tab using Renovate's datasource ID.
+func (t *tabBuilders) forDatasource(datasource *string) *tabBuilder {
+	if datasource != nil {
+		switch *datasource {
+		case dockerDatasource:
+			// shortcut: OCI charts use the docker datasource and remain in Images.
+			return t.images
+		case helmDatasource:
+			return t.charts
+		}
+	}
+	return t.deps
 }
 
 // addRow records a listed row once; exact duplicates are dropped.
@@ -162,13 +187,10 @@ func compareRows(a, b Row) int {
 	)
 }
 
-// addFileDeps adds the deps of one package file to the images tab or the dependencies tab.
-func addFileDeps(images, deps *tabBuilder, repo string, fork bool, file PackageFile) {
+// addFileDeps adds the deps of one package file to their tabs.
+func addFileDeps(tabs *tabBuilders, repo string, fork bool, file PackageFile) {
 	for i, dep := range file.Deps {
-		tab := deps
-		if dep.Datasource != nil && *dep.Datasource == dockerDatasource {
-			tab = images
-		}
+		tab := tabs.forDatasource(dep.Datasource)
 		name := firstNonNil(unknownValue, dep.DepName)
 		// Unnamed deps (for example Dockerfile stage refs) are counted one by one.
 		keyName := name
@@ -202,7 +224,7 @@ func (b *tabBuilder) addDepRows(key depKey, base Row, dep Dep) {
 	}
 }
 
-// pendingByRepo counts, per repo over both tabs, the deps with a listed update under their highest
+// pendingByRepo counts, per repo over all tabs, the deps with a listed update under their highest
 // type. The result is in caption order.
 func pendingByRepo(forks []string, tabs ...*tabBuilder) []RepoPending {
 	highest := map[depKey]UpdateType{}

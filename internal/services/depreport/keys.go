@@ -16,6 +16,7 @@ const (
 	KeyCaptionRepoLine       = "caption.repo_line"
 	KeyCaptionStats          = "caption.stats"
 	KeyCaptionTabs           = "caption.tabs"
+	KeyCaptionCharts         = "caption.charts"
 	KeyCaptionErrors         = "caption.errors"
 	KeyCaptionEmojiMajor     = "caption.emoji.major"
 	KeyCaptionEmojiOther     = "caption.emoji.other"
@@ -28,6 +29,7 @@ const (
 	KeyDocTabsLabel          = "document.tabs.label"
 	KeyDocTabImages          = "document.tab.images"
 	KeyDocTabDeps            = "document.tab.deps"
+	KeyDocTabCharts          = "document.tab.charts"
 	KeyDocTotal              = "document.total"
 	KeyDocPending            = "document.pending"
 	KeyDocUpToDate           = "document.up_to_date"
@@ -42,12 +44,16 @@ const (
 	KeyDocSummaryCounter     = "document.summary.counter"
 	KeyDocEyebrowDeps        = "document.eyebrow.deps"
 	KeyDocEyebrowImages      = "document.eyebrow.images"
+	KeyDocEyebrowCharts      = "document.eyebrow.charts"
 	KeyDocPanelSub           = "document.panel.sub"
 	KeyDocStatusUpdatesBold1 = "document.status.updates_bold_one"
 	KeyDocStatusUpdatesRest1 = "document.status.updates_rest_one"
 	KeyDocStatusImagesRest   = "document.status.images_rest"
 	KeyDocStatusImagesRest1  = "document.status.images_rest_one"
 	KeyDocStatusImagesUpTo   = "document.status.images_up_to_date"
+	KeyDocStatusChartsRest   = "document.status.charts_rest"
+	KeyDocStatusChartsRest1  = "document.status.charts_rest_one"
+	KeyDocStatusChartsUpTo   = "document.status.charts_up_to_date"
 	KeyDocTypePatch          = "document.type.patch"
 	KeyDocTypeMinor          = "document.type.minor"
 	KeyDocTypeMajor          = "document.type.major"
@@ -82,7 +88,7 @@ const (
 
 // placeholderNames are the placeholders the code fills. A catalog text may use only these.
 var placeholderNames = []string{
-	"count", "counts", "current", "date", "deps", "emoji", "exit", "images", "msg",
+	"charts", "count", "counts", "current", "date", "deps", "emoji", "exit", "images", "msg",
 	"name", "packages", "pod", "total", "up_to_date", "updated", "updates", "where",
 }
 
@@ -90,18 +96,19 @@ var placeholderNames = []string{
 var allKeys = []string{
 	KeyLang, KeyFailureTitle, KeyForkTagCaption, KeyForkTagDocument,
 	KeyCaptionHeader, KeyCaptionAllUpToDate, KeyCaptionReposUpToDate, KeyCaptionMoreRepos,
-	KeyCaptionRepoLine, KeyCaptionStats, KeyCaptionTabs, KeyCaptionErrors,
+	KeyCaptionRepoLine, KeyCaptionStats, KeyCaptionTabs, KeyCaptionCharts, KeyCaptionErrors,
 	KeyCaptionEmojiMajor, KeyCaptionEmojiOther,
 	KeyCountMajor, KeyCountMinor, KeyCountPatch, KeyCountSeparator,
-	KeyDocTitle, KeyDocBrand, KeyDocTabsLabel, KeyDocTabImages, KeyDocTabDeps, KeyDocTotal, KeyDocPending,
+	KeyDocTitle, KeyDocBrand, KeyDocTabsLabel, KeyDocTabImages, KeyDocTabDeps, KeyDocTabCharts, KeyDocTotal, KeyDocPending,
 	KeyDocUpToDate, KeyDocDistribution, KeyDocStatusUpdatesBold, KeyDocStatusUpdatesRest, KeyDocStatusUpToDate, KeyDocAvailable,
 	KeyDocSummaryEmojiMajor, KeyDocSummaryEmojiMinor, KeyDocSummaryEmojiPatch, KeyDocSummaryCounter,
 	KeyColPackageFile, KeyColRepository, KeyColCurrentImage, KeyColLatestImage, KeyColDependency,
 	KeyColCurrent, KeyColNew, KeyColType,
 	KeyCopyCurrentImage, KeyCopyLatestImage, KeyCopyCopied, KeyCopyCopiedBefore, KeyCopyNewVersion,
 	KeyErrorsHeading, KeyErrorsRoot, KeyErrorsItem, KeyErrorsCount, KeyErrorsCountOne,
-	KeyDocEyebrowDeps, KeyDocEyebrowImages, KeyDocPanelSub,
+	KeyDocEyebrowDeps, KeyDocEyebrowImages, KeyDocEyebrowCharts, KeyDocPanelSub,
 	KeyDocStatusUpdatesBold1, KeyDocStatusUpdatesRest1, KeyDocStatusImagesRest, KeyDocStatusImagesRest1, KeyDocStatusImagesUpTo,
+	KeyDocStatusChartsRest, KeyDocStatusChartsRest1, KeyDocStatusChartsUpTo,
 	KeyDocTypePatch, KeyDocTypeMinor, KeyDocTypeMajor,
 	KeyDocThemeGroup, KeyDocThemeSystem, KeyDocThemeLight, KeyDocThemeDark,
 	KeyDocExportButton, KeyDocExportTitle, KeyDocExportCopy, KeyDocExportDownload, KeyDocExportClose,

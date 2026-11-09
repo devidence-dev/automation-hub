@@ -7,5 +7,5 @@
 ✅ 2 repos up to date
 
 📊 53 outdated · 5 up to date
-🐳 Images: 1 · 📚 Packages: 52
+🐳 Images: 1 · 📚 Packages: 52 · ⛵ Charts: 0
 ⚠️ 3 scan errors

@@ -1,7 +1,6 @@
 package depreport
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 	"testing"
@@ -9,15 +8,7 @@ import (
 
 func nothingPendingDocument(t *testing.T) string {
 	t.Helper()
-	var docker, others []string
-	for i := 0; i < 12; i++ {
-		docker = append(docker, fmt.Sprintf(`{"depName":"img-%02d","currentValue":"1","currentVersion":"1","datasource":"docker","updates":[]}`, i))
-	}
-	for i := 0; i < 30; i++ {
-		others = append(others, fmt.Sprintf(`{"depName":"dep-%02d","currentValue":"1","currentVersion":"1","datasource":"go","updates":[]}`, i))
-	}
-	rep := reportOf(t, `"devidence-dev/QuantWarden":{"packageFiles":{"dockerfile":[{"packageFile":"Dockerfile","deps":[`+strings.Join(docker, ",")+`]}, {"packageFile":"go.mod","deps":[`+strings.Join(others, ",")+`]}]}}`)
-	return presentDocument(t, nil, summaryAt(rep))
+	return presentDocument(t, nil, summaryAt(nothingPendingReport(t, 0)))
 }
 
 func documentMarkup(out string) string {
@@ -106,7 +97,7 @@ func checkLandmarks(t *testing.T, markup string, fixture bool) {
 		t.Fatal("want one main landmark")
 	}
 	main := markup[strings.Index(markup, "<main>"):strings.Index(markup, "</main>")]
-	if strings.Contains(main, "<header") || !strings.Contains(main, `role="tablist"`) || strings.Count(main, `role="tabpanel"`) != 2 {
+	if strings.Contains(main, "<header") || !strings.Contains(main, `role="tablist"`) || strings.Count(main, `role="tabpanel"`) != 3 {
 		t.Error("header or tab landmarks are misplaced")
 	}
 	statuses := 1

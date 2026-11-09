@@ -223,6 +223,22 @@ func TestReportCSSButtonBase(t *testing.T) {
 	}
 }
 
+// TestNarrowVariantIsMaxWidth checks that the narrow variant compiles to a max-width query that includes 420px,
+// and that no min-width:420px query stands in for it.
+func TestNarrowVariantIsMaxWidth(t *testing.T) {
+	css := cssCompact(ReportCSS)
+	block := cssBlock(css, "@media(max-width:420px){")
+	if block == "" {
+		t.Fatal("compiled CSS lacks the @media(max-width:420px) query of the narrow variant")
+	}
+	if !strings.Contains(block, `.narrow\:flex-col{`) {
+		t.Error("the max-width:420px query does not hold the narrow tab rules")
+	}
+	if strings.Contains(css, "min-width:420px") {
+		t.Error("compiled CSS has min-width:420px, which excludes 420px itself")
+	}
+}
+
 func TestReportCSSHasNoOldFrameworkOrWideMinWidth(t *testing.T) {
 	css := strings.ToLower(cssCompact(ReportCSS))
 	if strings.Contains(css, "--bs-") {

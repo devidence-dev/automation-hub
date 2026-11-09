@@ -11,6 +11,7 @@ const (
 	yamlScannedAt    = "scanned_at"
 	yamlImages       = "images"
 	yamlDependencies = "dependencies"
+	yamlCharts       = "charts"
 	yamlRepo         = "repo"
 	yamlFork         = "fork"
 	yamlFiles        = "files"
@@ -31,7 +32,7 @@ type ExportView struct {
 	Sections []ExportSection
 }
 
-// ExportSection is one section of the dialog: the images or the dependencies, in card order.
+// ExportSection is one section of the dialog: images, dependencies or charts, in card order.
 type ExportSection struct {
 	Key   string // YAML key of the section
 	Label string // the catalog name of the tab
@@ -46,14 +47,13 @@ type ExportRepo struct {
 	YAML  string // the fragment, one list item of the section
 }
 
-// buildExport builds the export from the images and the dependencies tab. Empty tabs are left out, so
-// the images section comes first and both sections keep the card order of their tab.
-func buildExport(scanTimestamp, fileName string, images, deps TabView) ExportView {
+// buildExport builds sections in export order, omitting empty tabs and preserving card order.
+func buildExport(scanTimestamp, fileName string, images, deps, charts TabView) ExportView {
 	view := ExportView{Header: exportHeader(scanTimestamp), FileName: fileName}
 	for _, s := range []struct {
 		key string
 		tab TabView
-	}{{yamlImages, images}, {yamlDependencies, deps}} {
+	}{{yamlImages, images}, {yamlDependencies, deps}, {yamlCharts, charts}} {
 		if len(s.tab.Groups) == 0 {
 			continue
 		}

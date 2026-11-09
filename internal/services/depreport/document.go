@@ -132,11 +132,14 @@ type ErrorView struct {
 
 // tabSpec is what the builder needs to know about one tab before it reads its totals.
 type tabSpec struct {
-	ID         string
-	LabelKey   string
-	EyebrowKey string
-	Images     bool
-	Selected   bool
+	ID          string
+	LabelKey    string
+	EyebrowKey  string
+	RestKey     string
+	RestOneKey  string
+	UpToDateKey string
+	Images      bool
+	Selected    bool
 }
 
 // docBuilder builds the view of the document. It reads the catalog through r.
@@ -146,21 +149,22 @@ type docBuilder struct {
 }
 
 // buildDocumentView builds the view. The dependencies tab comes first and is selected; the images
-// tab is second, as the liquid glass design requires. fileName is the download name of the export.
+// tab is second and charts third. fileName is the download name of the export.
 func buildDocumentView(r *renderer, loc *time.Location, s Summary, fileName string) documentView {
 	b := &docBuilder{r: r, labels: newLabels(r)}
 	scanAt := s.ReceivedAt.In(loc)
 	scanTimestamp := scanAt.Format(scanLayout) + " " + loc.String()
-	deps := b.tab(tabSpec{ID: "deps", LabelKey: KeyDocTabDeps, EyebrowKey: KeyDocEyebrowDeps, Selected: true}, s.Deps)
-	images := b.tab(tabSpec{ID: "images", LabelKey: KeyDocTabImages, EyebrowKey: KeyDocEyebrowImages, Images: true}, s.Images)
-	export := buildExport(scanTimestamp, fileName, images, deps)
+	deps := b.tab(tabSpec{ID: "deps", LabelKey: KeyDocTabDeps, EyebrowKey: KeyDocEyebrowDeps, RestKey: KeyDocStatusUpdatesRest, RestOneKey: KeyDocStatusUpdatesRest1, UpToDateKey: KeyDocStatusUpToDate, Selected: true}, s.Deps)
+	images := b.tab(tabSpec{ID: "images", LabelKey: KeyDocTabImages, EyebrowKey: KeyDocEyebrowImages, RestKey: KeyDocStatusImagesRest, RestOneKey: KeyDocStatusImagesRest1, UpToDateKey: KeyDocStatusImagesUpTo, Images: true}, s.Images)
+	charts := b.tab(tabSpec{ID: "charts", LabelKey: KeyDocTabCharts, EyebrowKey: KeyDocEyebrowCharts, RestKey: KeyDocStatusChartsRest, RestOneKey: KeyDocStatusChartsRest1, UpToDateKey: KeyDocStatusChartsUpTo}, s.Charts)
+	export := buildExport(scanTimestamp, fileName, images, deps, charts)
 	return documentView{
 		Lang:      r.text(KeyLang, nil),
 		Title:     r.text(KeyDocTitle, nil),
 		Header:    HeaderView{ScanTimestamp: scanTimestamp, ScanDateTime: scanAt.Format(time.RFC3339), HasExport: len(export.Sections) > 0, Labels: b.labels.chromeLabels},
 		Labels:    b.labels.chromeLabels,
 		RowLabels: rowLabels{Current: b.labels.Current, New: b.labels.New},
-		Tabs:      []TabView{deps, images},
+		Tabs:      []TabView{deps, images, charts},
 		Errors:    ErrorsView{Heading: b.labels.ErrorsHeading, Chip: b.errorsChip(len(s.Errors)), Rows: b.errorRows(s.Errors)},
 		Export:    export,
 	}
@@ -236,18 +240,11 @@ func (b *docBuilder) stats(spec tabSpec, tab Tab) StatsView {
 // the up-to-date text of the tab.
 func (b *docBuilder) summary(spec tabSpec, tab Tab) SummaryLine {
 	if tab.Updates == 0 {
-		key := KeyDocStatusUpToDate
-		if spec.Images {
-			key = KeyDocStatusImagesUpTo
-		}
-		return SummaryLine{Bold: b.r.text(key, nil)}
+		return SummaryLine{Bold: b.r.text(spec.UpToDateKey, nil)}
 	}
 	vars := map[string]string{"updates": strconv.Itoa(tab.Updates), "deps": strconv.Itoa(tab.WithUpdates)}
 	bold := pick(tab.Updates == 1, KeyDocStatusUpdatesBold1, KeyDocStatusUpdatesBold)
-	rest := pick(tab.WithUpdates == 1, KeyDocStatusUpdatesRest1, KeyDocStatusUpdatesRest)
-	if spec.Images {
-		rest = pick(tab.WithUpdates == 1, KeyDocStatusImagesRest1, KeyDocStatusImagesRest)
-	}
+	rest := pick(tab.WithUpdates == 1, spec.RestOneKey, spec.RestKey)
 	return SummaryLine{Bold: b.r.text(bold, vars), Rest: b.r.text(rest, vars)}
 }
 

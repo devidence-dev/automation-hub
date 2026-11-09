@@ -5,6 +5,9 @@
 @import "tailwindcss" source(none);
 @source "../*.templ";
 
+/* The tab list stacks label over badge up to and including 420px. */
+@custom-variant narrow (@media (max-width: 420px));
+
 /* Tokens, with the names of the design. Light on :root; dark for the system choice (when no light choice is
    stored) and for a stored dark choice. The three blocks are written out, as the design requires. */
 :root {

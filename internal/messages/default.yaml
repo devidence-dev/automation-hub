@@ -14,6 +14,7 @@ caption:
   repo_line: "{emoji} {name} — {counts}"
   stats: "📊 {updated} outdated · {current} up to date"
   tabs: "🐳 Images: {images} · 📚 Packages: {packages}"
+  charts: " · ⛵ Charts: {charts}"
   errors: "⚠️ {count} scan errors"
   emoji:
     major: "🔴"
@@ -30,11 +31,13 @@ document:
   eyebrow:
     deps: "Dependency report"
     images: "Image report"
+    charts: "Chart report"
   tabs:
     label: "Report sections"
   tab:
     images: "Images"
     deps: "Dependencies"
+    charts: "Charts"
   # Unused since batch 3: the panel shows the sub line instead. Kept so that an existing override still validates.
   total: "Total"
   pending: "Pending updates"
@@ -49,8 +52,11 @@ document:
     updates_rest_one: "across {deps} dependency"
     images_rest: "across {deps} images"
     images_rest_one: "across {deps} image"
+    charts_rest: "across {deps} charts"
+    charts_rest_one: "across {deps} chart"
     up_to_date: "All dependencies are up to date"
     images_up_to_date: "All images are up to date"
+    charts_up_to_date: "All charts are up to date"
   # The update type names of the legend and of the row chips.
   type:
     patch: "patch"

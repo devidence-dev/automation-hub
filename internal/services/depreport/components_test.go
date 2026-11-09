@@ -248,8 +248,16 @@ func TestTabsMarkup(t *testing.T) {
 		[]string{"<input", `type="radio"`})
 	deps := strings.Index(out, `data-tab="deps"`)
 	images := strings.Index(out, `data-tab="images"`)
-	if deps < 0 || images < 0 || deps > images {
-		t.Errorf("tabs are not Dependencies then Images (deps=%d images=%d)", deps, images)
+	charts := strings.Index(out, `data-tab="charts"`)
+	if deps < 0 || images < deps || charts < images {
+		t.Errorf("tabs are not Dependencies, Images, then Charts (deps=%d images=%d charts=%d)", deps, images, charts)
+	}
+	for _, tab := range regexp.MustCompile(`<button[^>]*role="tab"[^>]*>`).FindAllString(out, -1) {
+		for _, variant := range []string{"narrow:flex-col", "narrow:gap-1", "narrow:px-1"} {
+			if !strings.Contains(tab, variant) {
+				t.Errorf("tab lacks %q: %s", variant, tab)
+			}
+		}
 	}
 	if !strings.Contains(out, `aria-selected="true"`) || strings.Index(out, `aria-selected="true"`) > images {
 		t.Error("the deps tab is not the selected one")

@@ -2,7 +2,7 @@ package depreport
 
 import "strconv"
 
-// Tabs are the tab list and the two panels, Dependencies first. report.js switches the selected tab,
+// Tabs are the tab list and the three panels, Dependencies first. report.js switches the selected tab,
 // moves the pill and shows the panel; the rendered state is the first tab selected.
 templ Tabs(view documentView) {
 	<div class="glass relative mt-[22px] flex gap-1 rounded-full p-1 [--glass-bg:var(--glass-soft)]" role="tablist" aria-label={ view.Labels.TabsLabel } data-pill-group>
@@ -18,7 +18,7 @@ templ Tabs(view documentView) {
 
 // TabButton is one tab, with its count of listed updates. It is a button: Enter and Space activate it.
 templ TabButton(t TabView) {
-	<button type="button" role="tab" id={ t.ID + "-tab" } aria-controls={ t.ID + "-panel" } aria-selected={ strconv.FormatBool(t.Selected) } tabindex={ tabIndex(t.Selected) } data-tab={ t.ID } class="btn tab relative z-[1] flex flex-1 items-center justify-center gap-2 rounded-full p-2.5 font-medium text-muted transition-colors duration-300 hover:text-ink aria-[selected=true]:font-semibold aria-[selected=true]:text-tab-on-fg">
+	<button type="button" role="tab" id={ t.ID + "-tab" } aria-controls={ t.ID + "-panel" } aria-selected={ strconv.FormatBool(t.Selected) } tabindex={ tabIndex(t.Selected) } data-tab={ t.ID } class="btn tab relative z-[1] flex flex-1 items-center justify-center gap-2 rounded-full p-2.5 narrow:flex-col narrow:gap-1 narrow:px-1 font-medium text-muted transition-colors duration-300 hover:text-ink aria-[selected=true]:font-semibold aria-[selected=true]:text-tab-on-fg">
 		{ t.Label }
 		<span class="tab-count rounded-full bg-count px-[7px] py-0.5 font-mono text-[11px] font-medium nums transition-colors duration-300">{ strconv.Itoa(t.Count) }</span>
 	</button>

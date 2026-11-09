@@ -140,3 +140,28 @@ func TestOneDepTwoUpdates(t *testing.T) {
 		})
 	}
 }
+
+func TestAggregateChartsTab(t *testing.T) {
+	rep := reportOf(t, `"devidence-dev/homelab":{"problems":[{"level":50,"msg":"Failed to look up helm package vault"}],"packageFiles":{"argocd":[
+  {"packageFile":"a.yaml","deps":[
+   {"depName":"traefik","datasource":"helm","updates":[{"updateType":"major","newVersion":"43.0.0"}]},
+   {"depName":"vault","datasource":"helm","updates":[]},
+   {"depName":"oci/chart","datasource":"docker","updates":[{"updateType":"minor","newVersion":"2"}]},
+   {"depName":"unknown","updates":[{"updateType":"patch","newVersion":"2"}]}
+  ]},
+  {"packageFile":"b.yaml","deps":[{"depName":"traefik","datasource":"helm","updates":[{"updateType":"major","newVersion":"43.0.0"}]}]}
+ ]}}`)
+	sum := Aggregate(rep, nil, fixedAt)
+	if sum.Charts.Total != 3 || sum.Charts.UpToDate != 1 || len(sum.Charts.Rows) != 2 || sum.Charts.Rows[0].PackageFile != "a.yaml" || sum.Charts.Rows[1].PackageFile != "b.yaml" {
+		t.Errorf("charts = %+v, want chart in both files and vault up to date", sum.Charts)
+	}
+	if len(sum.Images.Rows) != 1 || sum.Images.Rows[0].Name != "oci/chart" || len(sum.Deps.Rows) != 1 || sum.Deps.Rows[0].Name != "unknown" {
+		t.Errorf("images = %+v, deps = %+v", sum.Images.Rows, sum.Deps.Rows)
+	}
+	if len(sum.Pending) != 1 || sum.Pending[0].Major != 2 || sum.Pending[0].Minor != 1 || sum.Pending[0].Patch != 1 {
+		t.Errorf("pending = %+v, want two major, one minor and one patch", sum.Pending)
+	}
+	if len(sum.Errors) != 1 || sum.Errors[0].Repo != "devidence-dev/homelab" || sum.Errors[0].Msg != "Failed to look up helm package vault" {
+		t.Errorf("errors = %+v", sum.Errors)
+	}
+}
