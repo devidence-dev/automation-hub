@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -13,6 +14,7 @@ import (
 
 	"automation-hub/internal/config"
 	"automation-hub/internal/messages"
+	"automation-hub/internal/services/telegram"
 )
 
 func TestNewWebhookHandler(t *testing.T) {
@@ -137,14 +139,19 @@ func TestTorrentCompleteBodyCap(t *testing.T) {
 type metadataWebhookSender struct {
 	photoErr, textErr        error
 	photos, texts, templates int
+	posterURLs               []string
 }
 
 func (s *metadataWebhookSender) SendMessage(string, string) error { s.templates++; return s.textErr }
-func (s *metadataWebhookSender) SendPhoto(string, string, string) error {
+func (s *metadataWebhookSender) SendPhoto(_, photoURL, _ string, _ ...telegram.LinkButton) error {
 	s.photos++
+	s.posterURLs = append(s.posterURLs, photoURL)
 	return s.photoErr
 }
-func (s *metadataWebhookSender) SendHTML(string, string) error { s.texts++; return s.textErr }
+func (s *metadataWebhookSender) SendHTMLButtons(string, string, ...telegram.LinkButton) error {
+	s.texts++
+	return s.textErr
+}
 func TestWebhookMetadata(t *testing.T) {
 	for _, tt := range []struct {
 		name, body                     string
@@ -176,4 +183,54 @@ func TestWebhookMetadata(t *testing.T) {
 			}
 		})
 	}
+}
+
+// posterWidthCase is one poster_width setting and the poster URL that the webhook must send to Telegram.
+type posterWidthCase struct {
+	name     string
+	width    *int
+	wantPost string
+}
+
+func TestWebhookPosterWidth(t *testing.T) {
+	const omdbPoster = "https://m.media-amazon.com/images/M/MV5BNzk@._V1_SX300.jpg"
+	for _, tt := range []posterWidthCase{
+		{name: "default width", wantPost: "https://m.media-amazon.com/images/M/MV5BNzk@._V1_SX1000.jpg"},
+		{name: "configured width", width: intPtrHandler(500), wantPost: "https://m.media-amazon.com/images/M/MV5BNzk@._V1_SX500.jpg"},
+		{name: "resizing off", width: intPtrHandler(0), wantPost: omdbPoster},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				_, _ = w.Write([]byte(`{"Response":"True","Title":"Dune","Poster":"` + omdbPoster + `"}`))
+			}))
+			defer server.Close()
+			sender := &metadataWebhookSender{}
+			hook := config.WebhookConfig{Name: "qbittorrent", Path: "/webhook/qbittorrent", Config: config.WebhookProcessorConfig{TelegramChatID: "123", TelegramMessage: "%s %s", Metadata: &config.MetadataConfig{Provider: "omdb", APIKey: "secret", BaseURL: server.URL, Timeout: time.Second, PosterWidth: tt.width}}}
+			route, err := newTorrentRoute(hook, RouteEnv{TorrentSender: sender, Catalog: loadCatalog(t), Logger: zap.NewNop()})
+			if err != nil {
+				t.Fatal(err)
+			}
+			req := httptest.NewRequest("POST", "/webhook/qbittorrent", strings.NewReader(`{"torrent_name":"Dune.2021.1080p","save_path":"/downloads"}`))
+			w := httptest.NewRecorder()
+			route.Handler.ServeHTTP(w, req)
+			if w.Code != http.StatusOK || !reflect.DeepEqual(sender.posterURLs, []string{tt.wantPost}) {
+				t.Fatalf("status %d, poster URLs %q, want %q", w.Code, sender.posterURLs, tt.wantPost)
+			}
+		})
+	}
+}
+
+// intPtrHandler returns a pointer to v, for the optional poster_width setting.
+func intPtrHandler(v int) *int {
+	return &v
+}
+
+// loadCatalog returns the default message catalog for the card texts.
+func loadCatalog(t *testing.T) *messages.Catalog {
+	t.Helper()
+	cat, err := messages.Load(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return cat
 }

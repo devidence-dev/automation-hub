@@ -395,11 +395,36 @@ type WebhookConfig struct {
 const DefaultMetadataBaseURL = "https://www.omdbapi.com"
 const DefaultMetadataTimeout = 5 * time.Second
 
+// Defaults of the poster and plot settings of the metadata card. Each applies when its key is absent.
+const (
+	DefaultMetadataPosterWidth  = 1000
+	DefaultMetadataPlotMaxChars = 200
+)
+
 type MetadataConfig struct {
 	Provider string        `mapstructure:"provider"`
 	APIKey   string        `mapstructure:"api_key"`
 	BaseURL  string        `mapstructure:"base_url"`
 	Timeout  time.Duration `mapstructure:"timeout"`
+	// PosterWidth and PlotMaxChars are pointers so that an absent key (default) differs from 0 (off).
+	PosterWidth  *int `mapstructure:"poster_width"`
+	PlotMaxChars *int `mapstructure:"plot_max_chars"`
+}
+
+// EffectivePosterWidth returns poster_width, DefaultMetadataPosterWidth when unset.
+func (m MetadataConfig) EffectivePosterWidth() int {
+	if m.PosterWidth == nil {
+		return DefaultMetadataPosterWidth
+	}
+	return *m.PosterWidth
+}
+
+// EffectivePlotMaxChars returns plot_max_chars, DefaultMetadataPlotMaxChars when unset.
+func (m MetadataConfig) EffectivePlotMaxChars() int {
+	if m.PlotMaxChars == nil {
+		return DefaultMetadataPlotMaxChars
+	}
+	return *m.PlotMaxChars
 }
 
 type WebhookProcessorConfig struct {
@@ -947,7 +972,7 @@ func validateHookMetadata(hook *WebhookConfig) error {
 	return nil
 }
 
-// validateMetadataFields rejects an unsupported provider, an empty API key and a negative timeout. The error names the hook and the key.
+// validateMetadataFields rejects an unsupported provider, an empty API key and a negative timeout, poster width or plot length. The error names the hook and the key.
 func validateMetadataFields(hookName string, m *MetadataConfig) error {
 	if m.Provider != "omdb" {
 		return fmt.Errorf("hook.%s.config.metadata.provider must be omdb", hookName)
@@ -958,10 +983,16 @@ func validateMetadataFields(hookName string, m *MetadataConfig) error {
 	if m.Timeout < 0 {
 		return fmt.Errorf("hook.%s.config.metadata.timeout must not be negative", hookName)
 	}
+	if m.PosterWidth != nil && *m.PosterWidth < 0 {
+		return fmt.Errorf("hook.%s.config.metadata.poster_width must not be negative, got %d", hookName, *m.PosterWidth)
+	}
+	if m.PlotMaxChars != nil && *m.PlotMaxChars < 0 {
+		return fmt.Errorf("hook.%s.config.metadata.plot_max_chars must not be negative, got %d", hookName, *m.PlotMaxChars)
+	}
 	return nil
 }
 
-// applyMetadataDefaults fills the timeout and base URL that the metadata lookup leaves unset.
+// applyMetadataDefaults fills the timeout, base URL, poster width and plot length that the metadata lookup leaves unset.
 func applyMetadataDefaults(m *MetadataConfig) {
 	if m.Timeout == 0 {
 		m.Timeout = DefaultMetadataTimeout
@@ -969,4 +1000,15 @@ func applyMetadataDefaults(m *MetadataConfig) {
 	if m.BaseURL == "" {
 		m.BaseURL = DefaultMetadataBaseURL
 	}
+	if m.PosterWidth == nil {
+		m.PosterWidth = intPtr(DefaultMetadataPosterWidth)
+	}
+	if m.PlotMaxChars == nil {
+		m.PlotMaxChars = intPtr(DefaultMetadataPlotMaxChars)
+	}
+}
+
+// intPtr returns a pointer to a copy of v.
+func intPtr(v int) *int {
+	return &v
 }

@@ -8,6 +8,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -159,6 +160,9 @@ func TestNilClientSendsNothing(t *testing.T) {
 			}
 			if err := client.SendDocument("123456", "r.html", "c", []byte("x")); err != nil {
 				t.Errorf("SendDocument() = %v, want nil", err)
+			}
+			if err := client.SendHTMLButtons("123456", "Hello", LinkButton{Text: "Open", URL: "https://example.com"}); err != nil {
+				t.Errorf("SendHTMLButtons() = %v, want nil", err)
 			}
 		})
 	}
@@ -554,5 +558,107 @@ func TestSendPhotoSuccess(t *testing.T) {
 	var nilClient *Client
 	if err := nilClient.SendPhoto("123", "url", "caption"); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// keyboard is the reply_markup of a sent message, as Telegram receives it.
+type keyboard struct {
+	InlineKeyboard [][]struct {
+		Text string `json:"text"`
+		URL  string `json:"url"`
+	} `json:"inline_keyboard"`
+}
+
+// capturedForm sends through send and returns the form of the one request to method.
+func capturedForm(t *testing.T, method string, send func(*Client) error) url.Values {
+	t.Helper()
+	forms := make(chan url.Values, 1)
+	client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/getMe") {
+			writeTelegramResponse(w, map[string]interface{}{"id": 1, "is_bot": true, "first_name": "Test"})
+			return
+		}
+		if !strings.HasSuffix(r.URL.Path, "/"+method) {
+			t.Errorf("unexpected path %s", r.URL.Path)
+			return
+		}
+		if err := r.ParseForm(); err != nil {
+			t.Error(err)
+			return
+		}
+		forms <- r.Form
+		writeTelegramResponse(w, map[string]interface{}{"message_id": 1, "date": 1, "chat": map[string]interface{}{"id": 123, "type": "private"}})
+	})
+	if err := send(client); err != nil {
+		t.Fatalf("send error = %v", err)
+	}
+	select {
+	case form := <-forms:
+		return form
+	default:
+		t.Fatalf("no %s request reached the fake API", method)
+		return nil
+	}
+}
+
+// checkReplyMarkup checks that form has no reply_markup when want is empty, and otherwise one
+// reply_markup holding one row of URL buttons that match want.
+func checkReplyMarkup(t *testing.T, form url.Values, want []LinkButton) {
+	t.Helper()
+	raw, present := form["reply_markup"]
+	if len(want) == 0 {
+		if present {
+			t.Errorf("reply_markup = %q, want none", raw)
+		}
+		return
+	}
+	if !present || len(raw) != 1 {
+		t.Fatalf("reply_markup = %q, want one row of URL buttons", raw)
+	}
+	checkKeyboard(t, raw[0], want)
+}
+
+// checkKeyboard decodes the JSON keyboard and checks that its one row holds the buttons of want.
+func checkKeyboard(t *testing.T, raw string, want []LinkButton) {
+	t.Helper()
+	var kb keyboard
+	if err := json.Unmarshal([]byte(raw), &kb); err != nil {
+		t.Fatalf("reply_markup %s is not JSON: %v", raw, err)
+	}
+	if len(kb.InlineKeyboard) != 1 || len(kb.InlineKeyboard[0]) != len(want) {
+		t.Fatalf("reply_markup = %s, want one row of %d button(s)", raw, len(want))
+	}
+	for i, b := range want {
+		got := kb.InlineKeyboard[0][i]
+		if got.Text != b.Text || got.URL != b.URL {
+			t.Errorf("button %d = %+v, want %+v", i, got, b)
+		}
+	}
+}
+
+func TestButtonsReplyMarkup(t *testing.T) {
+	imdb := LinkButton{Text: "Open on IMDb", URL: "https://www.imdb.com/title/tt1756855/"}
+	sendPhoto := func(c *Client, b ...LinkButton) error {
+		return c.SendPhoto("123", "https://example.com/poster.jpg", "<b>Title</b>", b...)
+	}
+	sendMessage := func(c *Client, b ...LinkButton) error {
+		return c.SendHTMLButtons("123", "<b>Title</b>", b...)
+	}
+	tests := []struct {
+		name    string
+		method  string
+		buttons []LinkButton
+		send    func(*Client, ...LinkButton) error
+	}{
+		{name: "photo with button", method: "sendPhoto", buttons: []LinkButton{imdb}, send: sendPhoto},
+		{name: "photo without button", method: "sendPhoto", send: sendPhoto},
+		{name: "message with button", method: "sendMessage", buttons: []LinkButton{imdb}, send: sendMessage},
+		{name: "message without button", method: "sendMessage", send: sendMessage},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			form := capturedForm(t, tt.method, func(c *Client) error { return tt.send(c, tt.buttons...) })
+			checkReplyMarkup(t, form, tt.buttons)
+		})
 	}
 }

@@ -193,6 +193,8 @@ hook:
       #   api_key: "YOUR_OMDB_API_KEY"
       #   base_url: "https://www.omdbapi.com" # default
       #   timeout: 5s # default
+      #   poster_width: 1000   # default; 0 keeps the original OMDb poster
+      #   plot_max_chars: 200   # default; 0 hides the plot
       # max_body_bytes: 1048576  # Optional: body cap in bytes; a larger body gets 413 (default 1 MiB)
   # - name: "other-webhook"
   #   path: "/webhook/other-webhook"

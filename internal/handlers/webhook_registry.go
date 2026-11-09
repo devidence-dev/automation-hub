@@ -19,8 +19,8 @@ type RouteEnv struct {
 	Telegram      *telegram.Client
 	TorrentSender interface {
 		messageSender
-		SendPhoto(string, string, string) error
-		SendHTML(string, string) error
+		SendPhoto(string, string, string, ...telegram.LinkButton) error
+		SendHTMLButtons(string, string, ...telegram.LinkButton) error
 	}
 	DependencyReport *config.DependencyReportConfig
 	Catalog          *messages.Catalog
@@ -65,12 +65,13 @@ func newTorrentRoute(hook config.WebhookConfig, env RouteEnv) (Route, error) {
 	}
 	handler := NewWebhookHandler(sender, hook.Config, env.Logger)
 	if m := hook.Config.Metadata; m != nil {
-		provider, err := media.NewProvider(m.Provider, m.BaseURL, m.APIKey, m.Timeout)
+		provider, err := media.NewProvider(m.Provider, m.BaseURL, m.APIKey, m.Timeout, m.EffectivePosterWidth())
 		if err != nil {
 			return Route{}, err
 		}
 		handler.provider = provider
 		handler.catalog = env.Catalog
+		handler.plotMaxChars = m.EffectivePlotMaxChars()
 	}
 	return Route{Path: hook.Path, Handler: http.HandlerFunc(handler.HandleTorrentComplete)}, nil
 }

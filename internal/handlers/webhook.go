@@ -14,6 +14,7 @@ import (
 	"automation-hub/internal/models"
 	"automation-hub/internal/services/media"
 	"automation-hub/internal/services/processor"
+	"automation-hub/internal/services/telegram"
 )
 
 // messageSender is the Telegram call the handler needs. *telegram.Client satisfies it.
@@ -28,6 +29,8 @@ type WebhookHandler struct {
 	logger   *zap.Logger
 	provider media.Provider
 	catalog  *messages.Catalog
+	// plotMaxChars is the effective plot length limit of the metadata card.
+	plotMaxChars int
 }
 
 // NewWebhookHandler returns the handler for hook. The hook is read once at registration, not per request.
@@ -58,10 +61,10 @@ func (h *WebhookHandler) HandleTorrentComplete(w http.ResponseWriter, r *http.Re
 	torrentProc := processor.NewTorrentProcessor(h.sender, h.hook, h.logger)
 	if h.provider != nil {
 		if cards, ok := h.sender.(interface {
-			SendPhoto(string, string, string) error
-			SendHTML(string, string) error
+			SendPhoto(string, string, string, ...telegram.LinkButton) error
+			SendHTMLButtons(string, string, ...telegram.LinkButton) error
 		}); ok {
-			torrentProc.ConfigureMetadata(h.provider, cards, h.catalog)
+			torrentProc.ConfigureMetadata(h.provider, cards, h.catalog, h.plotMaxChars)
 		}
 	}
 

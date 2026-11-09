@@ -361,7 +361,7 @@ hook:
       telegram_message: "📥 Download complete: %s in %s"
 ```
 
-Optionally add the following under the hook's `config` to enrich torrent notifications with an OMDb poster, ratings, genre, runtime, release tags and an IMDb link:
+Optionally add the following under the hook's `config` to enrich torrent notifications with an OMDb poster, ratings, genre, runtime, quality tags, director, cast, plot and an IMDb link:
 
 ```yaml
 metadata:
@@ -369,9 +369,27 @@ metadata:
   api_key: "YOUR_OMDB_API_KEY"
   base_url: "https://www.omdbapi.com" # default
   timeout: 5s # default
+  poster_width: 1000 # default; 0 keeps the original OMDb poster
+  plot_max_chars: 200 # default; 0 hides the plot
 ```
 
-The key belongs in the `CONFIG_YAML` secret. The `internal-apps` NetworkPolicy must allow HTTPS egress to `www.omdbapi.com`. If the lookup fails, the existing template is sent; if the poster is unavailable, the card is sent as text. Without this block, the existing notification is unchanged. Card texts can be overridden under `messages.torrent.card`.
+The key belongs in the `CONFIG_YAML` secret. The `internal-apps` NetworkPolicy must allow HTTPS egress to `www.omdbapi.com`. If the lookup fails, the existing template is sent. Without this block, the existing notification is unchanged.
+
+**🎬 Card layout:** the photo caption (or the text message, when there is no poster) has one line per field, in this order, and each field has its own emoji:
+1. the title, linked to its IMDb page, with the year (and `SxxExx` for a series);
+2. ratings: IMDb with votes, Rotten Tomatoes, Metacritic;
+3. genre, runtime and content rating;
+4. quality tags from the torrent name (for example `4k`, `HDR`, `WEB-DL`);
+5. director and cast;
+6. the plot, in an expandable quote, cut to `plot_max_chars` with an ellipsis.
+
+Absent values are left out with their label, and the save path is never shown. If the caption would exceed Telegram's 1024-character limit, lines are dropped from the end (plot first, then cast, director and tags); the title line always stays.
+
+**🖼️ Poster:** the OMDb poster is requested at `poster_width` pixels (the `_SX300` segment of the URL is replaced). If Telegram rejects the resized URL, the original URL is tried; if that fails too, or there is no poster, the card is sent as text.
+
+**🔗 Button:** every card, photo or text, carries an inline **Open on IMDb** button that opens the title's IMDb page. A title without an IMDb id gets no button.
+
+**📝 Card texts:** all card texts, the IMDb URL pattern and the button label come from the message catalog and can be overridden under `messages.torrent.card`. The key `torrent.card.link` was removed: an override of it now fails at start-up. Use `imdb_url` for the URL pattern, and `title_linked` and `button` for the title link and the button label.
 
 Each `qbittorrent` hook can have:
 - ✅ **Custom chat destination**

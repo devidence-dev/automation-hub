@@ -147,3 +147,48 @@ func TestTorrentCardOverride(t *testing.T) {
 		t.Fatalf("render %q: %v", got, err)
 	}
 }
+
+func TestTorrentCardTexts(t *testing.T) {
+	cat := mustLoad(t, nil)
+	tests := []struct {
+		key  string
+		vars map[string]string
+		want string
+	}{
+		{key: "torrent.card.imdb_url", vars: map[string]string{"id": "tt1756855"}, want: "https://www.imdb.com/title/tt1756855/"},
+		{key: "torrent.card.title_linked", vars: map[string]string{"url": "https://www.imdb.com/title/tt1/", "title": "Tom"}, want: `<a href="https://www.imdb.com/title/tt1/"><b>Tom</b></a>`},
+		{key: "torrent.card.imdb_votes", vars: map[string]string{"votes": "12,345"}, want: " (12,345 votes)"},
+		{key: "torrent.card.metacritic", vars: map[string]string{"rating": "62/100"}, want: "Ⓜ️ Metacritic: 62/100"},
+		{key: "torrent.card.director", vars: map[string]string{"director": "Dave Green"}, want: "🎬 Director: Dave Green"},
+		{key: "torrent.card.cast", vars: map[string]string{"cast": "A, B"}, want: "👥 Cast: A, B"},
+		{key: "torrent.card.plot", vars: map[string]string{"plot": "Short."}, want: "<blockquote expandable>Short.</blockquote>"},
+		{key: "torrent.card.plot_truncated", vars: map[string]string{"text": "Short"}, want: "Short…"},
+		{key: "torrent.card.button", want: "Open on IMDb"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.key, func(t *testing.T) {
+			got, err := cat.Render(tt.key, tt.vars)
+			if err != nil || got != tt.want {
+				t.Errorf("Render(%s) = %q, %v; want %q", tt.key, got, err, tt.want)
+			}
+		})
+	}
+}
+
+func TestTorrentCardButtonOverride(t *testing.T) {
+	cat := mustLoad(t, map[string]any{"torrent": map[string]any{"card": map[string]any{"button": "Ver en IMDb"}}})
+	got, err := cat.Render("torrent.card.button", nil)
+	if err != nil || got != "Ver en IMDb" {
+		t.Fatalf("render %q: %v", got, err)
+	}
+}
+
+func TestTorrentCardLinkKeyRemoved(t *testing.T) {
+	if _, ok := mustLoad(t, nil).Lookup("torrent.card.link"); ok {
+		t.Error("torrent.card.link is still a default key")
+	}
+	_, err := Load(map[string]any{"torrent": map[string]any{"card": map[string]any{"link": "x"}}})
+	if err == nil || !strings.Contains(err.Error(), "torrent.card.link") {
+		t.Errorf("Load() error = %v, want one naming torrent.card.link", err)
+	}
+}

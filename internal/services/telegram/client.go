@@ -65,6 +65,9 @@ func newClientWithBot(cfg Config, bot *tgbotapi.BotAPI, sleep func(time.Duration
 	}
 }
 
+// LinkButton is an inline button that opens URL.
+type LinkButton struct{ Text, URL string }
+
 // SendMessage sends a Markdown message.
 func (c *Client) SendMessage(chatID, message string) error {
 	return c.sendText(chatID, message, tgbotapi.ModeMarkdown)
@@ -75,8 +78,14 @@ func (c *Client) SendHTML(chatID, message string) error {
 	return c.sendText(chatID, message, tgbotapi.ModeHTML)
 }
 
-// SendPhoto sends a URL as a photo with an HTML caption.
-func (c *Client) SendPhoto(chatID, photoURL, caption string) error {
+// SendHTMLButtons sends a message with HTML parse mode and a row of URL buttons under it.
+// The caller must escape variable text.
+func (c *Client) SendHTMLButtons(chatID, message string, buttons ...LinkButton) error {
+	return c.sendText(chatID, message, tgbotapi.ModeHTML, buttons...)
+}
+
+// SendPhoto sends a URL as a photo with an HTML caption and, when given, a row of URL buttons.
+func (c *Client) SendPhoto(chatID, photoURL, caption string, buttons ...LinkButton) error {
 	if !c.ready() {
 		return nil
 	}
@@ -87,6 +96,7 @@ func (c *Client) SendPhoto(chatID, photoURL, caption string) error {
 	photo := tgbotapi.NewPhoto(id, tgbotapi.FileURL(photoURL))
 	photo.Caption = caption
 	photo.ParseMode = tgbotapi.ModeHTML
+	photo.ReplyMarkup = replyMarkup(buttons)
 	return c.send(chatID, photo)
 }
 
@@ -107,7 +117,7 @@ func (c *Client) SendDocument(chatID, filename, caption string, data []byte) err
 	return c.send(chatID, doc)
 }
 
-func (c *Client) sendText(chatID, message, parseMode string) error {
+func (c *Client) sendText(chatID, message, parseMode string, buttons ...LinkButton) error {
 	if !c.ready() {
 		return nil
 	}
@@ -118,7 +128,21 @@ func (c *Client) sendText(chatID, message, parseMode string) error {
 
 	msg := tgbotapi.NewMessage(id, message)
 	msg.ParseMode = parseMode
+	msg.ReplyMarkup = replyMarkup(buttons)
 	return c.send(chatID, msg)
+}
+
+// replyMarkup returns the inline keyboard of one row of URL buttons, or nil when there are none,
+// so that a message without buttons carries no reply_markup.
+func replyMarkup(buttons []LinkButton) any {
+	if len(buttons) == 0 {
+		return nil
+	}
+	row := make([]tgbotapi.InlineKeyboardButton, 0, len(buttons))
+	for _, b := range buttons {
+		row = append(row, tgbotapi.NewInlineKeyboardButtonURL(b.Text, b.URL))
+	}
+	return tgbotapi.NewInlineKeyboardMarkup(row)
 }
 
 // ready reports whether the client can send. A nil or uninitialized client sends nothing.

@@ -11,7 +11,7 @@ func TestNewProvider(t *testing.T) {
 		fail bool
 	}{{"omdb", false}, {"unknown", true}} {
 		t.Run(tt.name, func(t *testing.T) {
-			p, err := NewProvider(tt.name, "http://localhost", "key", time.Second)
+			p, err := NewProvider(tt.name, "http://localhost", "key", time.Second, 1000)
 			if (err != nil) != tt.fail || (p == nil) != tt.fail {
 				t.Fatalf("provider %v error %v", p, err)
 			}
