@@ -451,7 +451,7 @@ func TestDocumentWhenAllUpToDate(t *testing.T) {
 	if doc.filename != "dependency-report-2026-10-12.html" {
 		t.Errorf("document = %q", doc.filename)
 	}
-	want := "📦 <b>Dependency report</b> · 2026-10-12\n\n✅ All up to date\n\n📊 0 outdated · 0 up to date\n🐳 Images: 0 · 📚 Packages: 0"
+	want := "📦 <b>Dependency report</b> · 2026-10-12\n\n✅ All up to date\n\n📊 0 outdated · 0 up to date\n🐳 Images: 0 · 📚 Packages: 0 · ⛵ Charts: 0"
 	if doc.text != want {
 		t.Errorf("caption = %q, want %q", doc.text, want)
 	}

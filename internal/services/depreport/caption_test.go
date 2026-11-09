@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"automation-hub/internal/messages"
 )
 
 func presentCaption(t *testing.T, overrides map[string]any, s Summary) string {
@@ -29,9 +31,31 @@ func TestCaptionFixture(t *testing.T) {
 
 func TestCaptionNothingPending(t *testing.T) {
 	s := Summary{ReceivedAt: fixedAt, Repos: 1, Deps: Tab{Total: 42, UpToDate: 42}}
-	want := "📦 <b>Dependency report</b> · 2026-10-12\n\n✅ All up to date\n\n📊 0 outdated · 42 up to date\n🐳 Images: 0 · 📚 Packages: 0"
+	want := "📦 <b>Dependency report</b> · 2026-10-12\n\n✅ All up to date\n\n📊 0 outdated · 42 up to date\n🐳 Images: 0 · 📚 Packages: 0 · ⛵ Charts: 0"
 	if got := presentCaption(t, nil, s); got != want {
 		t.Errorf("caption = %q, want %q", got, want)
+	}
+}
+
+func TestCaptionStatsThreeTabs(t *testing.T) {
+	s := Summary{ReceivedAt: fixedAt, Images: Tab{WithUpdates: 1, UpToDate: 2}, Deps: Tab{WithUpdates: 2, UpToDate: 3}, Charts: Tab{WithUpdates: 1, UpToDate: 3}}
+	got := presentCaption(t, nil, s)
+	for _, want := range []string{"📊 4 outdated · 8 up to date", "🐳 Images: 1 · 📚 Packages: 2 · ⛵ Charts: 1"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("caption lacks %q: %s", want, got)
+		}
+	}
+}
+
+func TestCaptionChartsOverride(t *testing.T) {
+	s := Summary{ReceivedAt: fixedAt, Charts: Tab{WithUpdates: 1}}
+	got := presentCaption(t, map[string]any{"caption": map[string]any{"tabs": "Images {images}, packages {packages}"}}, s)
+	if !strings.Contains(got, "Images 0, packages 0 · ⛵ Charts: 1") {
+		t.Errorf("caption does not append charts to overridden tabs: %s", got)
+	}
+	_, err := messages.Load(map[string]any{"caption": map[string]any{"charts": "Charts"}})
+	if err == nil || !strings.Contains(err.Error(), "caption.charts") || !strings.Contains(err.Error(), "{charts}") {
+		t.Errorf("Load() error = %v, want key and placeholder", err)
 	}
 }
 
@@ -44,6 +68,7 @@ func TestCaptionRepoLines(t *testing.T) {
 		{name: "major and patch", repos: []string{repoJSON("devidence-dev/QuantWarden", "major", "patch")}, want: "🔴 QuantWarden — 1 major · 1 patch"},
 		{name: "minor only", repos: []string{repoJSON("devidence-dev/homelab", "minor")}, want: "🟡 homelab — 1 minor"},
 		{name: "fork", repos: []string{repoJSON(testForkRepo, "minor")}, want: "🟡 discord-tts-bot (fork) — 1 minor"},
+		{name: "chart only", repos: []string{viewRepo("devidence-dev/homelab", viewFile("kubernetes/infrastructure/traefik/application.yaml", viewDep("traefik", "helm", "42.3.0", "major:43.0.0")))}, want: "🔴 homelab — 1 major"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

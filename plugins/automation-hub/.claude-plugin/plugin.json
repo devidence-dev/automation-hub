@@ -1,0 +1,4 @@
+{
+  "name": "automation-hub",
+  "description": "Apply dependency-report YAML exports to the local devidence-dev repositories"
+}

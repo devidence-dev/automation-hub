@@ -84,15 +84,15 @@ func countsText(r *renderer, rp RepoPending) string {
 
 // stats are the totals lines, from the tab totals of the summary.
 func (p *CaptionPresenter) stats(r *renderer, s Summary) []string {
-	updated := s.Images.WithUpdates + s.Deps.WithUpdates
-	current := s.Images.UpToDate + s.Deps.UpToDate
+	updated := s.Images.WithUpdates + s.Deps.WithUpdates + s.Charts.WithUpdates
+	current := s.Images.UpToDate + s.Deps.UpToDate + s.Charts.UpToDate
 	lines := []string{
 		"",
 		r.text(KeyCaptionStats, map[string]string{"updated": strconv.Itoa(updated), "current": strconv.Itoa(current)}),
 		r.text(KeyCaptionTabs, map[string]string{
 			"images":   strconv.Itoa(s.Images.WithUpdates),
 			"packages": strconv.Itoa(s.Deps.WithUpdates),
-		}),
+		}) + r.text(KeyCaptionCharts, map[string]string{"charts": strconv.Itoa(s.Charts.WithUpdates)}),
 	}
 	if n := len(s.Errors); n > 0 {
 		lines = append(lines, r.text(KeyCaptionErrors, map[string]string{"count": strconv.Itoa(n)}))

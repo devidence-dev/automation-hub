@@ -125,6 +125,49 @@ func TestGroupsLayout(t *testing.T) {
 	}
 }
 
+// TestTabTotalsThreeTabs checks the totals of a report with deps in all three tabs: the listed updates of each tab
+// as its count, and the pending and up-to-date line of its stats.
+func TestTabTotalsThreeTabs(t *testing.T) {
+	rep := reportOf(t, viewRepo("devidence-dev/mix",
+		viewFile("Dockerfile",
+			viewDep("img-a", "docker", "1", "minor:1.1"),
+			viewDep("img-b", "docker", "1"),
+			viewDep("img-c", "docker", "1")),
+		viewFile("go.mod",
+			viewDep("dep-a", "go", "1", "patch:1.0.1"),
+			viewDep("dep-b", "go", "1", "major:2"),
+			viewDep("dep-c", "go", "1"),
+			viewDep("dep-d", "go", "1"),
+			viewDep("dep-e", "go", "1")),
+		viewFile("application.yaml",
+			viewDep("traefik", "helm", "42.3.0", "major:43.0.0"),
+			viewDep("vault", "helm", "1"),
+			viewDep("cert-manager", "helm", "1"),
+			viewDep("external-dns", "helm", "1"))))
+	view := documentViewOf(t, summaryAt(rep))
+	tests := []struct {
+		name  string
+		tab   int
+		count int
+		sub   string
+	}{
+		{name: "dependencies", tab: 0, count: 2, sub: "pending out of 5 · 3 up to date"},
+		{name: "images", tab: 1, count: 1, sub: "pending out of 3 · 2 up to date"},
+		{name: "charts", tab: 2, count: 1, sub: "pending out of 4 · 3 up to date"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tab := view.Tabs[tt.tab]
+			if tab.Count != tt.count {
+				t.Errorf("count = %d, want %d", tab.Count, tt.count)
+			}
+			if !strings.Contains(tab.Stats.Sub, tt.sub) {
+				t.Errorf("stats sub = %q, want it to contain %q", tab.Stats.Sub, tt.sub)
+			}
+		})
+	}
+}
+
 func TestGroupsSummaryRow(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -260,6 +303,13 @@ func TestSummaryLinesSingularAndPlural(t *testing.T) {
 			tab:   1,
 			want:  SummaryLine{Bold: "1 update", Rest: "across 1 image"},
 		},
+		{
+			name:  "several chart updates",
+			repos: []string{viewRepo("acme/a", viewFile("application.yaml", viewDep("traefik", "helm", "1", "minor:2", "major:3"), viewDep("other", "helm", "1", "patch:2")))},
+			tab:   2,
+			want:  SummaryLine{Bold: "3 updates", Rest: "across 2 charts"},
+		},
+		{name: "charts up to date", tab: 2, want: SummaryLine{Bold: "All charts are up to date"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -409,23 +459,53 @@ func TestExportDialogMarkup(t *testing.T) {
 		`<form method="dialog"`, "data-export-close", "Close",
 	}, []string{"<script"})
 
-	sections := regexp.MustCompile(`(?s)<fieldset data-export-section data-key="(\w+)".*?</fieldset>`).FindAllStringSubmatch(dialog, -1)
-	wantSections := []struct{ key, label string }{{"images", "Images"}, {"dependencies", "Dependencies"}}
-	if len(sections) != len(wantSections) {
-		t.Fatalf("sections = %d, want %d", len(sections), len(wantSections))
-	}
-	for i, w := range wantSections {
-		if sections[i][1] != w.key || !strings.Contains(sections[i][0], w.label) {
-			t.Errorf("section %d = %q, want key %s with label %s", i, sections[i][1], w.key, w.label)
-		}
-	}
-	if n := strings.Count(dialog, "data-export-all checked"); n != len(wantSections) {
-		t.Errorf("checked section checkboxes = %d, want %d", n, len(wantSections))
-	}
+	assertDialogSections(t, dialog, []struct{ key, label string }{{"images", "Images"}, {"dependencies", "Dependencies"}})
 
 	view := documentViewOf(t, s)
 	repos := regexp.MustCompile(`<input type="checkbox" data-export-repo[^>]*>`).FindAllString(dialog, -1)
 	if want := len(view.Tabs[0].Groups) + len(view.Tabs[1].Groups); len(repos) != want {
+		t.Fatalf("repo checkboxes = %d, want one per card (%d)", len(repos), want)
+	}
+	for _, in := range repos {
+		if !strings.Contains(in, " checked") {
+			t.Errorf("repo checkbox is not checked: %s", in)
+		}
+	}
+}
+
+// assertDialogSections checks the sections of the export dialog: their keys and labels in order, and that every
+// section checkbox is checked.
+func assertDialogSections(t *testing.T, dialog string, want []struct{ key, label string }) {
+	t.Helper()
+	sections := regexp.MustCompile(`(?s)<fieldset data-export-section data-key="(\w+)".*?</fieldset>`).FindAllStringSubmatch(dialog, -1)
+	if len(sections) != len(want) {
+		t.Fatalf("sections = %d, want %d", len(sections), len(want))
+	}
+	for i, w := range want {
+		if sections[i][1] != w.key || !strings.Contains(sections[i][0], w.label) {
+			t.Errorf("section %d = %q, want key %s with label %s", i, sections[i][1], w.key, w.label)
+		}
+	}
+	if n := strings.Count(dialog, "data-export-all checked"); n != len(want) {
+		t.Errorf("checked section checkboxes = %d, want %d", n, len(want))
+	}
+}
+
+// TestExportDialogThreeSections checks that a report with an image, a dependency and a chart renders the three
+// sections in order, with every section and repo checked.
+func TestExportDialogThreeSections(t *testing.T) {
+	rep := reportOf(t, viewRepo("devidence-dev/homelab",
+		viewFile("Dockerfile", viewDep("traefik-img", "docker", "3.0", "minor:3.1")),
+		viewFile("go.mod", viewDep("golang.org/x/net", "go", "0.1", "patch:0.2")),
+		viewFile("kubernetes/infrastructure/traefik/application.yaml", viewDep("traefik", "helm", "42.3.0", "major:43.0.0"))))
+	out := presentDocument(t, nil, summaryAt(rep))
+	dialog := regexp.MustCompile(`(?s)<dialog .*?</dialog>`).FindString(out)
+	assertDialogSections(t, dialog, []struct{ key, label string }{{"images", "Images"}, {"dependencies", "Dependencies"}, {"charts", "Charts"}})
+	// Each section lists its own cards, so the repo is checked once per tab it has a card in.
+	view := documentViewOf(t, summaryAt(rep))
+	want := len(view.Tabs[0].Groups) + len(view.Tabs[1].Groups) + len(view.Tabs[2].Groups)
+	repos := regexp.MustCompile(`<input type="checkbox" data-export-repo[^>]*>`).FindAllString(dialog, -1)
+	if len(repos) != want {
 		t.Fatalf("repo checkboxes = %d, want one per card (%d)", len(repos), want)
 	}
 	for _, in := range repos {

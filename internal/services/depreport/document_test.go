@@ -41,20 +41,20 @@ func dataYAML(out string) string {
 	return strings.Join(regexp.MustCompile(`data-yaml="[^"]*"`).FindAllString(out, -1), "\n")
 }
 
-// panes splits the document at the two tab panes.
-func panes(t *testing.T, out string) (images, deps string) {
+// panes splits the document at the three tab panes.
+func panes(t *testing.T, out string) (images, deps, charts string) {
 	t.Helper()
 	depsAt := strings.Index(out, `data-panel="deps"`)
 	imagesAt := strings.Index(out, `data-panel="images"`)
-	if depsAt < 0 || imagesAt < depsAt {
-		t.Fatal("tab panes not found in document, or not in Dependencies-then-Images order")
+	chartsAt := strings.Index(out, `data-panel="charts"`)
+	if depsAt < 0 || imagesAt < depsAt || chartsAt < imagesAt {
+		t.Fatal("tab panes not found in Dependencies-then-Images-then-Charts order")
 	}
-	// The export dialog repeats the repos of both tabs, so the images pane ends where it starts.
-	images = out[imagesAt:]
-	if at := strings.Index(images, "<dialog"); at >= 0 {
-		images = images[:at]
+	charts = out[chartsAt:]
+	if at := strings.Index(charts, "<dialog"); at >= 0 {
+		charts = charts[:at]
 	}
-	return images, out[depsAt:imagesAt]
+	return out[imagesAt:chartsAt], out[depsAt:imagesAt], charts
 }
 
 // TestDocumentPresenterPresent checks that the presenter renders the ReportDocument component: an HTML5
@@ -118,15 +118,30 @@ func TestDocumentStaticBehavior(t *testing.T) {
 
 func TestDocumentImageRowOnlyInImages(t *testing.T) {
 	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
-	imagesPane, depsPane := panes(t, out)
+	imagesPane, depsPane, _ := panes(t, out)
 	if !strings.Contains(imagesPane, "ghcr.io/immich-app/immich-server:v1.119.0") || strings.Contains(depsPane, "ghcr.io/immich-app/immich-server") {
 		t.Error("image row not in the images pane only")
 	}
 }
 
+func TestDocumentChartRowOnlyInCharts(t *testing.T) {
+	const path = "kubernetes/infrastructure/traefik/application.yaml"
+	rep := reportOf(t, viewRepo("devidence-dev/homelab", viewFile(path, viewDep("traefik", "helm", "42.3.0", "major:43.0.0"))))
+	images, deps, charts := panes(t, presentDocument(t, nil, summaryAt(rep)))
+	if strings.Contains(images, "traefik") || strings.Contains(deps, "traefik") {
+		t.Error("chart row appeared outside the charts pane")
+	}
+	dir, short := splitPath(path)
+	for _, want := range []string{`traefik`, `data-copy="traefik@43.0.0"`, `aria-label="Copy name@version"`, "homelab", `<span class="text-muted-2">` + dir + `</span>` + short, "42.3.0", `class="chip tone-major">1 major</span>`} {
+		if !strings.Contains(charts, want) {
+			t.Errorf("charts pane lacks %q", want)
+		}
+	}
+}
+
 func TestDocumentNonImageRowOnlyInDependencies(t *testing.T) {
 	out := presentDocument(t, nil, summaryAt(loadFixtureReport(t)))
-	imagesPane, depsPane := panes(t, out)
+	imagesPane, depsPane, _ := panes(t, out)
 	if !strings.Contains(depsPane, "golang.org/x/net") || strings.Contains(imagesPane, "golang.org/x/net") {
 		t.Error("dependency row not in the dependencies pane only")
 	}
@@ -202,6 +217,24 @@ func TestDocumentNothingPending(t *testing.T) {
 
 // TestDocumentLangOverride checks that overriding lang changes only the html lang attribute: the labels
 // stay English.
+// TestNothingPendingWithCharts checks a nothing-pending document with charts: the charts tab reads as up to date
+// too, and the caption counts the charts in the totals.
+func TestNothingPendingWithCharts(t *testing.T) {
+	s := summaryAt(nothingPendingReport(t, 4))
+	out := presentDocument(t, nil, s)
+	for _, want := range []string{"All charts are up to date", "pending out of 4 · 4 up to date"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("document lacks %q", want)
+		}
+	}
+	caption := presentCaption(t, nil, s)
+	for _, want := range []string{"✅ All up to date", "📊 0 outdated · 46 up to date"} {
+		if !strings.Contains(caption, want) {
+			t.Errorf("caption lacks %q: %s", want, caption)
+		}
+	}
+}
+
 func TestDocumentLangOverride(t *testing.T) {
 	out := presentDocument(t, map[string]any{"lang": "es"}, summaryAt(loadFixtureReport(t)))
 	if !strings.Contains(out, `<html lang="es">`) {

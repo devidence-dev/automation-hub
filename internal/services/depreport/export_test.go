@@ -100,6 +100,7 @@ func TestExportSections(t *testing.T) {
 		keys []string
 	}{
 		{name: "fixture: images, then dependencies", rep: loadFixtureReport(t), keys: []string{"images", "dependencies"}},
+		{name: "all three sections", rep: reportOf(t, viewRepo("acme/a", viewFile("values.yaml", viewDep("image", "docker", "1", "minor:2"), viewDep("pkg", "go", "1", "minor:2"), viewDep("chart", "helm", "1", "minor:2")))), keys: []string{"images", "dependencies", "charts"}},
 		{
 			name: "dependencies only",
 			rep:  reportOf(t, viewRepo("acme/a", viewFile("go.mod", viewDep("x", "go", "1.0.0", "patch:1.0.1")))),
@@ -138,8 +139,11 @@ func sectionKeys(sections []ExportSection) []string {
 func assertSectionOrder(t *testing.T, view documentView, s ExportSection) {
 	t.Helper()
 	tab := view.Tabs[0]
-	if s.Key == "images" {
+	switch s.Key {
+	case "images":
 		tab = view.Tabs[1]
+	case "charts":
+		tab = view.Tabs[2]
 	}
 	var repos, cards []string
 	for _, r := range s.Repos {
@@ -176,5 +180,36 @@ func TestExportFileName(t *testing.T) {
 				t.Errorf("document lacks data-file-name=%q", tt.want)
 			}
 		})
+	}
+}
+
+func TestExportChartsSection(t *testing.T) {
+	rep := reportOf(t, viewRepo("devidence-dev/homelab", viewFile("kubernetes/infrastructure/traefik/application.yaml", viewDep("traefik", "helm", "42.3.0", "major:43.0.0"))))
+	view := documentViewOf(t, summaryAt(rep))
+	if len(view.Export.Sections) != 1 || view.Export.Sections[0].Key != "charts" {
+		t.Fatalf("sections = %+v, want charts only", view.Export.Sections)
+	}
+	got := view.Export.Header + "charts:\n" + view.Export.Sections[0].Repos[0].YAML
+	want := `scanned_at: "2026-10-12 09:07 America/Guayaquil"
+charts:
+  - repo: "devidence-dev/homelab"
+    fork: false
+    files:
+      - path: "kubernetes/infrastructure/traefik/application.yaml"
+        updates:
+          - name: "traefik"
+            current: "42.3.0"
+            new: "43.0.0"
+            type: "major"
+`
+	if got != want {
+		t.Errorf("export =\n%s\nwant\n%s", got, want)
+	}
+	out, err := NewDocumentPresenter(catalogWith(t, nil), loadZone(t, "America/Guayaquil"), "dependency-updates-{date}.yaml", "2006-01-02").Present(summaryAt(rep))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out), `data-export-open`) {
+		t.Error("chart-only document has no export button")
 	}
 }

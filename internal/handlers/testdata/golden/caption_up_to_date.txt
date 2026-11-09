@@ -3,5 +3,5 @@
 ✅ All up to date
 
 📊 0 outdated · 58 up to date
-🐳 Images: 0 · 📚 Packages: 0
+🐳 Images: 0 · 📚 Packages: 0 · ⛵ Charts: 0
 ⚠️ 3 scan errors

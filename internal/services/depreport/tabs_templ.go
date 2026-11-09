@@ -10,7 +10,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import "strconv"
 
-// Tabs are the tab list and the two panels, Dependencies first. report.js switches the selected tab,
+// Tabs are the tab list and the three panels, Dependencies first. report.js switches the selected tab,
 // moves the pill and shows the panel; the rendered state is the first tab selected.
 func Tabs(view documentView) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
@@ -157,7 +157,7 @@ func TabButton(t TabView) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" class=\"btn tab relative z-[1] flex flex-1 items-center justify-center gap-2 rounded-full p-2.5 font-medium text-muted transition-colors duration-300 hover:text-ink aria-[selected=true]:font-semibold aria-[selected=true]:text-tab-on-fg\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" class=\"btn tab relative z-[1] flex flex-1 items-center justify-center gap-2 rounded-full p-2.5 narrow:flex-col narrow:gap-1 narrow:px-1 font-medium text-muted transition-colors duration-300 hover:text-ink aria-[selected=true]:font-semibold aria-[selected=true]:text-tab-on-fg\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
