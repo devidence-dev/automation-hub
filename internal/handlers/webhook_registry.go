@@ -10,12 +10,18 @@ import (
 	"automation-hub/internal/config"
 	"automation-hub/internal/messages"
 	"automation-hub/internal/services/depreport"
+	"automation-hub/internal/services/media"
 	"automation-hub/internal/services/telegram"
 )
 
 // RouteEnv holds what the webhook routes are built from.
 type RouteEnv struct {
-	Telegram         *telegram.Client
+	Telegram      *telegram.Client
+	TorrentSender interface {
+		messageSender
+		SendPhoto(string, string, string) error
+		SendHTML(string, string) error
+	}
 	DependencyReport *config.DependencyReportConfig
 	Catalog          *messages.Catalog
 	Location         *time.Location
@@ -53,7 +59,19 @@ func LookupRouteFactory(name string, fromSection bool) (RouteFactory, bool) {
 }
 
 func newTorrentRoute(hook config.WebhookConfig, env RouteEnv) (Route, error) {
-	handler := NewWebhookHandler(env.Telegram, hook.Config, env.Logger)
+	sender := messageSender(env.Telegram)
+	if env.TorrentSender != nil {
+		sender = env.TorrentSender
+	}
+	handler := NewWebhookHandler(sender, hook.Config, env.Logger)
+	if m := hook.Config.Metadata; m != nil {
+		provider, err := media.NewProvider(m.Provider, m.BaseURL, m.APIKey, m.Timeout)
+		if err != nil {
+			return Route{}, err
+		}
+		handler.provider = provider
+		handler.catalog = env.Catalog
+	}
 	return Route{Path: hook.Path, Handler: http.HandlerFunc(handler.HandleTorrentComplete)}, nil
 }
 

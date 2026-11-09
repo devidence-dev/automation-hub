@@ -7,10 +7,12 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"go.uber.org/zap"
 
 	"automation-hub/internal/config"
+	"automation-hub/internal/messages"
 )
 
 func TestNewWebhookHandler(t *testing.T) {
@@ -127,6 +129,50 @@ func TestTorrentCompleteBodyCap(t *testing.T) {
 			}
 			if len(sender.messages) != wantSent {
 				t.Errorf("sent %d messages, want %d", len(sender.messages), wantSent)
+			}
+		})
+	}
+}
+
+type metadataWebhookSender struct {
+	photoErr, textErr        error
+	photos, texts, templates int
+}
+
+func (s *metadataWebhookSender) SendMessage(string, string) error { s.templates++; return s.textErr }
+func (s *metadataWebhookSender) SendPhoto(string, string, string) error {
+	s.photos++
+	return s.photoErr
+}
+func (s *metadataWebhookSender) SendHTML(string, string) error { s.texts++; return s.textErr }
+func TestWebhookMetadata(t *testing.T) {
+	for _, tt := range []struct {
+		name, body                     string
+		photoErr, textErr              error
+		want, photos, texts, templates int
+	}{
+		{name: "full", body: `{"Response":"True","Title":"Dune","Poster":"https://example.com/poster"}`, want: 200, photos: 1},
+		{name: "fallback", body: `{"Response":"False"}`, want: 200, templates: 1},
+		{name: "send failure", body: `{"Response":"True","Title":"Dune","Poster":"https://example.com/poster"}`, photoErr: errors.New("failed"), textErr: errors.New("failed"), want: 500, photos: 1, texts: 1},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte(tt.body)) }))
+			defer server.Close()
+			cat, err := messages.Load(nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			sender := &metadataWebhookSender{photoErr: tt.photoErr, textErr: tt.textErr}
+			hook := config.WebhookConfig{Name: "qbittorrent", Path: "/webhook/qbittorrent", Config: config.WebhookProcessorConfig{TelegramChatID: "123", TelegramMessage: "%s %s", Metadata: &config.MetadataConfig{Provider: "omdb", APIKey: "secret", BaseURL: server.URL, Timeout: time.Second}}}
+			route, err := newTorrentRoute(hook, RouteEnv{TorrentSender: sender, Catalog: cat, Logger: zap.NewNop()})
+			if err != nil {
+				t.Fatal(err)
+			}
+			req := httptest.NewRequest("POST", "/webhook/qbittorrent", strings.NewReader(`{"torrent_name":"Dune.2021.1080p","save_path":"/downloads"}`))
+			w := httptest.NewRecorder()
+			route.Handler.ServeHTTP(w, req)
+			if w.Code != tt.want || sender.photos != tt.photos || sender.texts != tt.texts || sender.templates != tt.templates {
+				t.Fatalf("status %d, sender %#v", w.Code, sender)
 			}
 		})
 	}

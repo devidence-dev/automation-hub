@@ -139,3 +139,11 @@ func TestRenderKeepsValuesWhole(t *testing.T) {
 		t.Errorf("Render() = %q, %v", got, err)
 	}
 }
+
+func TestTorrentCardOverride(t *testing.T) {
+	cat := mustLoad(t, map[string]any{"torrent": map[string]any{"card": map[string]any{"tags": "Tags: {tags}"}}})
+	got, err := cat.Render("torrent.card.tags", map[string]string{"tags": "4k"})
+	if err != nil || got != "Tags: 4k" {
+		t.Fatalf("render %q: %v", got, err)
+	}
+}

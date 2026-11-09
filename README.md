@@ -361,6 +361,18 @@ hook:
       telegram_message: "📥 Download complete: %s in %s"
 ```
 
+Optionally add the following under the hook's `config` to enrich torrent notifications with an OMDb poster, ratings, genre, runtime, release tags and an IMDb link:
+
+```yaml
+metadata:
+  provider: omdb
+  api_key: "YOUR_OMDB_API_KEY"
+  base_url: "https://www.omdbapi.com" # default
+  timeout: 5s # default
+```
+
+The key belongs in the `CONFIG_YAML` secret. The `internal-apps` NetworkPolicy must allow HTTPS egress to `www.omdbapi.com`. If the lookup fails, the existing template is sent; if the poster is unavailable, the card is sent as text. Without this block, the existing notification is unchanged. Card texts can be overridden under `messages.torrent.card`.
+
 Each `qbittorrent` hook can have:
 - ✅ **Custom chat destination**
 - ✅ **Personalized message format**

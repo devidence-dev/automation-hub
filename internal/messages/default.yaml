@@ -123,3 +123,17 @@ bot:
   restart_failed: "❌ Failed to restart the deployment. Check the hub logs or try again later."
   restart_ready: "✅ Deployment *{deployment}* is up and running again."
   restart_timeout: "⏱️ Deployment *{deployment}* did not report ready within {timeout} — check it manually."
+torrent:
+  card:
+    title: "<b>{title}</b>"
+    year: " ({year})"
+    episode: " · {episode}"
+    imdb_rating: "⭐ IMDb: {rating}"
+    rotten_tomatoes: "🍅 Rotten Tomatoes: {rating}"
+    genre: "{genre}"
+    runtime: "{runtime}"
+    rated: "{rated}"
+    tags: "🏷 {tags}"
+    link: "<a href=\"https://www.imdb.com/title/{id}/\">IMDb</a>"
+    separator: " · "
+    tags_separator: ", "

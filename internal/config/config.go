@@ -392,9 +392,20 @@ type WebhookConfig struct {
 	Config WebhookProcessorConfig `mapstructure:"config"`
 }
 
+const DefaultMetadataBaseURL = "https://www.omdbapi.com"
+const DefaultMetadataTimeout = 5 * time.Second
+
+type MetadataConfig struct {
+	Provider string        `mapstructure:"provider"`
+	APIKey   string        `mapstructure:"api_key"`
+	BaseURL  string        `mapstructure:"base_url"`
+	Timeout  time.Duration `mapstructure:"timeout"`
+}
+
 type WebhookProcessorConfig struct {
-	TelegramChatID  string `mapstructure:"telegram_chat_id"`
-	TelegramMessage string `mapstructure:"telegram_message"`
+	Metadata        *MetadataConfig `mapstructure:"metadata"`
+	TelegramChatID  string          `mapstructure:"telegram_chat_id"`
+	TelegramMessage string          `mapstructure:"telegram_message"`
 	// MaxBodyBytes caps the request body; a larger one gets 413. Zero means DefaultWebhookMaxBodyBytes.
 	MaxBodyBytes int64 `mapstructure:"max_body_bytes"`
 }
@@ -911,10 +922,51 @@ func validateRegexp(service, key, expression string) error {
 
 // validateHooks rejects a negative body cap of a webhook hook. The error names the hook and the key.
 func validateHooks(hooks []WebhookConfig) error {
-	for _, hook := range hooks {
+	for i := range hooks {
+		hook := &hooks[i]
+		if err := validateHookMetadata(hook); err != nil {
+			return err
+		}
 		if hook.Config.MaxBodyBytes < 0 {
 			return fmt.Errorf("hook.%s.config.max_body_bytes must not be negative, got %d", hook.Name, hook.Config.MaxBodyBytes)
 		}
 	}
 	return nil
+}
+
+// validateHookMetadata checks the metadata lookup of one hook, then fills its defaults.
+func validateHookMetadata(hook *WebhookConfig) error {
+	m := hook.Config.Metadata
+	if m == nil {
+		return nil
+	}
+	if err := validateMetadataFields(hook.Name, m); err != nil {
+		return err
+	}
+	applyMetadataDefaults(m)
+	return nil
+}
+
+// validateMetadataFields rejects an unsupported provider, an empty API key and a negative timeout. The error names the hook and the key.
+func validateMetadataFields(hookName string, m *MetadataConfig) error {
+	if m.Provider != "omdb" {
+		return fmt.Errorf("hook.%s.config.metadata.provider must be omdb", hookName)
+	}
+	if strings.TrimSpace(m.APIKey) == "" {
+		return fmt.Errorf("hook.%s.config.metadata.api_key must not be empty", hookName)
+	}
+	if m.Timeout < 0 {
+		return fmt.Errorf("hook.%s.config.metadata.timeout must not be negative", hookName)
+	}
+	return nil
+}
+
+// applyMetadataDefaults fills the timeout and base URL that the metadata lookup leaves unset.
+func applyMetadataDefaults(m *MetadataConfig) {
+	if m.Timeout == 0 {
+		m.Timeout = DefaultMetadataTimeout
+	}
+	if m.BaseURL == "" {
+		m.BaseURL = DefaultMetadataBaseURL
+	}
 }

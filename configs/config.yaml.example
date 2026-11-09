@@ -188,6 +188,11 @@ hook:
     config:
       telegram_chat_id: "{{TELEGRAM_QBITTORRENT_CHAT_ID}}"
       telegram_message: "📥 **Download completed successfully!** 🎬 \n🔍 **Name:**  \n%s\n📍 **Path:**  \n%s"
+      # metadata:
+      #   provider: omdb
+      #   api_key: "YOUR_OMDB_API_KEY"
+      #   base_url: "https://www.omdbapi.com" # default
+      #   timeout: 5s # default
       # max_body_bytes: 1048576  # Optional: body cap in bytes; a larger body gets 413 (default 1 MiB)
   # - name: "other-webhook"
   #   path: "/webhook/other-webhook"

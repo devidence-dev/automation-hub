@@ -530,3 +530,29 @@ func TestSendDocumentDoesNotRetryBadRequest(t *testing.T) {
 		t.Errorf("waits = %v, want none", rec.waits)
 	}
 }
+
+func TestSendPhotoSuccess(t *testing.T) {
+	client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/getMe") {
+			writeTelegramResponse(w, map[string]interface{}{"id": 1, "is_bot": true, "first_name": "Test"})
+			return
+		}
+		if !strings.HasSuffix(r.URL.Path, "/sendPhoto") {
+			t.Errorf("unexpected path %s", r.URL.Path)
+		}
+		if err := r.ParseForm(); err != nil {
+			t.Fatal(err)
+		}
+		if r.Form.Get("photo") != "https://example.com/poster.jpg" || r.Form.Get("caption") != "<b>Title</b>" || r.Form.Get("parse_mode") != "HTML" {
+			t.Errorf("unexpected form %v", r.Form)
+		}
+		writeTelegramResponse(w, map[string]interface{}{"message_id": 1, "date": 1, "chat": map[string]interface{}{"id": 123, "type": "private"}})
+	})
+	if err := client.SendPhoto("123", "https://example.com/poster.jpg", "<b>Title</b>"); err != nil {
+		t.Fatal(err)
+	}
+	var nilClient *Client
+	if err := nilClient.SendPhoto("123", "url", "caption"); err != nil {
+		t.Fatal(err)
+	}
+}

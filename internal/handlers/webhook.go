@@ -10,7 +10,9 @@ import (
 	"go.uber.org/zap"
 
 	"automation-hub/internal/config"
+	"automation-hub/internal/messages"
 	"automation-hub/internal/models"
+	"automation-hub/internal/services/media"
 	"automation-hub/internal/services/processor"
 )
 
@@ -21,9 +23,11 @@ type messageSender interface {
 
 // WebhookHandler turns the webhook of one configured hook into a Telegram message.
 type WebhookHandler struct {
-	sender messageSender
-	hook   *config.WebhookProcessorConfig
-	logger *zap.Logger
+	sender   messageSender
+	hook     *config.WebhookProcessorConfig
+	logger   *zap.Logger
+	provider media.Provider
+	catalog  *messages.Catalog
 }
 
 // NewWebhookHandler returns the handler for hook. The hook is read once at registration, not per request.
@@ -52,6 +56,14 @@ func (h *WebhookHandler) HandleTorrentComplete(w http.ResponseWriter, r *http.Re
 	}
 
 	torrentProc := processor.NewTorrentProcessor(h.sender, h.hook, h.logger)
+	if h.provider != nil {
+		if cards, ok := h.sender.(interface {
+			SendPhoto(string, string, string) error
+			SendHTML(string, string) error
+		}); ok {
+			torrentProc.ConfigureMetadata(h.provider, cards, h.catalog)
+		}
+	}
 
 	if err := torrentProc.Process(notification); err != nil {
 		h.logger.Error("Failed to process torrent notification", zap.Error(err))

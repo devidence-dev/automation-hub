@@ -20,11 +20,11 @@ func defaultCatalog(t *testing.T) *messages.Catalog {
 	return cat
 }
 
-// ownKeys returns the catalog keys this package shows. The bot keys belong to the handlers.
+// ownKeys returns the catalog keys this package shows. Bot and torrent keys belong to other packages.
 func ownKeys(cat *messages.Catalog) []string {
 	var keys []string
 	for _, key := range cat.Keys() {
-		if !strings.HasPrefix(key, "bot.") {
+		if !strings.HasPrefix(key, "bot.") && !strings.HasPrefix(key, "torrent.") {
 			keys = append(keys, key)
 		}
 	}

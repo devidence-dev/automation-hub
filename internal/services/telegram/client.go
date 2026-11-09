@@ -75,6 +75,21 @@ func (c *Client) SendHTML(chatID, message string) error {
 	return c.sendText(chatID, message, tgbotapi.ModeHTML)
 }
 
+// SendPhoto sends a URL as a photo with an HTML caption.
+func (c *Client) SendPhoto(chatID, photoURL, caption string) error {
+	if !c.ready() {
+		return nil
+	}
+	id, err := resolveChat(chatID)
+	if err != nil {
+		return err
+	}
+	photo := tgbotapi.NewPhoto(id, tgbotapi.FileURL(photoURL))
+	photo.Caption = caption
+	photo.ParseMode = tgbotapi.ModeHTML
+	return c.send(chatID, photo)
+}
+
 // SendDocument sends data as a file named filename, with caption as its HTML caption.
 // The caller must escape variable text in the caption.
 func (c *Client) SendDocument(chatID, filename, caption string, data []byte) error {
