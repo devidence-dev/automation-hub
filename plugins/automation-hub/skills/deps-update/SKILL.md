@@ -1,6 +1,6 @@
 ---
 name: deps-update
-description: "Apply a YAML update report (sections `images`, `dependencies` and `charts`, the automation-hub/Renovate dependency-report format) to the local devidence-dev repos. Phase 1 updates Docker images; phase 2, after the user confirms the images were pushed, updates dependencies (Go via go get, Python via uv, npm/bun, workflows, charts) using docker run. Use when the user pastes a YAML with `scanned_at` and any of `images:`, `dependencies:` or `charts:`, or asks to update dependencies/images from the report."
+description: "Apply a YAML update report (sections `images`, `dependencies` and `charts`, the automation-hub/Renovate dependency-report format) to the local devidence-dev repos in one pass: Docker images, dependencies (Go via go get, Python via uv, npm/bun, workflows) and charts, using docker run. It applies every safe update, leaves majors and breaking changes untouched, and ends with a summary table. Use when the user pastes a YAML with `scanned_at` and any of `images:`, `dependencies:` or `charts:`, or asks to update dependencies/images from the report."
 ---
 
 # deps-update
@@ -13,33 +13,43 @@ Pasted YAML or a file path:
 
 ```yaml
 scanned_at: "..."
-images:        # phase 1
+images:
   - repo: "devidence-dev/<repo>"
     fork: false
     files:
       - path: "<path inside the repo>"
         updates:
           - { name, current, new, type: major|minor|patch }
-dependencies:  # phase 2, same shape
-charts:        # phase 2, same shape
+dependencies:  # same shape
+charts:        # same shape
 ```
+
+Any section may be missing. Process them in this order, in one pass and without stopping: images first, because the dependency containers use the versions they leave in the repo.
 
 ## Preparation
 
-1. Map `devidence-dev/<repo>` to `${DEPS_UPDATE_REPOS_ROOT:-$HOME/repositories}/<repo>`. If it does not exist, report it and continue. Do not clone.
-2. `fork: true`: skip the repo and report it.
-3. Per repo: `git status --short`. If a file to edit already has uncommitted changes, warn and ask before editing it.
+1. Map `devidence-dev/<repo>` to `${DEPS_UPDATE_REPOS_ROOT:-$HOME/repositories}/<repo>`. If it does not exist, record it as skipped and continue. Do not clone.
+2. `fork: true`: skip the repo and record it.
+3. Per repo: `git status --short`. If a file to edit already has uncommitted changes, do not edit it: record its updates as skipped with that reason.
 4. Resolve duplicates of the same `name` in one file (e.g. node major + minor) with the **Version selection** rules before editing.
 
 ## Version selection
 
-- **patch / minor**: apply directly.
-- **node**: pick the newest LTS among the report's options. Check `https://nodejs.org/dist/index.json` (field `lts` not `false`). If the new major is already LTS, use it; otherwise keep the minor/patch on the current line.
-- **other majors**: do not apply without asking. Present them together, each with a recommendation (breaking-change risk), and apply only the ones the user approves. If a minor/patch alternative exists for the same `name`, apply that meanwhile.
-  - A Go major (`v1` to `v2`) changes the module path (`.../v2`) and imports: flag it.
-- **Consistency**: the same tool must end at the same version across the whole repo (e.g. node in `Dockerfile`, `.nvmrc` and `package.json` `engines`; `oven/bun` in `Dockerfile` and `.devcontainer`), even if one report section lists it and another does not.
+Do not stop to ask. Every update that is not applied goes in the final table with its reason.
 
-## Phase 1: images
+- **patch / minor**: apply directly.
+- **`0.y` minor** (`0.12.x` to `0.13.x`): semver allows breaking changes here. Apply it and keep it only if the validation of its ecosystem passes (see **Failed validation**).
+- **major**: never apply. Record it as skipped with a one-line breaking-change risk. If a minor/patch alternative exists for the same `name`, apply that instead.
+  - A Go major (`v1` to `v2`) changes the module path (`.../v2`) and imports: say so in the risk.
+- **Breaking change outside a major**: if the report or the release notes you consulted state one, treat the update as a major.
+- **node**: stay on the current major and take its newest minor/patch among the report's options. A new major is skipped like any other; say in the risk whether it is already LTS, per `https://nodejs.org/dist/index.json` (field `lts` not `false`).
+- **Consistency**: the same tool must end at the same version across the whole repo (e.g. node in `Dockerfile`, `.nvmrc` and `package.json` `engines`; `oven/bun` in `Dockerfile` and `.devcontainer`), even if one report section lists it and another does not. If one occurrence is skipped, leave every occurrence at its current version.
+
+## Failed validation
+
+The files of an update are clean before this run (see **Preparation**), so a failure can be undone with `git restore` on the files this run edited in that ecosystem. Retry the updates one by one, keep those that pass, and record the others as failed with the decisive error line.
+
+## Images
 
 Edit only the version text, keeping the existing format:
 
@@ -47,13 +57,9 @@ Edit only the version text, keeping the existing format:
 - **devcontainer.json**: `image` same as Dockerfile. `features` (`ghcr.io/devcontainers/features/x:<ver>`): change the tag.
 - **k8s/helm YAML** (`values.yaml`, manifests): change `tag:` or `image: img:<ver>`, keeping the `v` prefix if present.
 
-When phase 1 is done:
+Run `docker build` of a modified Dockerfile only if the user asks.
 
-1. Show `git diff --stat` and the diff per repo.
-2. Optional check if the user asks: `docker build` of the modified Dockerfile.
-3. **Stop.** Tell the user to commit/push the images and wait for their confirmation before phase 2.
-
-## Phase 2: dependencies
+## Dependencies and charts
 
 All tools run in a container, never locally. Base for all:
 
@@ -61,7 +67,7 @@ All tools run in a container, never locally. Base for all:
 docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD":/app -w /app <image> <cmd>
 ```
 
-Use as `<image>` the version left in the repo's Dockerfile after phase 1 (golang, node, bun, python). If the repo has no Dockerfile with that image, use the version from the `go` directive / `.nvmrc` / `requires-python`.
+Use as `<image>` the version left in the repo's Dockerfile by the image updates (golang, node, bun, python). If the repo has no Dockerfile with that image, use the version from the `go` directive / `.nvmrc` / `requires-python`.
 
 ### Go (`go.mod`)
 
@@ -98,14 +104,18 @@ docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -e UV_CACHE_DIR=/tmp/uv \
 
 ### Text edits only
 
-- **Reusable workflows / actions** (`uses: owner/repo/...@<ref>`): respect the ref style. If it is floating (`@v1`) and the update is a minor/patch of the same major, nothing changes: report it as "already covered". If it is a major, the majors rule applies and the ref becomes `@v2` (floating if it was floating).
+- **Reusable workflows / actions** (`uses: owner/repo/...@<ref>`): respect the ref style. If it is floating (`@v1`) and the update is a minor/patch of the same major, nothing changes: record it as "already covered". If it is a major, the majors rule applies and the ref stays as it is.
 - **ArgoCD/Helm** (`targetRevision`, chart `version`): change the value keeping the quotes. Entries of the `charts:` section use this rule: in the file at `path`, change `targetRevision` only in the source block whose `chart:` equals `name`, because one file can hold several sources, keeping the quotes; the majors rule applies.
 
 ## Wrap-up
 
 1. `git add` the touched files per repo (no commit).
-2. Final summary per repo:
-   - Applied (`name current -> new`).
-   - Skipped with reason: major not approved, already covered by floating tag, fork, missing repo, build failure.
-   - Docker commands that failed, with the decisive error line.
+2. End with one summary table, one row per update of the report, sorted by repo and then file:
+
+   | Repo | File | Name | Current → New | Type | Status | Note |
+   |---|---|---|---|---|---|---|
+
+   - `Status` is `Applied`, `Skipped`, `Failed` or `Covered` (already covered by a floating tag).
+   - `Note` is empty for `Applied`. Otherwise it holds the reason: major with its one-line risk, breaking change, fork, missing repo, uncommitted changes, or the decisive error line.
+   - Below the table, give the count per status.
 3. Remind the user that commit/push is theirs to do.
