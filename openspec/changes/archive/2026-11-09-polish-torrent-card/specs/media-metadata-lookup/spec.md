@@ -51,10 +51,14 @@ When the hook has a `metadata` block with `provider: omdb`, the hub SHALL query 
 ## ADDED Requirements
 
 ### Requirement: Poster resolution
-The lookup SHALL return the poster URL with its `_SX<digits>` width segment replaced by `_SX<poster_width>` when `poster_width` is above `0` and the URL contains that segment. Otherwise the URL MUST be returned unchanged. When the URL was resized, the lookup MUST also return the original URL as the fallback poster.
+The lookup SHALL return the poster URL with its image transform segment, everything between `._V1_` and the file extension (for example `SX300` or `QL75_UX380_CR0,0,380,562_`), replaced by `SX<poster_width>`, when `poster_width` is above `0` and the URL contains `._V1_`. Otherwise the URL MUST be returned unchanged. When the URL was resized, the lookup MUST also return the original URL as the fallback poster.
 
-#### Scenario: Resized
+#### Scenario: Resized thumbnail
 - **WHEN** `poster_width` is `1000` and OMDb returns `https://m.media-amazon.com/images/M/MV5BNzk@._V1_SX300.jpg`
+- **THEN** the poster is `https://m.media-amazon.com/images/M/MV5BNzk@._V1_SX1000.jpg` and the fallback poster is the original URL
+
+#### Scenario: Resized cropped thumbnail
+- **WHEN** `poster_width` is `1000` and OMDb returns `https://m.media-amazon.com/images/M/MV5BNzk@._V1_QL75_UX380_CR0,0,380,562_.jpg`
 - **THEN** the poster is `https://m.media-amazon.com/images/M/MV5BNzk@._V1_SX1000.jpg` and the fallback poster is the original URL
 
 #### Scenario: Unknown pattern

@@ -5,6 +5,8 @@
 - [x] 1.1 Add `Plot, Director, Actors, IMDbVotes, Metacritic, PosterFallback` to `media.Metadata`, parse them in the OMDb client (`N/A` is empty; Metacritic from `Ratings` through one shared helper). Verify: `omdb_test.go` table cases for found, missing fields, `Plot: N/A`.
 - [x] 1.2 Add `ResizePoster(url, width)` and use it in the OMDb client (the factory and `NewOMDb` take `posterWidth`). Verify: `poster_test.go` for resized, unknown pattern, width `0`, empty URL; `omdb_test.go` asserts poster and fallback.
 
+- [x] 1.3 Fix `ResizePoster` to replace everything between `._V1_` and the file extension, so `_QL75_UX380_CR0,0,380,562_` URLs are resized too. Verify: `poster_test.go` cases for `_SX300`, `_QL75_UX380_CR0,0,380,562_`, a URL without `._V1_`, width `0`, and the real URL `https://m.media-amazon.com/images/M/MV5BMDg5NDFkNTctZWE2ZC00MDYzLThlYjItZTljZDY3NTcwNjA3XkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg` -> `..._V1_SX1000.jpg`.
+
 ## 2. Configuration
 
 - [x] 2.1 Add `PosterWidth` and `PlotMaxChars` (`*int`) to `MetadataConfig`, default constants, defaults in `applyMetadataDefaults`, negative check in `validateMetadataFields` naming `hook.<name>.config.metadata.<key>`. Verify: `metadata_test.go` cases for defaults, explicit `0`, negative width, negative plot length.
